@@ -1,7 +1,9 @@
-set(graviton-server_SRCS
-  main.c
+set(libgraviton-plugin_SRCS
   plugin.c
   plugin-manager.c
+)
+set(graviton-server_SRCS
+  main.c
   info-plugin.c
 )
 
@@ -24,8 +26,16 @@ include_directories(
 )
 
 add_executable(graviton-server ${graviton-server_SRCS})
+add_library(graviton-plugin SHARED ${libgraviton-plugin_SRCS})
+
+target_link_libraries(graviton-plugin
+  ${GLIB_LIBRARIES}
+  ${SOUP_LIBRARIES}
+  ${JSON_LIBRARIES}
+)
 
 target_link_libraries(graviton-server
+  graviton-plugin
   ${GLIB_LIBRARIES}
   ${SOUP_LIBRARIES}
   ${JSON_LIBRARIES}
