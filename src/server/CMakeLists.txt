@@ -1,6 +1,9 @@
 set(graviton-server_SRCS
-    main.c
-    )
+  main.c
+  plugin.c
+  plugin-manager.c
+  info-plugin.c
+)
 
 find_package(PkgConfig REQUIRED)
 
