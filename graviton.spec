@@ -28,7 +28,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %doc
-
+%{_bindir}/graviton-server
 
 
 %changelog
