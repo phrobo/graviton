@@ -1,7 +1,7 @@
 #include "config.h"
-#include "plugin-manager.h"
 #include "info-plugin.h"
-#include "plugin.h"
+#include <graviton-plugin/plugin-manager.h>
+#include <graviton-plugin/plugin.h>
 
 #include <glib.h>
 #include <libsoup/soup.h>

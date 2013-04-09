@@ -2,7 +2,7 @@
 #define GRAVITON_INFO_PLUGIN_H
 
 #include <glib-object.h>
-#include "plugin.h"
+#include <graviton-plugin/plugin.h>
 
 #define GRAVITON_TYPE_INFO_PLUGIN     (graviton_info_plugin_get_type ())
 #define GRAVITON_INFO_PLUGIN          (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_INFO_PLUGIN, GravitonInfoPlugin))
