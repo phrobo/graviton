@@ -17,5 +17,6 @@ include_directories(
   ${JSON_INCLUDE_DIRS}
 )
 
-add_subdirectory(server)
 add_subdirectory(graviton-plugin)
+add_subdirectory(graviton-server)
+add_subdirectory(server)

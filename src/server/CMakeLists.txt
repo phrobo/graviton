@@ -3,13 +3,14 @@ set(graviton-server_SRCS
   info-plugin.c
 )
 
-add_executable(graviton-server ${graviton-server_SRCS})
+add_executable(graviton-server-bin ${graviton-server_SRCS})
 
-target_link_libraries(graviton-server
+target_link_libraries(graviton-server-bin
   graviton-plugin
-  ${GLIB_LIBRARIES}
-  ${SOUP_LIBRARIES}
-  ${JSON_LIBRARIES}
+  graviton-server
 )
 
-install(TARGETS graviton-server DESTINATION bin)
+set_target_properties(graviton-server-bin PROPERTIES OUTPUT_NAME
+graviton-server)
+
+install(TARGETS graviton-server-bin DESTINATION bin)
