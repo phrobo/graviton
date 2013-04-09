@@ -30,3 +30,5 @@ target_link_libraries(graviton-server
   ${SOUP_LIBRARIES}
   ${JSON_LIBRARIES}
 )
+
+install(TARGETS graviton-server DESTINATION bin)
