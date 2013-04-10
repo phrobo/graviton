@@ -1,6 +1,5 @@
 set(graviton-server_SRCS
   main.c
-  info-plugin.c
 )
 
 add_executable(graviton-server-bin ${graviton-server_SRCS})

@@ -32,4 +32,21 @@ GType graviton_plugin_get_type ();
 
 const gchar *graviton_plugin_get_name (GravitonPlugin *plugin);
 
+typedef GravitonPlugin *(*GravitonPluginLoaderFunc)(void);
+
+typedef struct _GravitonPluginInfo GravitonPluginInfo;
+
+struct _GravitonPluginInfo
+{
+  GravitonPluginLoaderFunc make_plugin;
+  const gchar *mount;
+};
+
+#define GRAVITON_DEFINE_PLUGIN(type, mountpoint) \
+  GravitonPlugin *new_plugin(void) { return g_object_new((type), NULL); } \
+  GravitonPluginInfo graviton_plugin = {\
+    .make_plugin = (new_plugin), \
+    .mount = (mountpoint) \
+  }; \
+
 #endif // GRAVITON_PLUGIN_H

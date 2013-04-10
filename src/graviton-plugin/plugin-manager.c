@@ -1,4 +1,5 @@
 #include "plugin-manager.h"
+#include "plugin.h"
 
 #define GRAVITON_PLUGIN_MANAGER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_PLUGIN_MANAGER, GravitonPluginManagerPrivate))
 
@@ -58,4 +59,42 @@ GravitonPlugin *
 graviton_plugin_manager_mounted_plugin (GravitonPluginManager *self, const gchar *mount)
 {
   return g_hash_table_lookup (self->priv->plugins, mount);
+}
+
+GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *self)
+{
+  GArray *pluginList = g_array_new(FALSE, FALSE, sizeof (GravitonPluginInfo*));
+  const gchar *pluginPath = g_getenv("GRAVITON_PLUGIN_PATH");
+  g_debug ("Searching %s for plugins\n", pluginPath);
+  GDir *pluginDir = g_dir_open (pluginPath, 0, NULL);
+  const gchar *entry = g_dir_read_name (pluginDir);
+  while (entry) {
+    gchar *entryPath = g_build_path ("/", pluginPath, entry, NULL);
+    g_debug ("Attempting to load plugin %s", entryPath);
+    GModule *module = g_module_open (entryPath, G_MODULE_BIND_LOCAL);
+    GravitonPluginInfo *plugin_info;
+    if (!module) {
+      g_warning ("Can't open plugin %s: %s", entryPath, g_module_error ());
+      goto nextPlugin;
+    }
+
+    if (!g_module_symbol (module, "graviton_plugin", (gpointer *)&plugin_info)) {
+      g_warning ("Can't find graviton_plugin symbol in %s: %s", entryPath, g_module_error ());
+      goto nextPlugin;
+    }
+
+    if (plugin_info == NULL) {
+      g_warning ("graviton_plugin symbol is NULL in %s: %s", entryPath, g_module_error ());
+      goto nextPlugin;
+    }
+
+    g_array_append_val (pluginList, plugin_info);
+
+nextPlugin:
+    entry = g_dir_read_name (pluginDir);
+  }
+
+  g_dir_close (pluginDir);
+
+  return pluginList;
 }

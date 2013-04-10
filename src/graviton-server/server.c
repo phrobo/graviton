@@ -8,7 +8,7 @@
 
 #define GRAVITON_SERVER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_SERVER, GravitonServerPrivate))
 
-G_DEFINE_TYPE (GravitonServer, graviton_server, GRAVITON_TYPE_SERVER);
+G_DEFINE_TYPE (GravitonServer, graviton_server, G_TYPE_OBJECT);
 
 struct _GravitonServerPrivate
 {
@@ -32,7 +32,7 @@ cb_handle_soup (SoupServer *server,
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
   GravitonPlugin *plugin = graviton_plugin_manager_mounted_plugin (self->priv->plugins, path);
-  g_printf("Requesting %s\n", path);
+  g_debug ("Requesting %s", path);
   if (!plugin) {
     soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
     return;
@@ -86,4 +86,17 @@ GravitonServer *graviton_server_new ()
 void graviton_server_run_async (GravitonServer *self)
 {
   soup_server_run_async (self->priv->server);
+}
+
+void graviton_server_load_plugins (GravitonServer *self)
+{
+  int i;
+  GArray *plugins;
+  
+  plugins = graviton_plugin_manager_find_plugins (self->priv->plugins);
+  for (i = 0; i < plugins->len; i++) {
+    GravitonPluginInfo *info = g_array_index (plugins, GravitonPluginInfo*, i);
+    g_debug ("Mounting plugin on %s", info->mount);
+    graviton_plugin_manager_mount_plugin (self->priv->plugins, info->make_plugin(), info->mount);
+  }
 }

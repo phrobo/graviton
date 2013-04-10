@@ -31,4 +31,6 @@ GType graviton_server_get_type ();
 GravitonServer *graviton_server_new ();
 void graviton_server_run_async (GravitonServer *server);
 
+void graviton_server_load_plugins (GravitonServer *server);
+
 #endif // GRAVITON_SERVER_H
