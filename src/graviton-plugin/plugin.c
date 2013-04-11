@@ -16,6 +16,10 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {
 struct _GravitonPluginPrivate
 {
   gchar *mount;
+  GHashTable *handlers;
+  GHashTable *handler_data;
+  GravitonPluginPathHandler nullHandler;
+  gpointer nullHandlerData; 
 };
 
 static void
@@ -49,6 +53,37 @@ plugin_get_property (GObject *object,
   }
 }
 
+static JsonNode*
+handle_get(GravitonPlugin *self, const gchar *path, GHashTable *args)
+{
+  GravitonPluginPathHandler handler;
+  gpointer data;
+  handler = g_hash_table_lookup (self->priv->handlers, path);
+  data = g_hash_table_lookup (self->priv->handler_data, path);
+  if (!handler) {
+    handler = self->priv->nullHandler;
+    data = self->priv->nullHandlerData;
+  }
+  if (handler) {
+    return handler(self, path, data);
+  } else {
+    g_message ("No handler defined for %s", path);
+    return NULL;
+  }
+}
+
+void
+graviton_plugin_register_handler(GravitonPlugin *self, const gchar *path, GravitonPluginPathHandler handler, gpointer user_data)
+{
+  if (path) {
+    g_hash_table_replace (self->priv->handlers, g_strdup (path), handler);
+    g_hash_table_replace (self->priv->handler_data, g_strdup (path), user_data);
+  } else {
+    self->priv->nullHandler = handler;
+    self->priv->nullHandlerData = user_data;
+  }
+}
+
 
 static void
 graviton_plugin_class_init (GravitonPluginClass *klass)
@@ -68,6 +103,7 @@ graviton_plugin_class_init (GravitonPluginClass *klass)
   g_object_class_install_properties (gobject_class,
                                      N_PROPERTIES,
                                      obj_properties);
+  klass->handle_get = handle_get;
 }
 
 static void
@@ -77,6 +113,14 @@ graviton_plugin_init (GravitonPlugin *self)
   self->priv = priv = GRAVITON_PLUGIN_GET_PRIVATE (self);
 
   priv->mount = 0;
+  priv->handlers = g_hash_table_new_full (g_str_hash,
+                                          g_str_equal,
+                                          g_free,
+                                          NULL);
+  priv->handler_data = g_hash_table_new_full (g_str_hash,
+                                          g_str_equal,
+                                          g_free,
+                                          NULL);
 }
 
 const gchar *graviton_plugin_get_name (GravitonPlugin *self)

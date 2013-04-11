@@ -45,6 +45,11 @@ cb_handle_soup (SoupServer *server,
   JsonGenerator *generator = json_generator_new ();
 
   JsonNode *root = GRAVITON_PLUGIN_GET_CLASS (plugin)->handle_get (plugin, path, query);
+  if (!root) {
+    soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+    g_object_unref (generator);
+    return;
+  }
   json_generator_set_root (generator, root);
   gsize length;
   gchar *data = json_generator_to_data (generator, &length);

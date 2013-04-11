@@ -49,4 +49,8 @@ struct _GravitonPluginInfo
     .mount = (mountpoint) \
   }; \
 
+typedef JsonNode *(*GravitonPluginPathHandler)(GravitonPlugin *self, const gchar *path, gpointer user_data);
+
+void graviton_plugin_register_handler(GravitonPlugin *self, const gchar *path, GravitonPluginPathHandler handler, gpointer user_data);
+
 #endif // GRAVITON_PLUGIN_H

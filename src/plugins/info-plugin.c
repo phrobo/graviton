@@ -12,8 +12,16 @@ struct _GravitonInfoPluginPrivate
 {
 };
 
+static void
+graviton_info_plugin_class_init (GravitonInfoPluginClass *klass)
+{
+  //g_type_class_add_private (klass, sizeof (GravitonInfoPluginPrivate));
+
+  GravitonPluginClass *plugin_class = GRAVITON_PLUGIN_CLASS (klass);
+}
+
 static JsonNode *
-handle_get (GravitonPlugin *self, const gchar *path, GHashTable *args)
+cb_root(GravitonPlugin *self, const gchar *path, gpointer user_data)
 {
   JsonNode *node;
   JsonBuilder *builder = json_builder_new ();
@@ -28,18 +36,9 @@ handle_get (GravitonPlugin *self, const gchar *path, GHashTable *args)
 }
 
 static void
-graviton_info_plugin_class_init (GravitonInfoPluginClass *klass)
-{
-  //g_type_class_add_private (klass, sizeof (GravitonInfoPluginPrivate));
-
-  GravitonPluginClass *plugin_class = GRAVITON_PLUGIN_CLASS (klass);
-
-  plugin_class->handle_get = handle_get;
-}
-
-static void
 graviton_info_plugin_init (GravitonInfoPlugin *self)
 {
   GravitonInfoPluginPrivate *priv;
   //self->priv = priv = GRAVITON_INFO_PLUGIN_GET_PRIVATE (self);
+  graviton_plugin_register_handler(GRAVITON_PLUGIN(self), NULL, cb_root, NULL);
 }
