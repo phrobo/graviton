@@ -3,6 +3,7 @@
 #include <json-glib/json-glib.h>
 #include <graviton-plugin/plugin-manager.h>
 #include <graviton-plugin/plugin.h>
+#include <string.h>
 
 #include "config.h"
 
@@ -31,24 +32,35 @@ cb_handle_soup (SoupServer *server,
          gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
-  GravitonPlugin *plugin = graviton_plugin_manager_mounted_plugin (self->priv->plugins, path);
-  g_debug ("Requesting %s", path);
+  gchar *plugin_path;
+  gchar **path_elements = g_strsplit(path, "/", 3);
+
+  g_debug ("Requesting %s (%s)", path_elements[1], path);
+  GravitonPlugin *plugin = graviton_plugin_manager_mounted_plugin (self->priv->plugins, path_elements[1]);
+
+  if (strlen(path_elements[1]) == 0) {
+    //TODO: list plugins
+    soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
+    goto out;
+  }
+
+  plugin_path = g_strjoinv("/", &path_elements[2]);
   if (!plugin) {
     soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
-    return;
+    goto out;
   }
 
   if (msg->method != SOUP_METHOD_GET) {
     soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
-    return;
+    goto out;
   }
   JsonGenerator *generator = json_generator_new ();
 
-  JsonNode *root = GRAVITON_PLUGIN_GET_CLASS (plugin)->handle_get (plugin, path, query);
+  JsonNode *root = GRAVITON_PLUGIN_GET_CLASS (plugin)->handle_get (plugin, plugin_path, query);
   if (!root) {
     soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
     g_object_unref (generator);
-    return;
+    goto out;
   }
   json_generator_set_root (generator, root);
   gsize length;
@@ -64,6 +76,8 @@ cb_handle_soup (SoupServer *server,
                              data,
                              length);
   g_free (data);
+out:
+  g_strfreev (path_elements);
 }
 
 

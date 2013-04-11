@@ -56,10 +56,23 @@ plugin_get_property (GObject *object,
 static JsonNode*
 handle_get(GravitonPlugin *self, const gchar *path, GHashTable *args)
 {
-  GravitonPluginPathHandler handler;
+  GravitonPluginPathHandler handler = NULL;
   gpointer data;
-  handler = g_hash_table_lookup (self->priv->handlers, path);
-  data = g_hash_table_lookup (self->priv->handler_data, path);
+  gchar **path_elements = g_strsplit(path, "/", 0);
+  int element_count = g_strv_length (path_elements);
+  g_debug ("handling %s", path);
+  while (handler == NULL && element_count > 0) {
+    gchar *subpath;
+    subpath = g_strjoinv ("/", path_elements);
+    g_debug ("Searching for %s", subpath);
+    handler = g_hash_table_lookup (self->priv->handlers, subpath);
+    data = g_hash_table_lookup (self->priv->handler_data, subpath);
+    g_free (subpath);
+    element_count--;
+    g_free (path_elements[element_count]);
+    path_elements[element_count] = NULL;
+  }
+  g_free (path_elements);
   if (!handler) {
     handler = self->priv->nullHandler;
     data = self->priv->nullHandlerData;
