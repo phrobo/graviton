@@ -85,15 +85,18 @@ static void
 graviton_server_init (GravitonServer *self)
 {
   GravitonServerPrivate *priv;
+  SoupAddress *address = soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, 2718);
   self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
 
   priv->plugins = graviton_plugin_manager_new ();
 
   priv->server = soup_server_new (
-    "port", 2718,
+    "interface", address,
     "server-header", "Graviton/" GRAVITON_VERSION " ",
     NULL
   );
+
+  g_object_unref (address);
 
   soup_server_add_handler (priv->server, NULL, cb_handle_soup, self, NULL);
 }
