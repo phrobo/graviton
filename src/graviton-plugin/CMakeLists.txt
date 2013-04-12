@@ -10,3 +10,5 @@ target_link_libraries(graviton-plugin
   ${SOUP_LIBRARIES}
   ${JSON_LIBRARIES}
 )
+
+install(TARGETS graviton-plugin DESTINATION lib${LIB_SUFFIX})
