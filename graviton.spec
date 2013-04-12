@@ -8,9 +8,18 @@ URL:            http://aether.phrobo.net/
 Source0:        %{name}-%{version}.tar.bz2
 
 BuildRequires:  glib2-devel libsoup-devel json-glib-devel cmake
+BuildRequires:  libmpdclient-devel
 
 %description
 Graviton pulls your network together
+
+%package plugin-mpd
+Requires:       %{name} = %{version}
+Requires:       mpd
+Summary:        MPD plugin for Graviton
+
+%description plugin-mpd
+MPD plugin for Graviton
 
 %prep
 %setup -q
@@ -29,6 +38,12 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %doc
 %{_bindir}/graviton-server
+%{_libdir}/*
+%dir %{_datadir}/graviton/
+%dir %{_datadir}/graviton/plugins/
+%{_datadir}/graviton/plugins/info.so
 
+%files plugin-mpd
+%{_datadir}/graviton/plugins/mpd.so
 
 %changelog
