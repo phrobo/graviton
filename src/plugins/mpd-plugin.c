@@ -74,6 +74,91 @@ cb_status(GravitonPlugin *plugin_self, const gchar *path, gpointer user_data)
   return node;
 }
 
+static JsonNode*
+cb_playlist(GravitonPlugin *plugin_self, const gchar *path, gpointer user_data)
+{
+  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN(plugin_self);
+  JsonNode *node;
+  JsonBuilder *builder = json_builder_new ();
+
+  json_builder_begin_object (builder);
+  if (connect_to_mpd (self) == MPD_ERROR_SUCCESS) {
+  }
+  json_builder_set_member_name (builder, "error");
+  json_builder_add_string_value (builder, mpd_connection_get_error_message (self->priv->mpd));
+  json_builder_end_object (builder);
+
+  node = json_builder_get_root (builder);
+  g_object_unref (builder);
+  return node;
+}
+
+static JsonNode*
+cb_next(GravitonPlugin *plugin_self, const gchar *path, gpointer user_data)
+{
+  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN(plugin_self);
+  JsonNode *node;
+  JsonBuilder *builder = json_builder_new ();
+
+  json_builder_begin_object (builder);
+  if (connect_to_mpd (self) == MPD_ERROR_SUCCESS) {
+    json_builder_set_member_name (builder, "success");
+    gboolean ret = mpd_run_next (self->priv->mpd);
+    json_builder_add_boolean_value (builder, ret);
+  }
+  json_builder_set_member_name (builder, "error");
+  json_builder_add_string_value (builder, mpd_connection_get_error_message (self->priv->mpd));
+  json_builder_end_object (builder);
+
+  node = json_builder_get_root (builder);
+  g_object_unref (builder);
+  return node;
+}
+
+static JsonNode*
+cb_pause(GravitonPlugin *plugin_self, const gchar *path, gpointer user_data)
+{
+  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN(plugin_self);
+  JsonNode *node;
+  JsonBuilder *builder = json_builder_new ();
+
+  json_builder_begin_object (builder);
+  if (connect_to_mpd (self) == MPD_ERROR_SUCCESS) {
+    json_builder_set_member_name (builder, "success");
+    gboolean ret = mpd_run_pause (self->priv->mpd, TRUE);
+    json_builder_add_boolean_value (builder, ret);
+  }
+  json_builder_set_member_name (builder, "error");
+  json_builder_add_string_value (builder, mpd_connection_get_error_message (self->priv->mpd));
+  json_builder_end_object (builder);
+
+  node = json_builder_get_root (builder);
+  g_object_unref (builder);
+  return node;
+}
+
+static JsonNode*
+cb_play(GravitonPlugin *plugin_self, const gchar *path, gpointer user_data)
+{
+  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN(plugin_self);
+  JsonNode *node;
+  JsonBuilder *builder = json_builder_new ();
+
+  json_builder_begin_object (builder);
+  if (connect_to_mpd (self) == MPD_ERROR_SUCCESS) {
+    json_builder_set_member_name (builder, "success");
+    gboolean ret = mpd_run_play (self->priv->mpd);
+    json_builder_add_boolean_value (builder, ret);
+  }
+  json_builder_set_member_name (builder, "error");
+  json_builder_add_string_value (builder, mpd_connection_get_error_message (self->priv->mpd));
+  json_builder_end_object (builder);
+
+  node = json_builder_get_root (builder);
+  g_object_unref (builder);
+  return node;
+}
+
 static void
 graviton_mpd_plugin_init (GravitonMPDPlugin *self)
 {
@@ -83,4 +168,8 @@ graviton_mpd_plugin_init (GravitonMPDPlugin *self)
   connect_to_mpd (self);
 
   graviton_plugin_register_handler(GRAVITON_PLUGIN(self), "status", cb_status, NULL);
+  graviton_plugin_register_handler(GRAVITON_PLUGIN(self), "play", cb_play, NULL);
+  graviton_plugin_register_handler(GRAVITON_PLUGIN(self), "pause", cb_pause, NULL);
+  graviton_plugin_register_handler(GRAVITON_PLUGIN(self), "next", cb_next, NULL);
+  graviton_plugin_register_handler(GRAVITON_PLUGIN(self), "playlist", cb_playlist, NULL);
 }
