@@ -59,7 +59,10 @@ graviton_plugin_manager_mount_plugin (GravitonPluginManager *self, GravitonPlugi
 GravitonPlugin *
 graviton_plugin_manager_mounted_plugin (GravitonPluginManager *self, const gchar *mount)
 {
-  return g_hash_table_lookup (self->priv->plugins, mount);
+  GravitonPlugin *ret = g_hash_table_lookup (self->priv->plugins, mount);
+  if (ret)
+    g_object_ref (ret);
+  return ret;
 }
 
 GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *self)

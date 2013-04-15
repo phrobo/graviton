@@ -145,6 +145,9 @@ out:
   result = json_builder_get_root (builder);
   g_strfreev (method_name);
   g_object_unref (builder);
+  
+  if (plugin)
+    g_object_unref (plugin);
   return result;
 }
 
