@@ -1,6 +1,7 @@
 set(libgraviton-plugin_SRCS
   plugin.c
   plugin-manager.c
+  control.c
 )
 
 add_library(graviton-plugin SHARED ${libgraviton-plugin_SRCS})

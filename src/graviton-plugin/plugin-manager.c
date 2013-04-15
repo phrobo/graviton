@@ -52,6 +52,7 @@ void
 graviton_plugin_manager_mount_plugin (GravitonPluginManager *self, GravitonPlugin *plugin, const gchar *mount)
 {
   g_object_ref (plugin);
+  g_debug ("Mounting %s", mount);
   g_hash_table_replace (self->priv->plugins, g_strdup(mount), plugin);
 }
 
@@ -70,6 +71,8 @@ GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *self)
   const gchar *entry = g_dir_read_name (pluginDir);
   while (entry) {
     gchar *entryPath = g_build_path ("/", pluginPath, entry, NULL);
+    if (!g_str_has_suffix (entryPath, ".so"))
+      goto nextPlugin;
     g_debug ("Attempting to load plugin %s", entryPath);
     GModule *module = g_module_open (entryPath, G_MODULE_BIND_LOCAL);
     GravitonPluginInfo *plugin_info;
@@ -97,4 +100,10 @@ nextPlugin:
   g_dir_close (pluginDir);
 
   return pluginList;
+}
+
+GList *
+graviton_plugin_manager_list_plugins (GravitonPluginManager *self)
+{
+  return g_hash_table_get_keys (self->priv->plugins);
 }

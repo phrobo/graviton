@@ -3,6 +3,7 @@
 
 #include <glib-object.h>
 #include <json-glib/json-glib.h>
+#include <graviton-plugin/control.h>
 
 #define GRAVITON_TYPE_PLUGIN            (graviton_plugin_get_type ())
 #define GRAVITON_PLUGIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_PLUGIN, GravitonPlugin))
@@ -25,7 +26,6 @@ struct _GravitonPlugin
 struct _GravitonPluginClass
 {
   GObjectClass parent_class;
-  JsonNode *(*handle_get) (GravitonPlugin *self, const gchar *path, GHashTable *args);
 };
 
 GType graviton_plugin_get_type ();
@@ -52,5 +52,14 @@ struct _GravitonPluginInfo
 typedef JsonNode *(*GravitonPluginPathHandler)(GravitonPlugin *self, const gchar *path, gpointer user_data);
 
 void graviton_plugin_register_handler(GravitonPlugin *self, const gchar *path, GravitonPluginPathHandler handler, gpointer user_data);
+
+void graviton_plugin_register_control (GravitonPlugin *self,
+                                       const gchar *path,
+                                       GravitonControl *control);
+
+GravitonControl *graviton_plugin_get_control (GravitonPlugin *self,
+                                  const gchar *path);
+
+GList *graviton_plugin_list_controls (GravitonPlugin *self);
 
 #endif // GRAVITON_PLUGIN_H

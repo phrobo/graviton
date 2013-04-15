@@ -10,9 +10,6 @@ macro(add_graviton_plugin _name _source)
   )
 endmacro(add_graviton_plugin)
 
-add_graviton_plugin(info info-plugin.c)
-install(TARGETS graviton-plugin-info DESTINATION ${GRAVITON_PLUGIN_PATH})
-
 option(USE_MPD "Enable MPD plugin" TRUE)
 
 if (USE_MPD)

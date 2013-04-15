@@ -1,5 +1,6 @@
 set(libgraviton-server_SRCS
   server.c
+  internal-plugin.c
 )
 
 add_library(graviton-server ${libgraviton-server_SRCS})
