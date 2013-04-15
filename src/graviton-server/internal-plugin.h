@@ -14,7 +14,8 @@
 #define GRAVITON_INTROSPECTION_ERROR (graviton_introspection_error_quark ())
 
 typedef enum {
-  GRAVITON_INTROSPECTION_ERROR_NO_SUCH_PLUGIN
+  GRAVITON_INTROSPECTION_ERROR_NO_SUCH_PLUGIN,
+  GRAVITON_INTROSPECTION_ERROR_NO_SUCH_CONTROL
 } GravitonInspectionError;
 
 typedef struct _GravitonInternalPlugin GravitonInternalPlugin;

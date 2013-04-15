@@ -142,6 +142,47 @@ cb_methods(GravitonControl *control, GHashTable *args, GError **error, gpointer 
 {
   GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
   GravitonPluginManager *plugins = graviton_server_get_plugin_manager (self->priv->server);
+  gchar *plugin_name, *control_name;
+  plugin_name = g_strdup (g_variant_get_string (g_hash_table_lookup (args, "plugin"), NULL));
+  control_name = g_strdup (g_variant_get_string (g_hash_table_lookup (args, "control"), NULL));
+  GravitonPlugin *plugin = graviton_plugin_manager_mounted_plugin (plugins, plugin_name);
+  g_object_unref (plugins);
+
+  if (plugin) {
+    GravitonControl *control = graviton_plugin_get_control (plugin, control_name);
+    g_object_unref (plugin);
+    if (control) {
+      GVariantBuilder ret;
+      GList *methods = graviton_control_list_methods (control);
+      g_variant_builder_init (&ret, G_VARIANT_TYPE_ARRAY);
+
+      GList *cur = methods;
+      while (cur) { 
+        g_variant_builder_add (&ret, "s", cur->data);
+        cur = g_list_next (cur);
+      }
+
+      g_object_unref (control);
+      g_free (plugin_name);
+      g_free (control_name);
+
+      return g_variant_builder_end (&ret);
+    } else {
+      g_set_error (error,
+                   GRAVITON_INTROSPECTION_ERROR,
+                   GRAVITON_INTROSPECTION_ERROR_NO_SUCH_CONTROL,
+                   "No such control %s on plugin %s", control_name, plugin_name);
+      g_free (plugin_name);
+      g_free (control_name);
+    }
+  } else {
+    g_set_error (error,
+                 GRAVITON_INTROSPECTION_ERROR,
+                 GRAVITON_INTROSPECTION_ERROR_NO_SUCH_PLUGIN,
+                 "No such plugin: %s", plugin_name);
+    g_free (plugin_name);
+    return NULL;
+  }
   return NULL;
 }
 
