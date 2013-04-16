@@ -10,10 +10,31 @@ struct _GravitonPluginManagerPrivate
   GHashTable *plugins;
 };
 
+enum {
+  SIGNAL_0,
+  SIGNAL_PLUGIN_MOUNTED,
+  N_SIGNALS
+};
+
+int obj_signals[N_SIGNALS] = {0, };
+
 static void
 graviton_plugin_manager_class_init (GravitonPluginManagerClass *klass)
 {
   g_type_class_add_private (klass, sizeof (GravitonPluginManagerPrivate));
+
+  obj_signals[SIGNAL_PLUGIN_MOUNTED] =
+    g_signal_new ("plugin-mounted",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL,
+                  NULL,
+                  g_cclosure_marshal_generic,
+                  G_TYPE_NONE,
+                  2,
+                  GRAVITON_TYPE_PLUGIN,
+                  G_TYPE_STRING);
 }
 
 static void
@@ -54,6 +75,8 @@ graviton_plugin_manager_mount_plugin (GravitonPluginManager *self, GravitonPlugi
   g_object_ref (plugin);
   g_debug ("Mounting %s", mount);
   g_hash_table_replace (self->priv->plugins, g_strdup(mount), plugin);
+
+  g_signal_emit (self, obj_signals[SIGNAL_PLUGIN_MOUNTED], 0, plugin, mount);
 }
 
 GravitonPlugin *
