@@ -18,10 +18,26 @@ graviton_server_error_quark ()
 
 G_DEFINE_TYPE (GravitonServer, graviton_server, G_TYPE_OBJECT);
 
+typedef struct _PluginMap
+{
+  gchar *name;
+  GravitonServer *server;
+} PluginMap;
+
+static void
+free_plugin_map (GClosure *closure, PluginMap *map)
+{
+  g_free (map->name);
+  g_object_unref (map->server);
+  g_free (map);
+}
+
 struct _GravitonServerPrivate
 {
   SoupServer *server;
   GravitonPluginManager *plugins;
+  GList *event_listeners;
+  GHashTable *plugin_names;
 };
 
 static void
@@ -152,7 +168,24 @@ out:
 }
 
 static void
-cb_handle_soup (SoupServer *server,
+cb_handle_events (SoupServer *server,
+         SoupMessage *msg,
+         const char *path,
+         GHashTable *query,
+         SoupClientContext *client,
+         gpointer user_data)
+{
+  GravitonServer *self = GRAVITON_SERVER (user_data);
+  SoupMessageHeaders *headers;
+  soup_server_pause_message (server, msg);
+  g_object_get (msg, SOUP_MESSAGE_RESPONSE_HEADERS, &headers, NULL);
+  soup_message_headers_set_encoding (headers, SOUP_ENCODING_CHUNKED);
+  g_object_ref (msg);
+  self->priv->event_listeners = g_list_append (self->priv->event_listeners, msg);
+}
+
+static void
+cb_handle_rpc (SoupServer *server,
          SoupMessage *msg,
          const char *path,
          GHashTable *query,
@@ -227,6 +260,104 @@ out:
   g_object_unref (generator);
 }
 
+static void
+broadcast_property_notify (GObject *object, GParamSpec *pspec, gpointer user_data)
+{
+  /*GravitonServer *self = GRAVITON_SERVER (user_data);
+  JsonBuilder *builder;
+  JsonNode *result = NULL;
+  GList *client = self->priv->event_listeners;
+  builder = json_builder_new ();
+  while (client) {
+    SoupMessageBody *body;
+    g_object_get (client->data, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+    soup_message_body_append (body, SOUP_MEMORY_STATIC, "ping", strlen("ping"));
+    soup_server_unpause_message (self->priv->server, client->data);
+    client = g_list_next (client);
+    g_debug ("Sent ping");
+  }
+  return TRUE;*/
+}
+
+static void
+cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext *client, gpointer user_data)
+{
+  GravitonServer *self = GRAVITON_SERVER (user_data);
+
+  self->priv->event_listeners = g_list_remove (self->priv->event_listeners, message);
+  
+  g_debug ("Aborted event stream");
+}
+
+static void
+cb_plugin_notify (GravitonPlugin *plugin, GParamSpec *pspec, gpointer user_data)
+{
+  PluginMap *map = (PluginMap*) user_data;
+  GravitonServer *self = map->server;
+
+  g_debug ("Property was updated on a plugin: %s.%s", map->name, pspec->name);
+  JsonBuilder *builder;
+  JsonNode *result = NULL;
+  JsonGenerator *generator;
+
+  GValue property_value = G_VALUE_INIT;
+  GVariant *converted_variant = NULL;
+  g_value_init (&property_value, pspec->value_type);
+  g_object_get_property (G_OBJECT(plugin), pspec->name, &property_value);
+
+  if (G_VALUE_HOLDS_STRING (&property_value))
+    converted_variant = g_variant_new_string (g_value_get_string (&property_value));
+
+  if (converted_variant) {
+    generator = json_generator_new ();
+
+    GList *client = self->priv->event_listeners;
+    builder = json_builder_new ();
+    json_builder_begin_object (builder);
+    json_builder_set_member_name (builder, "type");
+    json_builder_add_string_value (builder, "property");
+    json_builder_set_member_name (builder, "property");
+    gchar *property_name = g_strdup_printf("%s.%s", map->name, pspec->name);
+    json_builder_add_string_value (builder, property_name);
+    g_free (property_name);
+    json_builder_set_member_name (builder, "value");
+
+    json_builder_add_value (builder, json_gvariant_serialize (converted_variant));
+    json_builder_end_object (builder);
+    result = json_builder_get_root (builder);
+    g_object_unref (builder);
+    json_generator_set_root (generator, result);
+
+    gsize length;
+    gchar *data = json_generator_to_data (generator, &length);
+    json_node_free(result);
+
+    while (client) {
+      SoupMessageBody *body;
+      g_object_get (client->data, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+      soup_message_body_append (body, SOUP_MEMORY_COPY, data, length);
+      soup_server_unpause_message (self->priv->server, client->data);
+      client = g_list_next (client);
+      g_debug ("Sent event: %s", data);
+    }
+
+    g_free (data);
+  }
+}
+
+static void
+cb_plugin_mounted (GravitonPluginManager *plugins, GravitonPlugin *plugin, const gchar* name, gpointer user_data)
+{
+  GravitonServer *self = GRAVITON_SERVER (user_data);
+  g_debug ("A plugin was mounted at %s", name);
+
+  PluginMap *map = g_new0(PluginMap, 1);
+  map->server = self;
+  map->name = g_strdup(name);
+  g_object_ref (map->server);
+
+  g_signal_connect_data (plugin, "notify", G_CALLBACK(cb_plugin_notify), map, (GClosureNotify)free_plugin_map, 0);
+}
 
 static void
 graviton_server_init (GravitonServer *self)
@@ -236,6 +367,7 @@ graviton_server_init (GravitonServer *self)
   self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
 
   priv->plugins = graviton_plugin_manager_new ();
+  priv->event_listeners = NULL;
 
   priv->server = soup_server_new (
     "interface", address,
@@ -245,7 +377,18 @@ graviton_server_init (GravitonServer *self)
 
   g_object_unref (address);
 
-  soup_server_add_handler (priv->server, NULL, cb_handle_soup, self, NULL);
+  g_signal_connect (priv->server,
+                    "request-aborted",
+                    G_CALLBACK(cb_aborted_request),
+                    self);
+
+  soup_server_add_handler (priv->server, "/rpc", cb_handle_rpc, self, NULL);
+  soup_server_add_handler (priv->server, "/events", cb_handle_events, self, NULL);
+
+  g_signal_connect (self->priv->plugins,
+                    "plugin-mounted",
+                    G_CALLBACK(cb_plugin_mounted),
+                    self);
 
   graviton_plugin_manager_mount_plugin (self->priv->plugins,
                                         g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 
