@@ -103,6 +103,82 @@ cb_root(GravitonPlugin *self, const gchar *path, gpointer user_data)
 }
 
 static GVariant *
+cb_properties(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+{
+  gchar *plugin_name;
+  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
+  GravitonPluginManager *plugins = graviton_server_get_plugin_manager (self->priv->server);
+  plugin_name = g_strdup (g_variant_get_string (g_hash_table_lookup (args, "plugin"), NULL));
+  GravitonPlugin *plugin = graviton_plugin_manager_mounted_plugin (plugins, plugin_name);
+  g_object_unref (plugins);
+
+  if (plugin) {
+    GVariantBuilder ret;
+    GParamSpec **properties;
+    int property_count;
+    int i;
+    properties = g_object_class_list_properties (G_OBJECT_GET_CLASS (control), &property_count);
+    g_variant_builder_init (&ret, G_VARIANT_TYPE_ARRAY);
+    for (i = 0; i<property_count; i++) {
+      g_variant_builder_add (&ret, "s", properties[i]->name);
+    }
+
+    g_object_unref (plugin);
+    g_free (plugin_name);
+
+    return g_variant_builder_end (&ret);
+  } else {
+    g_set_error (error,
+                 GRAVITON_INTROSPECTION_ERROR,
+                 GRAVITON_INTROSPECTION_ERROR_NO_SUCH_PLUGIN,
+                 "No such plugin: %s", plugin_name);
+    g_free (plugin_name);
+    return NULL;
+  }
+}
+
+static GVariant *
+cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+{
+  gchar *plugin_name;
+  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
+  GravitonPluginManager *plugins = graviton_server_get_plugin_manager (self->priv->server);
+  plugin_name = g_strdup (g_variant_get_string (g_hash_table_lookup (args, "plugin"), NULL));
+  GravitonPlugin *plugin = graviton_plugin_manager_mounted_plugin (plugins, plugin_name);
+  g_object_unref (plugins);
+
+  if (plugin) {
+    gchar *property_name;
+    property_name = g_strdup (g_variant_get_string (g_hash_table_lookup (args, "property"), NULL));
+    GParamSpec *property = g_object_class_find_property (G_OBJECT_GET_CLASS (plugin), property_name);
+    if (property) {
+      GValue property_value = G_VALUE_INIT;
+      GVariant *converted_variant = NULL;
+      g_value_init (&property_value, property->value_type);
+      g_object_get_property (G_OBJECT(plugin), property->name, &property_value);
+      if (G_VALUE_HOLDS_STRING (&property_value))
+        converted_variant = g_variant_new_string (g_value_get_string (&property_value));
+      return converted_variant;
+    } else {
+      g_set_error (error,
+                   GRAVITON_INTROSPECTION_ERROR,
+                   GRAVITON_INTROSPECTION_ERROR_NO_SUCH_PLUGIN,
+                   "No such plugin: %s", plugin_name);
+      g_free (property_name);
+      g_free (plugin_name);
+      return NULL;
+    }
+  } else {
+    g_set_error (error,
+                 GRAVITON_INTROSPECTION_ERROR,
+                 GRAVITON_INTROSPECTION_ERROR_NO_SUCH_PLUGIN,
+                 "No such plugin: %s", plugin_name);
+    g_free (plugin_name);
+    return NULL;
+  }
+}
+
+static GVariant *
 cb_controls(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
 {
   gchar *plugin_name;
@@ -227,6 +303,18 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
   graviton_control_add_method (introspection,
                                "listMethods",
                                cb_methods,
+                               NULL,
+                               0,
+                               self);
+  graviton_control_add_method (introspection,
+                               "listProperties",
+                               cb_properties,
+                               NULL,
+                               0,
+                               self);
+  graviton_control_add_method (introspection,
+                               "getProperty",
+                               cb_get_property,
                                NULL,
                                0,
                                self);
