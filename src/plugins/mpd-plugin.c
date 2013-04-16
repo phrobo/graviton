@@ -283,7 +283,7 @@ graviton_mpd_plugin_init (GravitonMPDPlugin *self)
   self->priv = priv = GRAVITON_MPD_PLUGIN_GET_PRIVATE (self);
   priv->mpd = NULL;
 
-  GravitonControl* playback = g_object_new (GRAVITON_TYPE_CONTROL, NULL);
+  GravitonControl* playback = g_object_new (GRAVITON_TYPE_CONTROL, "name", "playback", NULL);
   graviton_control_add_method (playback,
                                "play",
                                cb_play,
@@ -309,5 +309,5 @@ graviton_mpd_plugin_init (GravitonMPDPlugin *self)
                                0,
                                self);
  
-  graviton_plugin_register_control (GRAVITON_PLUGIN(self), "playback", playback);
+  graviton_plugin_register_control (GRAVITON_PLUGIN(self), playback);
 }

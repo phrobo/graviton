@@ -34,31 +34,18 @@ const gchar *graviton_plugin_get_name (GravitonPlugin *plugin);
 
 typedef GravitonPlugin *(*GravitonPluginLoaderFunc)(void);
 
-typedef struct _GravitonPluginInfo GravitonPluginInfo;
-
-struct _GravitonPluginInfo
-{
-  GravitonPluginLoaderFunc make_plugin;
-  const gchar *mount;
-};
-
-#define GRAVITON_DEFINE_PLUGIN(type, mountpoint) \
-  GravitonPlugin *new_plugin(void) { return g_object_new((type), NULL); } \
-  GravitonPluginInfo graviton_plugin = {\
-    .make_plugin = (new_plugin), \
-    .mount = (mountpoint) \
-  }; \
+#define GRAVITON_DEFINE_PLUGIN(type, name) \
+  GravitonPlugin *make_graviton_plugin(void) { return g_object_new((type), "name", name, NULL); } \
 
 typedef JsonNode *(*GravitonPluginPathHandler)(GravitonPlugin *self, const gchar *path, gpointer user_data);
 
 void graviton_plugin_register_handler(GravitonPlugin *self, const gchar *path, GravitonPluginPathHandler handler, gpointer user_data);
 
 void graviton_plugin_register_control (GravitonPlugin *self,
-                                       const gchar *path,
                                        GravitonControl *control);
 
 GravitonControl *graviton_plugin_get_control (GravitonPlugin *self,
-                                  const gchar *path);
+                                  const gchar *name);
 
 GList *graviton_plugin_list_controls (GravitonPlugin *self);
 

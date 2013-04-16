@@ -10,6 +10,14 @@ graviton_control_error_quark ()
 
 G_DEFINE_TYPE (GravitonControl, graviton_control, G_TYPE_OBJECT);
 
+enum {
+  PROP_0,
+  PROP_NAME,
+  N_PROPERTIES
+};
+
+static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
+
 struct _GravitonControlPrivate
 {
   gchar *name;
@@ -19,10 +27,58 @@ struct _GravitonControlPrivate
 };
 
 static void
+set_property (GObject *object,
+                     guint property_id,
+                     const GValue *value,
+                     GParamSpec *pspec)
+{
+  GravitonControl *self = GRAVITON_CONTROL (object);
+  switch (property_id) {
+    case PROP_NAME:
+      self->priv->name = g_value_dup_string (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
+get_property (GObject *object,
+                     guint property_id,
+                     GValue *value,
+                     GParamSpec *pspec)
+{
+  GravitonControl *self = GRAVITON_CONTROL (object);
+  switch (property_id) {
+    case PROP_NAME:
+      g_value_set_string (value, self->priv->name);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
 graviton_control_class_init (GravitonControlClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   g_type_class_add_private (klass, sizeof (GravitonControlPrivate));
+
+  gobject_class->set_property = set_property;
+  gobject_class->get_property = get_property;
+
+  obj_properties[PROP_NAME] =
+    g_param_spec_string ("name",
+                         "Control name",
+                         "Control name",
+                         "",
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
+
+  g_object_class_install_properties (gobject_class,
+                                     N_PROPERTIES,
+                                     obj_properties);
 }
 
 static void

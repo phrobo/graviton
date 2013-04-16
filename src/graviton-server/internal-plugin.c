@@ -211,7 +211,7 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
 {
   GravitonInternalPluginPrivate *priv;
   self->priv = priv = GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE (self);
-  GravitonControl *introspection = g_object_new (GRAVITON_TYPE_CONTROL, NULL);
+  GravitonControl *introspection = g_object_new (GRAVITON_TYPE_CONTROL, "name", "introspection", NULL);
   graviton_control_add_method (introspection,
                                "listPlugins",
                                cb_plugins,
@@ -230,15 +230,5 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
                                NULL,
                                0,
                                self);
-  graviton_plugin_register_control (GRAVITON_PLUGIN (self), "introspection", introspection);
+  graviton_plugin_register_control (GRAVITON_PLUGIN (self), introspection);
 }
-
-  /*if (path_elements[2] == NULL) {
-  }
-
-  GravitonControl *control = graviton_plugin_get_control (plugin, path_elements[2]);
-  g_debug ("Requested control at %s", path_elements[2]);
-
-  if (!control) {
-    goto out;
-  }*/

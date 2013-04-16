@@ -18,20 +18,6 @@ graviton_server_error_quark ()
 
 G_DEFINE_TYPE (GravitonServer, graviton_server, G_TYPE_OBJECT);
 
-typedef struct _PluginMap
-{
-  gchar *name;
-  GravitonServer *server;
-} PluginMap;
-
-static void
-free_plugin_map (GClosure *closure, PluginMap *map)
-{
-  g_free (map->name);
-  g_object_unref (map->server);
-  g_free (map);
-}
-
 struct _GravitonServerPrivate
 {
   SoupServer *server;
@@ -292,10 +278,11 @@ cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext 
 static void
 cb_plugin_notify (GravitonPlugin *plugin, GParamSpec *pspec, gpointer user_data)
 {
-  PluginMap *map = (PluginMap*) user_data;
-  GravitonServer *self = map->server;
+  GravitonServer *self = GRAVITON_SERVER(user_data);
+  gchar *name;
+  g_object_get (plugin, "name", &name, NULL);
 
-  g_debug ("Property was updated on a plugin: %s.%s", map->name, pspec->name);
+  g_debug ("Property was updated on a plugin: %s.%s", name, pspec->name);
   JsonBuilder *builder;
   JsonNode *result = NULL;
   JsonGenerator *generator;
@@ -317,7 +304,7 @@ cb_plugin_notify (GravitonPlugin *plugin, GParamSpec *pspec, gpointer user_data)
     json_builder_set_member_name (builder, "type");
     json_builder_add_string_value (builder, "property");
     json_builder_set_member_name (builder, "property");
-    gchar *property_name = g_strdup_printf("%s.%s", map->name, pspec->name);
+    gchar *property_name = g_strdup_printf("%s.%s", name, pspec->name);
     json_builder_add_string_value (builder, property_name);
     g_free (property_name);
     json_builder_set_member_name (builder, "value");
@@ -346,17 +333,15 @@ cb_plugin_notify (GravitonPlugin *plugin, GParamSpec *pspec, gpointer user_data)
 }
 
 static void
-cb_plugin_mounted (GravitonPluginManager *plugins, GravitonPlugin *plugin, const gchar* name, gpointer user_data)
+cb_plugin_mounted (GravitonPluginManager *plugins, GravitonPlugin *plugin, gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
+  gchar *name;
+  g_object_get (plugin, "name", &name, NULL);
   g_debug ("A plugin was mounted at %s", name);
+  g_free (name);
 
-  PluginMap *map = g_new0(PluginMap, 1);
-  map->server = self;
-  map->name = g_strdup(name);
-  g_object_ref (map->server);
-
-  g_signal_connect_data (plugin, "notify", G_CALLBACK(cb_plugin_notify), map, (GClosureNotify)free_plugin_map, 0);
+  g_signal_connect (plugin, "notify", G_CALLBACK(cb_plugin_notify), self);
 }
 
 static void
@@ -393,8 +378,8 @@ graviton_server_init (GravitonServer *self)
   graviton_plugin_manager_mount_plugin (self->priv->plugins,
                                         g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 
                                                       "server", self,
-                                                      NULL),
-                                        "graviton");
+                                                      "name", "graviton",
+                                                      NULL));
 }
 
 GravitonServer *graviton_server_new ()
@@ -413,9 +398,9 @@ void graviton_server_load_plugins (GravitonServer *self)
   
   plugins = graviton_plugin_manager_find_plugins (self->priv->plugins);
   for (i = 0; i < plugins->len; i++) {
-    GravitonPluginInfo *info = g_array_index (plugins, GravitonPluginInfo*, i);
-    g_debug ("Mounting plugin on %s", info->mount);
-    graviton_plugin_manager_mount_plugin (self->priv->plugins, info->make_plugin(), info->mount);
+    GravitonPluginLoaderFunc factory = g_array_index (plugins, GravitonPluginLoaderFunc, i);
+    GravitonPlugin *plugin = factory();
+    graviton_plugin_manager_mount_plugin (self->priv->plugins, plugin);
   }
 }
 

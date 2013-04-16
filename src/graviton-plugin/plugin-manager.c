@@ -30,11 +30,10 @@ graviton_plugin_manager_class_init (GravitonPluginManagerClass *klass)
                   0,
                   NULL,
                   NULL,
-                  g_cclosure_marshal_generic,
+                  g_cclosure_marshal_VOID__OBJECT,
                   G_TYPE_NONE,
-                  2,
-                  GRAVITON_TYPE_PLUGIN,
-                  G_TYPE_STRING);
+                  1,
+                  GRAVITON_TYPE_PLUGIN);
 }
 
 static void
@@ -70,13 +69,18 @@ graviton_plugin_manager_new ()
 }
 
 void
-graviton_plugin_manager_mount_plugin (GravitonPluginManager *self, GravitonPlugin *plugin, const gchar *mount)
+graviton_plugin_manager_mount_plugin (GravitonPluginManager *self, GravitonPlugin *plugin)
 {
   g_object_ref (plugin);
-  g_debug ("Mounting %s", mount);
-  g_hash_table_replace (self->priv->plugins, g_strdup(mount), plugin);
+  gchar *name;
+  g_object_get (plugin, "name", &name, NULL);
 
-  g_signal_emit (self, obj_signals[SIGNAL_PLUGIN_MOUNTED], 0, plugin, mount);
+  g_return_if_fail(!g_hash_table_contains (self->priv->plugins, name));
+
+  g_debug ("Mounting %s", name);
+  g_hash_table_replace (self->priv->plugins, name, plugin);
+
+  g_signal_emit (self, obj_signals[SIGNAL_PLUGIN_MOUNTED], 0, plugin);
 }
 
 GravitonPlugin *
@@ -90,7 +94,7 @@ graviton_plugin_manager_mounted_plugin (GravitonPluginManager *self, const gchar
 
 GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *self)
 {
-  GArray *pluginList = g_array_new(FALSE, FALSE, sizeof (GravitonPluginInfo*));
+  GArray *pluginList = g_array_new(FALSE, FALSE, sizeof (GravitonPluginLoaderFunc));
   const gchar *pluginPath = g_getenv("GRAVITON_PLUGIN_PATH");
   g_debug ("Searching %s for plugins\n", pluginPath);
   GDir *pluginDir = g_dir_open (pluginPath, 0, NULL);
@@ -101,23 +105,23 @@ GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *self)
       goto nextPlugin;
     g_debug ("Attempting to load plugin %s", entryPath);
     GModule *module = g_module_open (entryPath, G_MODULE_BIND_LOCAL);
-    GravitonPluginInfo *plugin_info;
+    GravitonPluginLoaderFunc loader = NULL;
     if (!module) {
       g_warning ("Can't open plugin %s: %s", entryPath, g_module_error ());
       goto nextPlugin;
     }
 
-    if (!g_module_symbol (module, "graviton_plugin", (gpointer *)&plugin_info)) {
+    if (!g_module_symbol (module, "make_graviton_plugin", (gpointer *)&loader)) {
       g_warning ("Can't find graviton_plugin symbol in %s: %s", entryPath, g_module_error ());
       goto nextPlugin;
     }
 
-    if (plugin_info == NULL) {
+    if (loader == NULL) {
       g_warning ("graviton_plugin symbol is NULL in %s: %s", entryPath, g_module_error ());
       goto nextPlugin;
     }
 
-    g_array_append_val (pluginList, plugin_info);
+    g_array_append_val (pluginList, loader);
 
 nextPlugin:
     entry = g_dir_read_name (pluginDir);

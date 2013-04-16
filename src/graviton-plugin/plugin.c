@@ -15,7 +15,7 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {
 
 struct _GravitonPluginPrivate
 {
-  gchar *mount;
+  gchar *name;
   GHashTable *controls;
 };
 
@@ -27,6 +27,9 @@ plugin_set_property (GObject *object,
 {
   GravitonPlugin *self = GRAVITON_PLUGIN (object);
   switch (property_id) {
+    case PROP_NAME:
+      self->priv->name = g_value_dup_string (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -42,7 +45,7 @@ plugin_get_property (GObject *object,
   GravitonPlugin *self = GRAVITON_PLUGIN (object);
   switch (property_id) {
     case PROP_NAME:
-      g_value_set_string (value, graviton_plugin_get_name (self));
+      g_value_set_string (value, self->priv->name);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -101,7 +104,7 @@ graviton_plugin_class_init (GravitonPluginClass *klass)
                          "Plugin name",
                          "Plugin name",
                          "",
-                         G_PARAM_READWRITE);
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   g_object_class_install_properties (gobject_class,
                                      N_PROPERTIES,
                                      obj_properties);
@@ -113,25 +116,21 @@ graviton_plugin_init (GravitonPlugin *self)
   GravitonPluginPrivate *priv;
   self->priv = priv = GRAVITON_PLUGIN_GET_PRIVATE (self);
 
-  priv->mount = 0;
+  priv->name = 0;
   priv->controls = g_hash_table_new_full (g_str_hash,
                                           g_str_equal,
                                           g_object_unref,
                                           NULL);
 }
 
-const gchar *graviton_plugin_get_name (GravitonPlugin *self)
-{
-  return "Plugin";
-}
-
 void
 graviton_plugin_register_control (GravitonPlugin *self,
-                                  const gchar *path,
                                   GravitonControl *control)
 {
   g_object_ref (control);
-  g_hash_table_replace (self->priv->controls, g_strdup (path), control);
+  gchar *name;
+  g_object_get (control, "name", &name, NULL);
+  g_hash_table_replace (self->priv->controls, name, control);
 }
 
 GList *

@@ -30,7 +30,7 @@ typedef struct _GravitonPlugin GravitonPlugin;
 
 GType graviton_plugin_manager_get_type ();
 GravitonPluginManager *graviton_plugin_manager_new ();
-void graviton_plugin_manager_mount_plugin (GravitonPluginManager *manager, GravitonPlugin *plugin, const gchar *mount);
+void graviton_plugin_manager_mount_plugin (GravitonPluginManager *manager, GravitonPlugin *plugin);
 GravitonPlugin *graviton_plugin_manager_mounted_plugin (GravitonPluginManager *manager, const gchar *mount);
 GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *manager);
 GList *graviton_plugin_manager_list_plugins (GravitonPluginManager *self);
