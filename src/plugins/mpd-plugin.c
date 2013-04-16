@@ -29,15 +29,89 @@ GRAVITON_DEFINE_PLUGIN(GRAVITON_TYPE_MPD_PLUGIN, "mpd")
 
 G_DEFINE_TYPE (GravitonMPDPlugin, graviton_mpd_plugin, GRAVITON_TYPE_PLUGIN);
 
+enum
+{
+  PROP_0,
+  PROP_STATE,
+  N_PROPERTIES
+};
+
+static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
+
 struct _GravitonMPDPluginPrivate
 {
   struct mpd_connection *mpd;
 };
 
+static const gchar *
+mpd_state_string (GravitonMPDPlugin *self)
+{
+  struct mpd_status *status;
+  status = mpd_run_status (self->priv->mpd);
+  switch (mpd_status_get_state(status)) {
+    case MPD_STATE_STOP:
+      return "stopped";
+    case MPD_STATE_PLAY:
+      return "playing";
+    case MPD_STATE_PAUSE:
+      return "paused";
+    default:
+      g_warning ("Unknown MPD state: %d", mpd_status_get_state(status));
+      return "unknown";
+  }
+}
+
+static void
+set_property (GObject *object,
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
+{
+  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (object);
+
+  switch (property_id) {
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
+get_property (GObject *object,
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
+{
+  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (object);
+
+  switch (property_id) {
+    case PROP_STATE:
+      g_value_set_string (value, mpd_state_string (self));
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
 static void
 graviton_mpd_plugin_class_init (GravitonMPDPluginClass *klass)
 {
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
+  gobject_class->set_property = set_property;
+  gobject_class->get_property = get_property;
   g_type_class_add_private (klass, sizeof (GravitonMPDPluginPrivate));
+
+  obj_properties[PROP_STATE] =
+    g_param_spec_string ("state", 
+                         "playback state",
+                         "Current MPD playback state",
+                         "unknown",
+                         G_PARAM_READABLE);
+  g_object_class_install_properties (gobject_class,
+                                     N_PROPERTIES,
+                                     obj_properties);
 }
 
 static void
@@ -75,6 +149,8 @@ connect_to_mpd(GravitonMPDPlugin *self, GError **error)
   enum mpd_error err = mpd_connection_get_error (self->priv->mpd);
   if (err != MPD_ERROR_SUCCESS)
     set_mpd_error (error, self->priv->mpd);
+
+  g_object_notify_by_pspec (G_OBJECT(self), obj_properties[PROP_STATE]);
 
   return err;
 }
