@@ -12,4 +12,21 @@ target_link_libraries(graviton-plugin
   ${JSON_LIBRARIES}
 )
 
-install(TARGETS graviton-plugin DESTINATION lib${LIB_SUFFIX})
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/graviton-plugin.pc.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/graviton-plugin.pc
+  @ONLY
+)
+
+install(
+  TARGETS
+    graviton-plugin
+  DESTINATION
+    lib${LIB_SUFFIX}
+)
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/graviton-plugin.pc
+  DESTINATION
+    lib${LIB_SUFFIX}/pkgconfig
+)
