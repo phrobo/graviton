@@ -3,7 +3,7 @@
 #include <json-glib/json-glib.h>
 #include <mpd/client.h>
 
-#include <graviton-plugin/control.h>
+#include <graviton/control.h>
 
 #define GRAVITON_MPD_PLUGIN_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_MPD_PLUGIN, GravitonMPDPluginPrivate))
 
@@ -43,21 +43,68 @@ struct _GravitonMPDPluginPrivate
   struct mpd_connection *mpd;
 };
 
+static void
+set_mpd_error (GError **error, struct mpd_connection *connection)
+{
+  enum mpd_error err = mpd_connection_get_error (connection);
+  if (err != MPD_ERROR_SUCCESS) {
+    if (err == MPD_ERROR_SERVER) {
+      g_set_error (error,
+                   GRAVITON_MPD_SERVER_ERROR,
+                   mpd_connection_get_server_error (connection),
+                   mpd_connection_get_error_message (connection));
+    } else if (err == MPD_ERROR_SYSTEM) {
+      g_set_error (error,
+                   GRAVITON_MPD_SYSTEM_ERROR,
+                   mpd_connection_get_system_error (connection),
+                   mpd_connection_get_error_message (connection));
+    } else {
+      g_set_error (error,
+                   GRAVITON_MPD_ERROR,
+                   err,
+                   mpd_connection_get_error_message (connection));
+    }
+  }
+}
+
+static enum mpd_error
+connect_to_mpd(GravitonMPDPlugin *self, GError **error)
+{
+  struct mpd_connection *ret;
+  if (self->priv->mpd) {
+    mpd_connection_free (self->priv->mpd);
+  }
+  self->priv->mpd = mpd_connection_new ("10.2.0.6", 0, 0);
+  enum mpd_error err = mpd_connection_get_error (self->priv->mpd);
+  if (err != MPD_ERROR_SUCCESS)
+    set_mpd_error (error, self->priv->mpd);
+
+  g_object_notify_by_pspec (G_OBJECT(self), obj_properties[PROP_STATE]);
+
+  return err;
+}
+
+
 static const gchar *
 mpd_state_string (GravitonMPDPlugin *self)
 {
   struct mpd_status *status;
-  status = mpd_run_status (self->priv->mpd);
-  switch (mpd_status_get_state(status)) {
-    case MPD_STATE_STOP:
-      return "stopped";
-    case MPD_STATE_PLAY:
-      return "playing";
-    case MPD_STATE_PAUSE:
-      return "paused";
-    default:
-      g_warning ("Unknown MPD state: %d", mpd_status_get_state(status));
-      return "unknown";
+  if (connect_to_mpd (self, NULL) == MPD_ERROR_SUCCESS) {
+    status = mpd_run_status (self->priv->mpd);
+    switch (mpd_status_get_state(status)) {
+      case MPD_STATE_STOP:
+        return "stopped";
+      case MPD_STATE_PLAY:
+        return "playing";
+      case MPD_STATE_PAUSE:
+        return "paused";
+      default:
+        g_warning ("Unknown MPD state: %d", mpd_status_get_state(status));
+        return "unknown";
+    }
+  } else {
+    g_warning ("Cannot connect to MPD");
+    return "disconnected";
   }
 }
 
@@ -113,48 +160,6 @@ graviton_mpd_plugin_class_init (GravitonMPDPluginClass *klass)
                                      N_PROPERTIES,
                                      obj_properties);
 }
-
-static void
-set_mpd_error (GError **error, struct mpd_connection *connection)
-{
-  enum mpd_error err = mpd_connection_get_error (connection);
-  if (err != MPD_ERROR_SUCCESS) {
-    if (err == MPD_ERROR_SERVER) {
-      g_set_error (error,
-                   GRAVITON_MPD_SERVER_ERROR,
-                   mpd_connection_get_server_error (connection),
-                   mpd_connection_get_error_message (connection));
-    } else if (err == MPD_ERROR_SYSTEM) {
-      g_set_error (error,
-                   GRAVITON_MPD_SYSTEM_ERROR,
-                   mpd_connection_get_system_error (connection),
-                   mpd_connection_get_error_message (connection));
-    } else {
-      g_set_error (error,
-                   GRAVITON_MPD_ERROR,
-                   err,
-                   mpd_connection_get_error_message (connection));
-    }
-  }
-}
-
-static enum mpd_error
-connect_to_mpd(GravitonMPDPlugin *self, GError **error)
-{
-  struct mpd_connection *ret;
-  if (self->priv->mpd) {
-    mpd_connection_free (self->priv->mpd);
-  }
-  self->priv->mpd = mpd_connection_new ("10.2.0.6", 0, 0);
-  enum mpd_error err = mpd_connection_get_error (self->priv->mpd);
-  if (err != MPD_ERROR_SUCCESS)
-    set_mpd_error (error, self->priv->mpd);
-
-  g_object_notify_by_pspec (G_OBJECT(self), obj_properties[PROP_STATE]);
-
-  return err;
-}
-
 
 static JsonNode *
 cb_status(GravitonPlugin *plugin_self, const gchar *path, GError **error, gpointer user_data)
@@ -287,27 +292,31 @@ graviton_mpd_plugin_init (GravitonMPDPlugin *self)
   graviton_control_add_method (playback,
                                "play",
                                cb_play,
-                               NULL,
                                0,
-                               self);
+                               NULL,
+                               self,
+                               NULL);
   graviton_control_add_method (playback,
                                "pause",
                                cb_pause,
-                               NULL,
                                0,
-                               self);
+                               NULL,
+                               self,
+                               NULL);
   graviton_control_add_method (playback,
                                "next",
                                cb_next,
-                               NULL,
                                0,
-                               self);
+                               NULL,
+                               self,
+                               NULL);
   graviton_control_add_method (playback,
                                "previous",
                                cb_previous,
-                               NULL,
                                0,
-                               self);
+                               NULL,
+                               self,
+                               NULL);
  
-  graviton_plugin_register_control (GRAVITON_PLUGIN(self), playback);
+  graviton_control_add_subcontrol (GRAVITON_CONTROL(self), playback);
 }

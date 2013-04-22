@@ -2,8 +2,9 @@
 #include "internal-plugin.h"
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
-#include <graviton-plugin/plugin-manager.h>
-#include <graviton-plugin/plugin.h>
+#include <graviton/plugin-manager.h>
+#include <graviton/plugin.h>
+#include <graviton/control.h>
 #include <string.h>
 
 #include "config.h"
@@ -38,47 +39,40 @@ handle_rpc (GravitonServer *self, JsonObject *request)
   JsonBuilder *builder;
   JsonNode *result = NULL;
   GError *error = NULL;
-  gchar *request_id;
-  GravitonPlugin *plugin;
+  const gchar *request_id;
   GravitonControl *control;
-  gchar **method_name;
+  gchar **rpc_method_name;
+  gchar *method_name;
+  gchar *control_name;
   GVariant *method_result;
 
   builder = json_builder_new ();
 
-  request_id = g_strdup (json_object_get_string_member (request, "id"));
-  method_name = g_strsplit (json_object_get_string_member (request, "method"), ".", 3);
+  request_id = json_object_get_string_member (request, "id");
+  rpc_method_name = g_strsplit (json_object_get_string_member (request, "method"), ".", 0);
 
-  if (g_strv_length (method_name) != 3) {
-    g_set_error (&error,
-                 GRAVITON_SERVER_ERROR,
-                 GRAVITON_SERVER_ERROR_NO_SUCH_METHOD,
-                 "No such method: %s",
-                 json_object_get_string_member (request, "method"));
-    goto out;
-  }
+  int split = g_strv_length (rpc_method_name)-1;
 
-  plugin = graviton_plugin_manager_mounted_plugin (self->priv->plugins, method_name[0]);
-  if (!plugin) {
-    g_set_error (&error,
-                 GRAVITON_SERVER_ERROR,
-                 GRAVITON_SERVER_ERROR_NO_SUCH_METHOD,
-                 "No such plugin: %s",
-                 method_name[0]);
-    goto out;
-  }
+  method_name = g_strdup (rpc_method_name[split]);
+  g_free (rpc_method_name[split]);
+  rpc_method_name[split] = NULL;
+  control_name = g_strjoinv (".", rpc_method_name);
+  g_strfreev (rpc_method_name);
 
-  control = graviton_plugin_get_control (plugin, method_name[1]);
+  control = graviton_control_get_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
+                                             control_name);
   if (!control) {
     g_set_error (&error,
                  GRAVITON_SERVER_ERROR,
                  GRAVITON_SERVER_ERROR_NO_SUCH_METHOD,
-                 "No such control: %s.%s",
-                 method_name[0], method_name[1]);
+                 "No such control: %s (looking for method %s)",
+                 control_name, method_name);
     goto out;
   }
 
-  if (graviton_control_has_method (control, method_name[2])) {
+  g_debug ("Looking for method %s", method_name);
+
+  if (graviton_control_has_method (control, method_name)) {
     GHashTable *args = g_hash_table_new_full (g_str_hash,
                                               g_str_equal,
                                               g_free,
@@ -98,19 +92,21 @@ handle_rpc (GravitonServer *self, JsonObject *request)
         }
       }
     }
-    method_result = graviton_control_call_method (control, method_name[2], args, &error);
+    method_result = graviton_control_call_method (control, method_name, args, &error);
     g_hash_table_unref (args);
     if (method_result)
-      g_variant_ref_sink (method_result);
+      g_variant_take_ref (method_result);
   } else {
     g_set_error (&error,
                  GRAVITON_SERVER_ERROR,
                  GRAVITON_SERVER_ERROR_NO_SUCH_METHOD,
-                 "No such method %s on control %s.%s",
-                 method_name[2], method_name[0], method_name[1]);
+                 "No such method %s on control %s",
+                 method_name, control_name);
   }
 
 out:
+  g_free (method_name);
+  g_free (control_name);
   builder = json_builder_new ();
   json_builder_begin_object (builder);
   json_builder_set_member_name (builder, "jsonrpc");
@@ -119,7 +115,6 @@ out:
   json_builder_set_member_name (builder, "id");
   if (request_id) {
     json_builder_add_string_value (builder, request_id);
-    g_free (request_id);
   } else {
     json_builder_add_null_value (builder);
   }
@@ -145,11 +140,10 @@ out:
   }
   json_builder_end_object (builder);
   result = json_builder_get_root (builder);
-  g_strfreev (method_name);
   g_object_unref (builder);
   
-  if (plugin)
-    g_object_unref (plugin);
+  if (control)
+    g_object_unref (control);
   return result;
 }
 
@@ -375,11 +369,11 @@ graviton_server_init (GravitonServer *self)
                     G_CALLBACK(cb_plugin_mounted),
                     self);
 
-  graviton_plugin_manager_mount_plugin (self->priv->plugins,
-                                        g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 
-                                                      "server", self,
-                                                      "name", "graviton",
-                                                      NULL));
+  graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
+                                   g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 
+                                                 "server", self,
+                                                 "name", "graviton",
+                                                 NULL));
 }
 
 GravitonServer *graviton_server_new ()
@@ -400,7 +394,7 @@ void graviton_server_load_plugins (GravitonServer *self)
   for (i = 0; i < plugins->len; i++) {
     GravitonPluginLoaderFunc factory = g_array_index (plugins, GravitonPluginLoaderFunc, i);
     GravitonPlugin *plugin = factory();
-    graviton_plugin_manager_mount_plugin (self->priv->plugins, plugin);
+    graviton_control_add_subcontrol (self->priv->plugins, GRAVITON_CONTROL (plugin));
   }
 }
 

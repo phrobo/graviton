@@ -1,4 +1,4 @@
-#include <graviton-server/server.h>
+#include <graviton/server.h>
 
 #include <glib.h>
 

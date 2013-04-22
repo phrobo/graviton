@@ -5,8 +5,7 @@ set(graviton-server_SRCS
 add_executable(graviton-server-bin ${graviton-server_SRCS})
 
 target_link_libraries(graviton-server-bin
-  graviton-plugin
-  graviton-server
+  graviton
 )
 
 set_target_properties(graviton-server-bin PROPERTIES OUTPUT_NAME

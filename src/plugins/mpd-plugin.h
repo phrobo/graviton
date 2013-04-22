@@ -1,7 +1,7 @@
 #ifndef GRAVITON_MPD_PLUGIN_H
 
 #include <glib-object.h>
-#include <graviton-plugin/plugin.h>
+#include <graviton/plugin.h>
 #include <mpd/client.h>
 
 #define GRAVITON_TYPE_MPD_PLUGIN      (graviton_mpd_plugin_get_type ())

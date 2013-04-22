@@ -1,13 +1,14 @@
 #include "plugin-manager.h"
 #include "plugin.h"
+#include <gmodule.h>
 
 #define GRAVITON_PLUGIN_MANAGER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_PLUGIN_MANAGER, GravitonPluginManagerPrivate))
 
-G_DEFINE_TYPE (GravitonPluginManager, graviton_plugin_manager, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GravitonPluginManager, graviton_plugin_manager, GRAVITON_TYPE_CONTROL);
 
 struct _GravitonPluginManagerPrivate
 {
-  GHashTable *plugins;
+  int dummy;
 };
 
 enum {
@@ -41,10 +42,6 @@ graviton_plugin_manager_init (GravitonPluginManager *self)
 {
   GravitonPluginManagerPrivate *priv;
   self->priv = priv = GRAVITON_PLUGIN_MANAGER_GET_PRIVATE (self);
-  priv->plugins = g_hash_table_new_full (g_str_hash,
-                                         g_str_equal,
-                                         g_free,
-                                         g_object_unref);
 
 }
 
@@ -52,8 +49,6 @@ static void
 graviton_plugin_manager_dispose (GObject *gobject)
 {
   GravitonPluginManager *self = GRAVITON_PLUGIN_MANAGER (gobject);
-
-  g_hash_table_unref (self->priv->plugins);
 }
 
 static void
@@ -66,30 +61,6 @@ GravitonPluginManager *
 graviton_plugin_manager_new ()
 {
   return g_object_new (GRAVITON_TYPE_PLUGIN_MANAGER, NULL);
-}
-
-void
-graviton_plugin_manager_mount_plugin (GravitonPluginManager *self, GravitonPlugin *plugin)
-{
-  g_object_ref (plugin);
-  gchar *name;
-  g_object_get (plugin, "name", &name, NULL);
-
-  g_return_if_fail(!g_hash_table_contains (self->priv->plugins, name));
-
-  g_debug ("Mounting %s", name);
-  g_hash_table_replace (self->priv->plugins, name, plugin);
-
-  g_signal_emit (self, obj_signals[SIGNAL_PLUGIN_MOUNTED], 0, plugin);
-}
-
-GravitonPlugin *
-graviton_plugin_manager_mounted_plugin (GravitonPluginManager *self, const gchar *mount)
-{
-  GravitonPlugin *ret = g_hash_table_lookup (self->priv->plugins, mount);
-  if (ret)
-    g_object_ref (ret);
-  return ret;
 }
 
 GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *self)
@@ -130,10 +101,4 @@ nextPlugin:
   g_dir_close (pluginDir);
 
   return pluginList;
-}
-
-GList *
-graviton_plugin_manager_list_plugins (GravitonPluginManager *self)
-{
-  return g_hash_table_get_keys (self->priv->plugins);
 }

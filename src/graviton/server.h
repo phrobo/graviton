@@ -2,7 +2,7 @@
 #define GRAVITON_SERVER_H
 
 #include <glib-object.h>
-#include <graviton-plugin/plugin-manager.h>
+#include <graviton/plugin-manager.h>
 
 #define GRAVITON_TYPE_SERVER            (graviton_server_get_type ())
 #define GRAVITON_SERVER(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_SERVER, GravitonServer))

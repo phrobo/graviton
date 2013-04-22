@@ -1,11 +1,11 @@
 #include "plugin.h"
+#include <graviton/control.h>
 
 #define GRAVITON_PLUGIN_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_PLUGIN, GravitonPluginPrivate))
-G_DEFINE_TYPE (GravitonPlugin, graviton_plugin, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GravitonPlugin, graviton_plugin, GRAVITON_TYPE_CONTROL);
 
 enum {
   PROP_0,
-  PROP_NAME,
   N_PROPERTIES
 };
 
@@ -15,8 +15,6 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {
 
 struct _GravitonPluginPrivate
 {
-  gchar *name;
-  GHashTable *controls;
 };
 
 static void
@@ -27,9 +25,6 @@ plugin_set_property (GObject *object,
 {
   GravitonPlugin *self = GRAVITON_PLUGIN (object);
   switch (property_id) {
-    case PROP_NAME:
-      self->priv->name = g_value_dup_string (value);
-      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -44,22 +39,10 @@ plugin_get_property (GObject *object,
 {
   GravitonPlugin *self = GRAVITON_PLUGIN (object);
   switch (property_id) {
-    case PROP_NAME:
-      g_value_set_string (value, self->priv->name);
-      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
   }
-}
-
-GravitonControl *
-graviton_plugin_get_control (GravitonPlugin *self,
-                             const gchar *path)
-{
-  GravitonControl *control = NULL;
-  control = g_hash_table_lookup (self->priv->controls, path);
-  return control;
 }
 
 /*static GVariant*
@@ -94,47 +77,20 @@ static void
 graviton_plugin_class_init (GravitonPluginClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-  g_type_class_add_private (klass, sizeof (GravitonPluginPrivate));
+  //g_type_class_add_private (klass, sizeof (GravitonPluginPrivate));
 
   gobject_class->set_property = plugin_set_property;
   gobject_class->get_property = plugin_get_property;
 
-  obj_properties[PROP_NAME] =
-    g_param_spec_string ("name",
-                         "Plugin name",
-                         "Plugin name",
-                         "",
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-  g_object_class_install_properties (gobject_class,
+  /*g_object_class_install_properties (gobject_class,
                                      N_PROPERTIES,
-                                     obj_properties);
+                                     obj_properties);*/
 }
 
 static void
 graviton_plugin_init (GravitonPlugin *self)
 {
   GravitonPluginPrivate *priv;
-  self->priv = priv = GRAVITON_PLUGIN_GET_PRIVATE (self);
-
-  priv->name = 0;
-  priv->controls = g_hash_table_new_full (g_str_hash,
-                                          g_str_equal,
-                                          g_object_unref,
-                                          NULL);
+  //self->priv = priv = GRAVITON_PLUGIN_GET_PRIVATE (self);
 }
 
-void
-graviton_plugin_register_control (GravitonPlugin *self,
-                                  GravitonControl *control)
-{
-  g_object_ref (control);
-  gchar *name;
-  g_object_get (control, "name", &name, NULL);
-  g_hash_table_replace (self->priv->controls, name, control);
-}
-
-GList *
-graviton_plugin_list_controls (GravitonPlugin *self)
-{
-  return g_hash_table_get_keys (self->priv->controls);
-}

@@ -2,7 +2,7 @@
 #define GRAVITON_INTERNAL_PLUGIN_H
 
 #include <glib-object.h>
-#include <graviton-plugin/plugin.h>
+#include <graviton/plugin.h>
 
 #define GRAVITON_TYPE_INTERNAL_PLUGIN     (graviton_internal_plugin_get_type ())
 #define GRAVITON_INTERNAL_PLUGIN(obj)          (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_INTERNAL_PLUGIN, GravitonInternalPlugin))
@@ -15,7 +15,8 @@
 
 typedef enum {
   GRAVITON_INTROSPECTION_ERROR_NO_SUCH_PLUGIN,
-  GRAVITON_INTROSPECTION_ERROR_NO_SUCH_CONTROL
+  GRAVITON_INTROSPECTION_ERROR_NO_SUCH_CONTROL,
+  GRAVITON_INTROSPECTION_ERROR_NO_SUCH_PROPERTY
 } GravitonInspectionError;
 
 typedef struct _GravitonInternalPlugin GravitonInternalPlugin;

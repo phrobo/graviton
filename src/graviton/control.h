@@ -39,17 +39,41 @@ typedef GVariant *(*GravitonControlMethod)(GravitonControl *self, GHashTable *ar
 void graviton_control_add_method (GravitonControl *self,
                                   const gchar *name,
                                   GravitonControlMethod func,
-                                  GParamSpec **args,
                                   int arg_count,
-                                  gpointer user_data);
+                                  GParamSpec **args,
+                                  gpointer user_data,
+                                  GDestroyNotify destroy_func);
 
 GVariant *graviton_control_call_method (GravitonControl *self,
                                    const gchar *name,
                                    GHashTable *args,
                                    GError **error);
 
+/**
+ * graviton_control_list_methods:
+ * List methods on this control
+ *
+ * Returns: (element-type *gchar) (transfer none): List of method names
+ */
 GList *graviton_control_list_methods (GravitonControl *self);
 
 gboolean graviton_control_has_method (GravitonControl *self, const gchar *name);
+
+void graviton_control_add_subcontrol (GravitonControl *self,
+                                       GravitonControl *control);
+
+/**
+ * graviton_control_get_subcontrol:
+ * Gets the named control
+ * Returns: (transfer full): The control
+ */
+GravitonControl *graviton_control_get_subcontrol (GravitonControl *self,
+                                  const gchar *name);
+
+/**
+ * graviton_control_list_subcontrols:
+ * Returns: (element-type gchar*) (transfer full): the names of the available controls
+ */
+GList *graviton_control_list_subcontrols (GravitonControl *self);
 
 #endif // GRAVITON_CONTROL_H

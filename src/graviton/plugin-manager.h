@@ -2,6 +2,7 @@
 #define GRAVITON_PLUGIN_MANAGER_H
 
 #include <glib-object.h>
+#include <graviton/control.h>
 
 #define GRAVITON_TYPE_PLUGIN_MANAGER            (graviton_plugin_manager_get_type ())
 #define GRAVITON_PLUGIN_MANAGER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_PLUGIN_MANAGER, GravitonPluginManager))
@@ -17,7 +18,7 @@ typedef struct _GravitonPluginManagerPrivate GravitonPluginManagerPrivate;
 
 struct _GravitonPluginManager
 {
-  GObject parent_instance;
+  GravitonControl parent_instance;
   GravitonPluginManagerPrivate *priv;
 };
 
@@ -30,9 +31,7 @@ typedef struct _GravitonPlugin GravitonPlugin;
 
 GType graviton_plugin_manager_get_type ();
 GravitonPluginManager *graviton_plugin_manager_new ();
-void graviton_plugin_manager_mount_plugin (GravitonPluginManager *manager, GravitonPlugin *plugin);
-GravitonPlugin *graviton_plugin_manager_mounted_plugin (GravitonPluginManager *manager, const gchar *mount);
+
 GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *manager);
-GList *graviton_plugin_manager_list_plugins (GravitonPluginManager *self);
 
 #endif // GRAVITON_PLUGIN_H
