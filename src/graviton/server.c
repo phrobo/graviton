@@ -156,6 +156,9 @@ cb_handle_events (SoupServer *server,
          gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
+  JsonBuilder *builder;
+  JsonNode *result = NULL;
+  JsonGenerator *generator;
   SoupMessageHeaders *headers;
   soup_server_pause_message (server, msg);
   g_object_get (msg, SOUP_MESSAGE_RESPONSE_HEADERS, &headers, NULL);
@@ -270,21 +273,34 @@ cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext 
 }
 
 static void
-cb_plugin_notify (GravitonPlugin *plugin, GParamSpec *pspec, gpointer user_data)
+cb_property_update (GravitonControl *control, const gchar *name, gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER(user_data);
-  gchar *name;
-  g_object_get (plugin, "name", &name, NULL);
 
-  g_debug ("Property was updated on a plugin: %s.%s", name, pspec->name);
+  g_debug ("Property was updated on a plugin: %s", name);
   JsonBuilder *builder;
   JsonNode *result = NULL;
   JsonGenerator *generator;
 
   GValue property_value = G_VALUE_INIT;
   GVariant *converted_variant = NULL;
-  g_value_init (&property_value, pspec->value_type);
-  g_object_get_property (G_OBJECT(plugin), pspec->name, &property_value);
+  gchar **split_property_name = g_strsplit (name, ".", 0);
+  gchar *property_name;
+  gchar *control_name;
+  int split = g_strv_length (split_property_name) - 1;
+  property_name = g_strdup (split_property_name[split]);
+  g_free (split_property_name[split]);
+  split_property_name[split] = NULL;
+  control_name = g_strjoinv (".", split_property_name);
+  g_strfreev (split_property_name);
+
+  GravitonControl *subcontrol = graviton_control_get_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
+                                                                 control_name);
+  GParamSpec *prop = g_object_class_find_property (G_OBJECT_GET_CLASS (subcontrol), property_name);
+  g_value_init (&property_value, prop->value_type);
+  g_object_get_property (G_OBJECT (subcontrol), prop->name, &property_value);
+  g_free (property_name);
+  g_free (control_name);
 
   if (G_VALUE_HOLDS_STRING (&property_value))
     converted_variant = g_variant_new_string (g_value_get_string (&property_value));
@@ -298,9 +314,7 @@ cb_plugin_notify (GravitonPlugin *plugin, GParamSpec *pspec, gpointer user_data)
     json_builder_set_member_name (builder, "type");
     json_builder_add_string_value (builder, "property");
     json_builder_set_member_name (builder, "property");
-    gchar *property_name = g_strdup_printf("%s.%s", name, pspec->name);
-    json_builder_add_string_value (builder, property_name);
-    g_free (property_name);
+    json_builder_add_string_value (builder, name);
     json_builder_set_member_name (builder, "value");
 
     json_builder_add_value (builder, json_gvariant_serialize (converted_variant));
@@ -327,18 +341,6 @@ cb_plugin_notify (GravitonPlugin *plugin, GParamSpec *pspec, gpointer user_data)
 }
 
 static void
-cb_plugin_mounted (GravitonPluginManager *plugins, GravitonPlugin *plugin, gpointer user_data)
-{
-  GravitonServer *self = GRAVITON_SERVER (user_data);
-  gchar *name;
-  g_object_get (plugin, "name", &name, NULL);
-  g_debug ("A plugin was mounted at %s", name);
-  g_free (name);
-
-  g_signal_connect (plugin, "notify", G_CALLBACK(cb_plugin_notify), self);
-}
-
-static void
 graviton_server_init (GravitonServer *self)
 {
   GravitonServerPrivate *priv;
@@ -346,6 +348,10 @@ graviton_server_init (GravitonServer *self)
   self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
 
   priv->plugins = graviton_plugin_manager_new ();
+  g_signal_connect (priv->plugins,
+                    "property-update",
+                    G_CALLBACK (cb_property_update),
+                    self);
   priv->event_listeners = NULL;
 
   priv->server = soup_server_new (
@@ -363,11 +369,6 @@ graviton_server_init (GravitonServer *self)
 
   soup_server_add_handler (priv->server, "/rpc", cb_handle_rpc, self, NULL);
   soup_server_add_handler (priv->server, "/events", cb_handle_events, self, NULL);
-
-  g_signal_connect (self->priv->plugins,
-                    "plugin-mounted",
-                    G_CALLBACK(cb_plugin_mounted),
-                    self);
 
   graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
                                    g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 

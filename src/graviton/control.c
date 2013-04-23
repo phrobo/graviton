@@ -18,6 +18,14 @@ enum {
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
+enum {
+  SIGNAL_0,
+  SIGNAL_PROPERTY_UPDATE,
+  N_SIGNALS
+};
+
+static int obj_signals[N_SIGNALS] = {0, };
+
 struct _GravitonControlPrivate
 {
   gchar *name;
@@ -81,6 +89,18 @@ graviton_control_class_init (GravitonControlClass *klass)
   g_object_class_install_properties (gobject_class,
                                      N_PROPERTIES,
                                      obj_properties);
+
+  obj_signals[SIGNAL_PROPERTY_UPDATE] = 
+    g_signal_new ("property-update",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL,
+                  NULL,
+                  g_cclosure_marshal_VOID__STRING,
+                  G_TYPE_NONE,
+                  1,
+                  G_TYPE_STRING);
 }
 
 static void
@@ -232,6 +252,31 @@ graviton_control_get_subcontrol (GravitonControl *self,
   return control;
 }
 
+static void
+cb_subcontrol_notify (GravitonControl *subcontrol, GParamSpec *pspec, gpointer user_data)
+{
+  GravitonControl *self = GRAVITON_CONTROL(user_data);
+  gchar *subname;
+  g_object_get (subcontrol, "name", &subname, NULL);
+  gchar *full_name = g_strdup_printf ("%s.%s", subname, pspec->name);
+
+  g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], NULL, full_name);
+  g_debug ("Subproperty notify: %s", full_name);
+  g_free (full_name);
+}
+
+static void
+cb_propigate_property_update (GravitonControl *subcontrol, const gchar *name, gpointer user_data)
+{
+  GravitonControl *self = GRAVITON_CONTROL(user_data);
+  gchar *full_name = g_strdup_printf ("%s.%s", self->priv->name, name);
+
+  g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], NULL, full_name);
+
+  g_debug ("Subproperty update: %s", full_name);
+  g_free (full_name);
+}
+
 void
 graviton_control_add_subcontrol (GravitonControl *self,
                                       GravitonControl *control)
@@ -240,6 +285,15 @@ graviton_control_add_subcontrol (GravitonControl *self,
   gchar *name;
   g_object_get (control, "name", &name, NULL);
   g_hash_table_replace (self->priv->controls, name, control);
+
+  g_signal_connect (control,
+                    "notify",
+                    G_CALLBACK(cb_subcontrol_notify),
+                    self);
+  g_signal_connect (control,
+                    "property-update",
+                    G_CALLBACK(cb_propigate_property_update),
+                    self);
 }
 
 GList *
