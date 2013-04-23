@@ -17,7 +17,7 @@ enum {
   N_SIGNALS
 };
 
-int obj_signals[N_SIGNALS] = {0, };
+static int obj_signals[N_SIGNALS] = {0, };
 
 static void
 graviton_plugin_manager_class_init (GravitonPluginManagerClass *klass)
