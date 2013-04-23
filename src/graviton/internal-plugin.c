@@ -166,8 +166,14 @@ cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpo
     GVariant *converted_variant = NULL;
     g_value_init (&property_value, property->value_type);
     g_object_get_property (G_OBJECT(subcontrol), property->name, &property_value);
-    if (G_VALUE_HOLDS_STRING (&property_value))
+    if (G_VALUE_HOLDS_STRING (&property_value)) {
       converted_variant = g_variant_new_string (g_value_get_string (&property_value));
+    } else if (G_VALUE_HOLDS_VARIANT (&property_value)) {
+      converted_variant = g_value_get_variant (&property_value);
+      g_variant_ref (converted_variant);
+    } else {
+      g_warning ("Unsupported value type: %s", G_VALUE_TYPE_NAME (&property_value));
+    }
     return converted_variant;
   } else {
     g_set_error (error,
