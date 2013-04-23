@@ -2,6 +2,7 @@
 
 #include <json-glib/json-glib.h>
 #include <mpd/client.h>
+#include <gio/gunixinputstream.h>
 
 #include <graviton/control.h>
 
@@ -33,6 +34,7 @@ enum
 {
   PROP_0,
   PROP_STATE,
+  PROP_QUEUE,
   N_PROPERTIES
 };
 
@@ -41,6 +43,10 @@ static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 struct _GravitonMPDPluginPrivate
 {
   struct mpd_connection *mpd;
+  GPollableInputStream *mpd_stream;
+  GSource *mpd_source;
+  struct mpd_status *last_status;
+  GList *last_queue;
 };
 
 static void
@@ -67,19 +73,111 @@ set_mpd_error (GError **error, struct mpd_connection *connection)
   }
 }
 
+static void
+update_status (GravitonMPDPlugin *self)
+{
+  if (self->priv->last_status)
+    mpd_status_free (self->priv->last_status);
+  self->priv->last_status = mpd_run_status (self->priv->mpd);
+  g_object_notify_by_pspec (G_OBJECT(self), obj_properties[PROP_STATE]);
+}
+
+static void
+update_queue (GravitonMPDPlugin *self)
+{
+  if (self->priv->last_queue) {
+    GList *cur = self->priv->last_queue;
+    while (cur) {
+      mpd_song_free(cur->data);
+    }
+    g_list_free_full (self->priv->last_queue, (GDestroyNotify)mpd_song_free);
+    self->priv->last_queue = NULL;
+  }
+  int i = 0;
+  struct mpd_song *song = mpd_run_get_queue_song_pos (self->priv->mpd, i);
+  while (song) {
+    self->priv->last_queue = g_list_append (self->priv->last_queue, song);
+    i++;
+    g_debug ("Found song at %d: %s", i, mpd_song_get_tag (song, MPD_TAG_TITLE, 0));
+    song = mpd_run_get_queue_song_pos (self->priv->mpd, i);
+  }
+  g_debug ("Playlist has %d items.", i);
+  g_object_notify_by_pspec (G_OBJECT(self), obj_properties[PROP_QUEUE]);
+}
+
+static void
+parse_idle(GravitonMPDPlugin *self)
+{
+  enum mpd_idle idle_status;
+  idle_status = mpd_recv_idle (self->priv->mpd, TRUE);
+  g_debug ("Got idle!");
+  if (idle_status & MPD_IDLE_PLAYER) {
+    g_debug ("Player update!");
+    update_status (self);
+  }
+  if (idle_status & MPD_IDLE_DATABASE)
+    g_debug ("Database update!");
+  if (idle_status & MPD_IDLE_STORED_PLAYLIST)
+    g_debug ("Playlist update!");
+  if (idle_status & MPD_IDLE_QUEUE) {
+    g_debug ("Queue update!");
+    update_queue (self);
+  }
+  if (idle_status & MPD_IDLE_MIXER)
+    g_debug ("Volume update!");
+  if (idle_status & MPD_IDLE_OUTPUT)
+    g_debug ("Output update!");
+  if (idle_status & MPD_IDLE_OPTIONS)
+    g_debug ("Option update!");
+  if (idle_status & MPD_IDLE_UPDATE)
+    g_debug ("Database update! Again!");
+}
+
+static void
+cb_mpd_idle(GObject *stream, gpointer user_data)
+{
+  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (user_data);
+  parse_idle (self);
+  mpd_send_idle (self->priv->mpd);
+}
+
+static void
+stop_mpd_idle (GravitonMPDPlugin *self)
+{
+  g_assert (self->priv->mpd_source);
+  g_source_destroy (self->priv->mpd_source);
+  self->priv->mpd_source = NULL;
+  g_debug ("Sending noidle");
+  mpd_send_noidle (self->priv->mpd);
+  parse_idle (self);
+}
+
+static void
+resume_mpd_idle (GravitonMPDPlugin *self)
+{
+  g_assert (self->priv->mpd_source == NULL);
+  self->priv->mpd_source = g_pollable_input_stream_create_source (self->priv->mpd_stream, NULL);
+  g_source_set_callback (self->priv->mpd_source, (GSourceFunc)cb_mpd_idle, self, NULL);
+  g_source_attach (self->priv->mpd_source, NULL);
+  g_debug ("Sending idle");
+  mpd_send_idle (self->priv->mpd);
+}
+
 static enum mpd_error
 connect_to_mpd(GravitonMPDPlugin *self, GError **error)
 {
-  struct mpd_connection *ret;
-  if (self->priv->mpd) {
-    mpd_connection_free (self->priv->mpd);
+  if (!self->priv->mpd) {
+    self->priv->mpd = mpd_connection_new ("10.2.0.6", 0, 0);
+    self->priv->mpd_stream = G_POLLABLE_INPUT_STREAM (g_unix_input_stream_new (mpd_connection_get_fd (self->priv->mpd), FALSE));
+    if (self->priv->last_status) {
+      mpd_status_free (self->priv->last_status);
+      self->priv->last_status = NULL;
+    }
   }
-  self->priv->mpd = mpd_connection_new ("10.2.0.6", 0, 0);
   enum mpd_error err = mpd_connection_get_error (self->priv->mpd);
-  if (err != MPD_ERROR_SUCCESS)
+  if (err != MPD_ERROR_SUCCESS) {
     set_mpd_error (error, self->priv->mpd);
-
-  g_object_notify_by_pspec (G_OBJECT(self), obj_properties[PROP_STATE]);
+  }
 
   return err;
 }
@@ -88,10 +186,8 @@ connect_to_mpd(GravitonMPDPlugin *self, GError **error)
 static const gchar *
 mpd_state_string (GravitonMPDPlugin *self)
 {
-  struct mpd_status *status;
-  if (connect_to_mpd (self, NULL) == MPD_ERROR_SUCCESS) {
-    status = mpd_run_status (self->priv->mpd);
-    switch (mpd_status_get_state(status)) {
+  if (self->priv->last_status) {
+    switch (mpd_status_get_state(self->priv->last_status)) {
       case MPD_STATE_STOP:
         return "stopped";
       case MPD_STATE_PLAY:
@@ -99,11 +195,10 @@ mpd_state_string (GravitonMPDPlugin *self)
       case MPD_STATE_PAUSE:
         return "paused";
       default:
-        g_warning ("Unknown MPD state: %d", mpd_status_get_state(status));
+        g_warning ("Unknown MPD state: %d", mpd_status_get_state(self->priv->last_status));
         return "unknown";
     }
   } else {
-    g_warning ("Cannot connect to MPD");
     return "disconnected";
   }
 }
@@ -123,6 +218,32 @@ set_property (GObject *object,
   }
 }
 
+static GVariant *
+queue_to_variant (GravitonMPDPlugin *self)
+{
+  GVariantBuilder ret;
+  g_variant_builder_init (&ret, (GVariantType*)"aa{s*}");
+  GList *cur = self->priv->last_queue;
+  while (cur) {
+    GVariantBuilder song_variant;
+    g_variant_builder_init (&song_variant, (GVariantType*)"a{s*}");
+    int i;
+    for(i = 0;i<MPD_TAG_COUNT;i++) {
+      const gchar *tagValue = mpd_song_get_tag (cur->data, i, 0);
+      if (tagValue) {
+        g_variant_builder_add_parsed (&song_variant,
+                                      "{%s, <%s>}",
+                                      mpd_tag_name (i),
+                                      mpd_song_get_tag (cur->data, i, 0));
+      }
+    }
+    g_variant_builder_add_value (&ret, g_variant_builder_end (&song_variant));
+    cur = g_list_next (cur);
+  }
+
+  return g_variant_builder_end (&ret);
+}
+
 static void
 get_property (GObject *object,
               guint property_id,
@@ -130,10 +251,15 @@ get_property (GObject *object,
               GParamSpec *pspec)
 {
   GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (object);
+  GVariant *v;
 
   switch (property_id) {
     case PROP_STATE:
       g_value_set_string (value, mpd_state_string (self));
+      break;
+    case PROP_QUEUE:
+      v = queue_to_variant (self);
+      g_value_set_variant (value, v);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -156,6 +282,13 @@ graviton_mpd_plugin_class_init (GravitonMPDPluginClass *klass)
                          "Current MPD playback state",
                          "unknown",
                          G_PARAM_READABLE);
+  obj_properties[PROP_QUEUE] =
+    g_param_spec_variant ("queue", 
+                          "playback queue",
+                          "Current MPD playback queue",
+                          (GVariantType*)"aa{s*}",
+                          NULL,
+                          G_PARAM_READABLE);
   g_object_class_install_properties (gobject_class,
                                      N_PROPERTIES,
                                      obj_properties);
@@ -258,10 +391,10 @@ cb_pause (GravitonControl *control, GHashTable *args, GError **error, gpointer u
   GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (user_data);
   gboolean success;
   if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
-    if (mpd_run_pause (self->priv->mpd, true))
-      return NULL;
-    else
+    stop_mpd_idle (self);
+    if (!mpd_run_pause (self->priv->mpd, true))
       set_mpd_error (error, self->priv->mpd);
+    resume_mpd_idle (self);
   }
   return NULL;
 }
@@ -273,10 +406,10 @@ cb_play (GravitonControl *control, GHashTable *args, GError **error, gpointer us
   GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (user_data);
   gboolean success;
   if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
-    if (mpd_run_play (self->priv->mpd))
-      return NULL;
-    else
+    stop_mpd_idle (self);
+    if (!mpd_run_play (self->priv->mpd))
       set_mpd_error (error, self->priv->mpd);
+    resume_mpd_idle (self);
   }
   return NULL;
 }
@@ -287,6 +420,14 @@ graviton_mpd_plugin_init (GravitonMPDPlugin *self)
   GravitonMPDPluginPrivate *priv;
   self->priv = priv = GRAVITON_MPD_PLUGIN_GET_PRIVATE (self);
   priv->mpd = NULL;
+  priv->last_status = NULL;
+  priv->last_queue = NULL;
+
+  if (connect_to_mpd (self, NULL) == MPD_ERROR_SUCCESS) {
+    update_status (self);
+    update_queue (self);
+    resume_mpd_idle (self);
+  }
 
   GravitonControl* playback = g_object_new (GRAVITON_TYPE_CONTROL, "name", "playback", NULL);
   graviton_control_add_method (playback,
