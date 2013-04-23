@@ -10,4 +10,12 @@ set(GRAVITON_VERSION
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
+if (NOT LIB_SUFFIX)
+  if (CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set(LIB_SUFFIX "")
+  else()
+    set(LIB_SUFFIX "64")
+  endif()
+endif()
+
 add_subdirectory(src)
