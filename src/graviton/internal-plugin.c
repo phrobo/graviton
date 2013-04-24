@@ -140,6 +140,8 @@ cb_properties(GravitonControl *control, GHashTable *args, GError **error, gpoint
     g_variant_builder_add (&ret, "s", properties[i]->name);
   }
 
+  g_free (properties);
+
   g_object_unref (subcontrol);
 
   return g_variant_builder_end (&ret);
@@ -174,6 +176,7 @@ cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpo
     } else {
       g_warning ("Unsupported value type: %s", G_VALUE_TYPE_NAME (&property_value));
     }
+    g_value_unset (&property_value);
     return converted_variant;
   } else {
     g_set_error (error,

@@ -95,6 +95,7 @@ GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *self)
     g_array_append_val (pluginList, loader);
 
 nextPlugin:
+    g_free (entryPath);
     entry = g_dir_read_name (pluginDir);
   }
 

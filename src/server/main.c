@@ -18,5 +18,7 @@ int main(int argc, char** argv)
   graviton_server_run_async (server);
 
   g_main_loop_run (loop);
+
+  g_object_unref (server);
   return 0;
 }
