@@ -156,15 +156,19 @@ cb_handle_events (SoupServer *server,
          gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
-  JsonBuilder *builder;
-  JsonNode *result = NULL;
-  JsonGenerator *generator;
   SoupMessageHeaders *headers;
-  soup_server_pause_message (server, msg);
+
+  g_object_ref (msg);
+
+  soup_message_set_status (msg, SOUP_STATUS_OK);
+
   g_object_get (msg, SOUP_MESSAGE_RESPONSE_HEADERS, &headers, NULL);
   soup_message_headers_set_encoding (headers, SOUP_ENCODING_CHUNKED);
-  g_object_ref (msg);
+  soup_message_headers_set_content_type (headers, "text/json", NULL);
+  soup_message_headers_append (headers, "Connection", "close");
+
   self->priv->event_listeners = g_list_append (self->priv->event_listeners, msg);
+  g_debug ("New event listener");
 }
 
 static void
@@ -268,6 +272,7 @@ cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext 
   GravitonServer *self = GRAVITON_SERVER (user_data);
 
   self->priv->event_listeners = g_list_remove (self->priv->event_listeners, message);
+  g_object_unref (G_OBJECT (message));
   
   g_debug ("Aborted event stream");
 }
@@ -325,17 +330,21 @@ cb_property_update (GravitonControl *control, const gchar *name, gpointer user_d
 
     gsize length;
     gchar *data = json_generator_to_data (generator, &length);
+    gchar *fullData = g_strconcat (data, "\r\n", NULL);
+    length = strlen(fullData);
     json_node_free(result);
 
     while (client) {
       SoupMessageBody *body;
       g_object_get (client->data, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
-      soup_message_body_append (body, SOUP_MEMORY_COPY, data, length);
+      g_object_ref (G_OBJECT (body));
+      soup_message_body_append (body, SOUP_MEMORY_COPY, fullData, length);
       soup_server_unpause_message (self->priv->server, client->data);
       client = g_list_next (client);
       g_debug ("Sent event: %s", data);
     }
 
+    g_free (fullData);
     g_free (data);
   }
 }
@@ -395,7 +404,7 @@ void graviton_server_load_plugins (GravitonServer *self)
   for (i = 0; i < plugins->len; i++) {
     GravitonPluginLoaderFunc factory = g_array_index (plugins, GravitonPluginLoaderFunc, i);
     GravitonPlugin *plugin = factory();
-    graviton_control_add_subcontrol (self->priv->plugins, GRAVITON_CONTROL (plugin));
+    graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins), GRAVITON_CONTROL (plugin));
   }
 }
 
