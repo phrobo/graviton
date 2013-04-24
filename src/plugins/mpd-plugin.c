@@ -168,15 +168,16 @@ connect_to_mpd(GravitonMPDPlugin *self, GError **error)
 {
   if (!self->priv->mpd) {
     self->priv->mpd = mpd_connection_new ("10.2.0.6", 0, 0);
+  }
+  enum mpd_error err = mpd_connection_get_error (self->priv->mpd);
+  if (err != MPD_ERROR_SUCCESS) {
+    set_mpd_error (error, self->priv->mpd);
+  } else {
     self->priv->mpd_stream = G_POLLABLE_INPUT_STREAM (g_unix_input_stream_new (mpd_connection_get_fd (self->priv->mpd), FALSE));
     if (self->priv->last_status) {
       mpd_status_free (self->priv->last_status);
       self->priv->last_status = NULL;
     }
-  }
-  enum mpd_error err = mpd_connection_get_error (self->priv->mpd);
-  if (err != MPD_ERROR_SUCCESS) {
-    set_mpd_error (error, self->priv->mpd);
   }
 
   return err;
