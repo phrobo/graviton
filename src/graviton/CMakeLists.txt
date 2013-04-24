@@ -45,9 +45,7 @@ add_custom_command(
       --library graviton
       --verbose
       --warn-all
-      --warn-error
       --pkg=glib-2.0
-      --pkg=json-glib-1.0
       -L${CMAKE_CURRENT_BINARY_DIR}
       plugin.c
       plugin.h
@@ -64,8 +62,44 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+add_custom_command(
+  OUTPUT
+  ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_MAJOR}.vapi
+  COMMAND
+    vapigen
+      --library Graviton
+      --pkg=glib-2.0
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_MAJOR}.gir
+  DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_MAJOR}.gir
+    graviton
+  WORKING_DIRECTORY
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 add_custom_target(
   do_gir
   DEPENDS
   ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_MAJOR}.gir
+)
+
+add_custom_target(
+  do_vapi
+  ALL
+  DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_MAJOR}.vapi
+)
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_MAJOR}.gir
+  DESTINATION
+    share/gir-1.0/
+)
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/graviton-${GRAVITON_VERSION_MAJOR}.vapi
+  DESTINATION
+    share/vala/vapi/
 )
