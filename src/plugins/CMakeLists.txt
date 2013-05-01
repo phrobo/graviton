@@ -12,6 +12,8 @@ endmacro(add_graviton_plugin)
 
 option(USE_MPD "Enable MPD plugin" TRUE)
 
+add_graviton_plugin(mex mex.c)
+
 if (USE_MPD)
   pkg_search_module(MPD libmpdclient)
   pkg_search_module(GIO_UNIX gio-unix-2.0)
