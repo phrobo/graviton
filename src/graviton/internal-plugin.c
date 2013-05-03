@@ -20,6 +20,7 @@ enum
 {
   PROP_0,
   PROP_SERVER,
+  PROP_HOSTNAME,
   N_PROPERTIES
 };
 
@@ -91,6 +92,9 @@ get_property (GObject *object,
     case PROP_SERVER:
       g_value_set_object (value, self->priv->server);
       break;
+    case PROP_HOSTNAME:
+      g_value_set_string (value, g_get_host_name ());
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -114,6 +118,12 @@ graviton_internal_plugin_class_init (GravitonInternalPluginClass *klass)
                          "GravitonServer object",
                          GRAVITON_TYPE_SERVER,
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
+  obj_properties[PROP_HOSTNAME] =
+    g_param_spec_string ("hostname",
+                         "Hostname",
+                         "Hostname",
+                         "",
+                         G_PARAM_READABLE);
   g_object_class_install_properties (gobject_class,
                                      N_PROPERTIES,
                                      obj_properties);
