@@ -9,6 +9,7 @@ Source0:        %{name}-%{version}.tar.bz2
 
 BuildRequires:  glib2-devel libsoup-devel json-glib-devel cmake
 BuildRequires:  libmpdclient-devel avahi-devel avahi-glib-devel
+BuildRequires:  gobject-introspection-devel
 
 %description
 Graviton pulls your network together
