@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+import graviton
+import sys
+
+b = graviton.Browser()
+
+node = b.findByName(sys.argv[1])
+
+args = {}
+for arg in sys.argv[3:]:
+  tokens = arg.split('=', 2)
+  args[tokens[0]] = tokens[1]
+
+print node.call(sys.argv[2], **args)

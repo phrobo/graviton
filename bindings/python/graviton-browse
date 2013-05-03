@@ -1,0 +1,18 @@
+#!/usr/bin/env python
+import graviton
+
+def printControl(control):
+  print "control:", control.name
+  for method in control.methods:
+    print "\tmethod:", method.name
+  for property in control.properties:
+    print "\tproperty:", property.name, "=", property.value
+  for subcontrol in control.controls:
+    printControl(subcontrol)
+
+b = graviton.Browser()
+b.discover()
+for node in b.results:
+  print "Looking at node", node.url()
+  for control in node.controls():
+    printControl(control)
