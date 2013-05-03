@@ -1,18 +1,4 @@
-set(GRAVITON_PLUGIN_PATH "${CMAKE_INSTALL_PREFIX}/share/graviton/plugins/")
-macro(add_graviton_plugin _name _source)
-  add_library(graviton-plugin-${_name} MODULE ${_source})
-  target_link_libraries(graviton-plugin-${_name}
-    graviton
-  )
-  set_target_properties(graviton-plugin-${_name} PROPERTIES
-    OUTPUT_NAME ${_name}
-    PREFIX ""
-  )
-endmacro(add_graviton_plugin)
-
 option(USE_MPD "Enable MPD plugin" TRUE)
-
-add_graviton_plugin(mex mex.c)
 
 if (USE_MPD)
   pkg_search_module(MPD libmpdclient)
