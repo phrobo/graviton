@@ -6,6 +6,9 @@
 #include <graviton/plugin.h>
 #include <graviton/control.h>
 #include <string.h>
+#include <avahi-client/client.h>
+#include <avahi-client/publish.h>
+#include <avahi-glib/glib-watch.h>
 
 #include "config.h"
 
@@ -25,7 +28,49 @@ struct _GravitonServerPrivate
   GravitonPluginManager *plugins;
   GList *event_listeners;
   GHashTable *plugin_names;
+  AvahiClient *avahi;
+  AvahiGLibPoll *avahi_poll_api;
+  AvahiEntryGroup *avahi_group;
 };
+
+static void
+cb_avahi_group (AvahiEntryGroup *g, AvahiEntryGroupState state, gpointer data)
+{
+}
+
+static void
+create_avahi_services (AvahiClient *client, GravitonServer *server)
+{
+  if (!server->priv->avahi_group)
+    server->priv->avahi_group = avahi_entry_group_new (client, cb_avahi_group, NULL);
+
+  avahi_entry_group_reset (server->priv->avahi_group);
+
+  SoupSocket *socket = soup_server_get_listener (server->priv->server);
+  SoupAddress *address = soup_socket_get_local_address (socket);
+  int port = soup_address_get_port (address);
+
+  avahi_entry_group_add_service (server->priv->avahi_group,
+                                 AVAHI_IF_UNSPEC,
+                                 AVAHI_PROTO_UNSPEC,
+                                 0,
+                                 "Graviton",
+                                 "_graviton._tcp",
+                                 NULL,
+                                 NULL,
+                                 port,
+                                 NULL);
+  avahi_entry_group_commit (server->priv->avahi_group);
+  g_debug ("Created avahi services for port %d", port);
+}
+
+static void
+cb_avahi (AvahiClient *client, AvahiClientState state, gpointer data)
+{
+  if (state == AVAHI_CLIENT_S_RUNNING) {
+    create_avahi_services (client, GRAVITON_SERVER(data));
+  }
+}
 
 static void
 graviton_server_class_init (GravitonServerClass *klass)
@@ -353,8 +398,9 @@ static void
 graviton_server_init (GravitonServer *self)
 {
   GravitonServerPrivate *priv;
-  SoupAddress *address = soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, 2718);
+  SoupAddress *address = soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, SOUP_ADDRESS_ANY_PORT);
   self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
+  priv->avahi_group = NULL;
 
   priv->plugins = graviton_plugin_manager_new ();
   g_signal_connect (priv->plugins,
@@ -384,6 +430,14 @@ graviton_server_init (GravitonServer *self)
                                                  "server", self,
                                                  "name", "graviton",
                                                  NULL));
+
+  priv->avahi_poll_api = avahi_glib_poll_new (NULL, G_PRIORITY_DEFAULT);
+  AvahiPoll *poll_api = avahi_glib_poll_get (priv->avahi_poll_api);
+  priv->avahi = avahi_client_new (poll_api,
+                                  0,
+                                  cb_avahi,
+                                  self,
+                                  NULL);
 }
 
 GravitonServer *graviton_server_new ()

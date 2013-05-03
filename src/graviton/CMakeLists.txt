@@ -19,6 +19,8 @@ target_link_libraries(graviton
   ${GLIB_LIBRARIES}
   ${SOUP_LIBRARIES}
   ${JSON_LIBRARIES}
+  ${AVAHI_GLIB_LIBRARIES}
+  ${AVAHI_CLIENT_LIBRARIES}
 )
 
 install(TARGETS graviton DESTINATION lib${LIB_SUFFIX})

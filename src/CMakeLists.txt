@@ -3,6 +3,8 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(GLIB REQUIRED glib-2.0)
 pkg_search_module(SOUP REQUIRED libsoup-2.4)
 pkg_search_module(JSON REQUIRED json-glib-1.0)
+pkg_search_module(AVAHI_GLIB REQUIRED avahi-glib)
+pkg_search_module(AVAHI_CLIENT REQUIRED avahi-client)
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake
@@ -15,6 +17,8 @@ include_directories(
   ${GLIB_INCLUDE_DIRS}
   ${SOUP_INCLUDE_DIRS}
   ${JSON_INCLUDE_DIRS}
+  ${AVAHI_GLIB_INCLUDE_DIRS}
+  ${AVAHI_CLIENT_INCLUDE_DIRS}
 )
 
 add_subdirectory(graviton)
