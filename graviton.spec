@@ -65,6 +65,7 @@ cd bindings/python/
 %{_libdir}/*.so*
 %dir %{_datadir}/graviton/
 %dir %{_datadir}/graviton/plugins/
+/usr/lib/systemd/user/graviton.service
 
 %files devel
 %{_includedir}/*
