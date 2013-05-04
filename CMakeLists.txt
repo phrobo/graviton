@@ -37,3 +37,10 @@ install(
   DESTINATION
     lib${LIB_SUFFIX}/cmake/Graviton/
 )
+
+install(
+  FILES
+    graviton.service
+  DESTINATION
+    lib/systemd/user/
+)

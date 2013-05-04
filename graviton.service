@@ -1,0 +1,8 @@
+[Unit]
+Description=Graviton Server
+
+[Service]
+ExecStart=/usr/bin/graviton-server
+
+[Install]
+WantedBy=default.target
