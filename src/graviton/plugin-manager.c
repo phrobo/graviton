@@ -67,6 +67,8 @@ GArray *graviton_plugin_manager_find_plugins (GravitonPluginManager *self)
 {
   GArray *pluginList = g_array_new(FALSE, FALSE, sizeof (GravitonPluginLoaderFunc));
   const gchar *pluginPath = g_getenv("GRAVITON_PLUGIN_PATH");
+  if (!pluginPath)
+    pluginPath = GRAVITON_DEFAULT_PLUGIN_PATH;
   g_debug ("Searching %s for plugins\n", pluginPath);
   GDir *pluginDir = g_dir_open (pluginPath, 0, NULL);
   const gchar *entry = g_dir_read_name (pluginDir);
