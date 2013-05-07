@@ -3,6 +3,7 @@ Description=Graviton Server
 
 [Service]
 ExecStart=/usr/bin/graviton-server
+Restart=always
 
 [Install]
 WantedBy=default.target
