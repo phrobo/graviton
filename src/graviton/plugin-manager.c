@@ -2,6 +2,8 @@
 #include "plugin.h"
 #include <gmodule.h>
 
+#include "config.h"
+
 #define GRAVITON_PLUGIN_MANAGER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_PLUGIN_MANAGER, GravitonPluginManagerPrivate))
 
 G_DEFINE_TYPE (GravitonPluginManager, graviton_plugin_manager, GRAVITON_TYPE_CONTROL);
