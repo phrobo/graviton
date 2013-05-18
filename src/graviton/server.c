@@ -94,15 +94,13 @@ handle_rpc (GravitonServer *self, JsonObject *request)
   builder = json_builder_new ();
 
   request_id = json_object_get_string_member (request, "id");
-  rpc_method_name = g_strsplit (json_object_get_string_member (request, "method"), ".", 0);
+  rpc_method_name = g_strsplit (json_object_get_string_member (request, "method"), "/", 0);
 
-  int split = g_strv_length (rpc_method_name)-1;
-
-  method_name = g_strdup (rpc_method_name[split]);
-  g_free (rpc_method_name[split]);
-  rpc_method_name[split] = NULL;
-  control_name = g_strjoinv (".", rpc_method_name);
+  control_name = g_strdup (rpc_method_name[0]);
+  method_name = g_strdup (rpc_method_name[1]);
   g_strfreev (rpc_method_name);
+
+  g_debug ("Looking for control %s", control_name);
 
   control = graviton_control_get_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
                                              control_name);

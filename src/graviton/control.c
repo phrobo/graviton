@@ -258,9 +258,9 @@ cb_subcontrol_notify (GravitonControl *subcontrol, GParamSpec *pspec, gpointer u
   GravitonControl *self = GRAVITON_CONTROL(user_data);
   gchar *subname;
   g_object_get (subcontrol, "name", &subname, NULL);
-  gchar *full_name = g_strdup_printf ("%s.%s", subname, pspec->name);
+  gchar *full_name = g_strdup_printf ("%s/%s", subname, pspec->name);
 
-  g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], NULL, full_name);
+  g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], 0, full_name);
   g_debug ("Subproperty notify: %s", full_name);
   g_free (full_name);
 }
@@ -269,9 +269,9 @@ static void
 cb_propigate_property_update (GravitonControl *subcontrol, const gchar *name, gpointer user_data)
 {
   GravitonControl *self = GRAVITON_CONTROL(user_data);
-  gchar *full_name = g_strdup_printf ("%s.%s", self->priv->name, name);
+  gchar *full_name = g_strdup_printf ("%s/%s", self->priv->name, name);
 
-  g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], NULL, full_name);
+  g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], 0, full_name);
 
   g_debug ("Subproperty update: %s", full_name);
   g_free (full_name);

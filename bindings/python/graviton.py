@@ -22,7 +22,7 @@ class Property(object):
   @property
   def value(self):
     return self._control._node.call(
-      "graviton.introspection.getProperty",
+      "graviton.introspection/getProperty",
       control=self._control.name,
       property=self.name
     )
@@ -56,7 +56,7 @@ class Control(object):
     return map(
       lambda x:Property(self, x),
       self._node.call(
-        "graviton.introspection.listProperties",
+        "graviton.introspection/listProperties",
         control=self.name
       )
     )
@@ -66,7 +66,7 @@ class Control(object):
     return map(
       lambda x:Control(self._node, "%s.%s"%(self._name, x)),
       self._node.call(
-        "graviton.introspection.listControls",
+        "graviton.introspection/listControls",
         control=self.name
       )
     )
@@ -76,7 +76,7 @@ class Control(object):
     return map(
       lambda x:Method(self, x),
       self._node.call(
-        "graviton.introspection.listMethods",
+        "graviton.introspection/listMethods",
         control=self.name
       )
     )
@@ -103,7 +103,7 @@ class Node(object):
   def controls(self):
     return map(
       lambda x:Control(self, x),
-      self.call("graviton.introspection.listControls")
+      self.call("graviton.introspection/listControls")
     )
 
   def control(self, name):
@@ -171,7 +171,7 @@ class Browser(object):
     self._dbrowser.connect_to_signal('ItemNew', self._new_domain)
     self._dbrowser.connect_to_signal('AllForNow', self._done)
 
-    self._new_domain(None, None, 'local', None)
+    self._new_domain(-1, -1, 'local', 32)
     self.results = []
 
   def _started(self):
