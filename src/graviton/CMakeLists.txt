@@ -21,6 +21,7 @@ target_link_libraries(graviton
   ${JSON_LIBRARIES}
   ${AVAHI_GLIB_LIBRARIES}
   ${AVAHI_CLIENT_LIBRARIES}
+  ${UUID_LIBRARIES}
 )
 
 install(TARGETS graviton DESTINATION lib${LIB_SUFFIX})
@@ -68,7 +69,7 @@ add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
   COMMAND
-    vapigen
+    ${VAPIGEN}
     --library Graviton-${GRAVITON_VERSION_PLATFORM}
       --pkg=glib-2.0
       ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
