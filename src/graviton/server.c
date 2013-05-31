@@ -25,6 +25,7 @@ G_DEFINE_TYPE (GravitonServer, graviton_server, G_TYPE_OBJECT);
 struct _GravitonServerPrivate
 {
   SoupServer *server;
+  SoupServer *server6;
   GravitonPluginManager *plugins;
   GList *event_listeners;
   GHashTable *plugin_names;
@@ -52,7 +53,7 @@ create_avahi_services (AvahiClient *client, GravitonServer *server)
 
   avahi_entry_group_add_service (server->priv->avahi_group,
                                  AVAHI_IF_UNSPEC,
-                                 AVAHI_PROTO_UNSPEC,
+                                 AVAHI_PROTO_INET,
                                  0,
                                  "Graviton",
                                  "_graviton._tcp",
@@ -224,7 +225,7 @@ cb_handle_rpc (SoupServer *server,
 {
   GError *error = NULL;
   GravitonServer *self = GRAVITON_SERVER (user_data);
-  JsonNode *result;
+  JsonNode *result = NULL;
 
   JsonGenerator *generator = json_generator_new ();
 
@@ -278,7 +279,8 @@ out:
   gsize length;
   gchar *data = json_generator_to_data (generator, &length);
 
-  json_node_free (result);
+  if (result)
+    json_node_free (result);
   soup_message_set_status (msg, SOUP_STATUS_OK);
   soup_message_set_response (msg,
                              "text/json",
@@ -392,22 +394,12 @@ cb_property_update (GravitonControl *control, const gchar *name, gpointer user_d
   }
 }
 
-static void
-graviton_server_init (GravitonServer *self)
+SoupServer *
+new_server (GravitonServer *self, SoupAddressFamily family)
 {
-  GravitonServerPrivate *priv;
   SoupAddress *address = soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, SOUP_ADDRESS_ANY_PORT);
-  self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
-  priv->avahi_group = NULL;
-
-  priv->plugins = graviton_plugin_manager_new ();
-  g_signal_connect (priv->plugins,
-                    "property-update",
-                    G_CALLBACK (cb_property_update),
-                    self);
-  priv->event_listeners = NULL;
-
-  priv->server = soup_server_new (
+  SoupServer *server;
+  server = soup_server_new (
     "interface", address,
     "server-header", "Graviton/" GRAVITON_VERSION " ",
     NULL
@@ -415,13 +407,32 @@ graviton_server_init (GravitonServer *self)
 
   g_object_unref (address);
 
-  g_signal_connect (priv->server,
+  g_signal_connect (server,
                     "request-aborted",
                     G_CALLBACK(cb_aborted_request),
                     self);
 
-  soup_server_add_handler (priv->server, "/rpc", cb_handle_rpc, self, NULL);
-  soup_server_add_handler (priv->server, "/events", cb_handle_events, self, NULL);
+  soup_server_add_handler (server, "/rpc", cb_handle_rpc, self, NULL);
+  soup_server_add_handler (server, "/events", cb_handle_events, self, NULL);
+  return server;
+}
+
+static void
+graviton_server_init (GravitonServer *self)
+{
+  GravitonServerPrivate *priv;
+  self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
+  priv->avahi_group = NULL;
+
+  priv->plugins = graviton_plugin_manager_new ();
+  priv->event_listeners = NULL;
+  g_signal_connect (priv->plugins,
+                    "property-update",
+                    G_CALLBACK (cb_property_update),
+                    self);
+
+  priv->server = new_server (self, SOUP_ADDRESS_FAMILY_IPV4);
+  priv->server6 = new_server (self, SOUP_ADDRESS_FAMILY_IPV6);
 
   graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
                                    g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 
@@ -445,6 +456,7 @@ GravitonServer *graviton_server_new ()
 void graviton_server_run_async (GravitonServer *self)
 {
   soup_server_run_async (self->priv->server);
+  soup_server_run_async (self->priv->server6);
 }
 
 void graviton_server_load_plugins (GravitonServer *self)
