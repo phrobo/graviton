@@ -1,13 +1,17 @@
 set(libgraviton_SRCS
+  client.c
   control.c
-  internal-plugin.c
+  node.c
   plugin.c
   plugin-manager.c
   server.c
+  internal-plugin.c
 )
 
 set(libgraviton_HEADERS
+  client.h
   control.h
+  node.h
   plugin.h
   plugin-manager.h
   server.h

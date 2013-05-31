@@ -34,3 +34,4 @@ include_directories(
 add_subdirectory(graviton)
 add_subdirectory(plugins)
 add_subdirectory(server)
+add_subdirectory(graviton-cli)
