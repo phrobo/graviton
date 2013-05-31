@@ -192,7 +192,6 @@ cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpo
   const gchar *property_name;
   property_name = g_variant_get_string (g_hash_table_lookup (args, "property"), NULL);
   GParamSpec *property = g_object_class_find_property (G_OBJECT_GET_CLASS (subcontrol), property_name);
-  g_assert (property);
   if (property) {
     GValue property_value = G_VALUE_INIT;
     GVariant *converted_variant = NULL;
