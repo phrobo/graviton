@@ -10,9 +10,10 @@ typedef struct _GravitonNodePrivate GravitonNodePrivate;
 struct _GravitonNodePrivate
 {
   SoupSession *soup;
-  SoupAddress *address;
-  gchar *rpc_uri;
-  gchar *event_uri;
+  GInetAddress *address;
+  SoupURI *rpc_uri;
+  SoupURI *event_uri;
+  GravitonNodeControl *gobj;
 };
 
 #define GRAVITON_NODE_GET_PRIVATE(o) \
@@ -23,7 +24,7 @@ static void graviton_node_init       (GravitonNode *self);
 static void graviton_node_dispose    (GObject *object);
 static void graviton_node_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonNode, graviton_node, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GravitonNode, graviton_node, GRAVITON_NODE_CONTROL_TYPE);
 
 enum {
   PROP_0,
@@ -34,16 +35,40 @@ enum {
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL, };
 
 static void
+unref_arg (GVariant *var)
+{
+  if (var)
+    g_variant_unref (var);
+}
+
+static void
 rebuild_uri (GravitonNode *self)
 {
   if (self->priv->rpc_uri)
     g_free (self->priv->rpc_uri);
   if (self->priv->event_uri)
     g_free (self->priv->event_uri);
-  gchar *base = g_strdup_printf ("http://%s:%d", soup_address_get_name (self->priv->address), soup_address_get_port (self->priv->address));
-  self->priv->rpc_uri = g_strdup_printf ("%s/rpc", base);
-  self->priv->event_uri = g_strdup_printf ("%s/events", base);
-  g_free (base);
+  gchar *ip_str;
+  GInetAddress *addr;
+  guint port;
+  g_object_get (self->priv->address, "address", &addr, "port", &port, NULL);
+
+  ip_str = g_inet_address_to_string (addr);
+
+  if (g_inet_address_get_family (addr) == G_SOCKET_FAMILY_IPV6) {
+    gchar *tmp = ip_str;
+    ip_str = g_strdup_printf ("[%s]", tmp);
+    g_free (tmp);
+  } 
+  SoupURI *base = soup_uri_new (NULL);
+  soup_uri_set_scheme (base, SOUP_URI_SCHEME_HTTP);
+  soup_uri_set_host (base, ip_str);
+  soup_uri_set_port (base, port);
+  soup_uri_set_path (base, "/");
+
+  self->priv->rpc_uri = soup_uri_new_with_base (base, "rpc");
+  self->priv->event_uri = soup_uri_new_with_base (base, "events");
+  soup_uri_free (base);
 }
 
 static void
@@ -100,7 +125,7 @@ graviton_node_class_init (GravitonNodeClass *klass)
     g_param_spec_object ("address",
                          "Address to connect to",
                          "A reachable address to connect to",
-                         SOUP_TYPE_ADDRESS,
+                         G_TYPE_INET_SOCKET_ADDRESS,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
   g_object_class_install_properties (object_class,
@@ -116,8 +141,9 @@ graviton_node_init (GravitonNode *self)
   self->priv->rpc_uri = 0;
   self->priv->event_uri = 0;
   self->priv->address = NULL;
-  self->priv->soup = soup_session_async_new ();
+  self->priv->soup = soup_session_sync_new ();
   g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
+  self->priv->gobj = graviton_node_control_get_subcontrol (GRAVITON_NODE_CONTROL (self), "graviton");
 }
 
 static void
@@ -141,7 +167,7 @@ graviton_node_proxy_to_id (GravitonNode *node,
 }
 
 GravitonNode *
-graviton_node_new_from_address (SoupAddress *address)
+graviton_node_new_from_address (GInetSocketAddress *address)
 {
   return g_object_new(GRAVITON_NODE_TYPE, "address", address, NULL);
 }
@@ -149,7 +175,7 @@ graviton_node_new_from_address (SoupAddress *address)
 const gchar *
 graviton_node_get_id (GravitonNode *self, GError **err)
 {
-  GVariant *ret = graviton_node_get_property (self, "graviton", "deviceid", err);
+  GVariant *ret = graviton_node_control_get_property (self->priv->gobj, "deviceid", err);
   if (ret) {
     gchar *r = g_variant_dup_string (ret, NULL);
     g_variant_unref (ret);
@@ -159,35 +185,49 @@ graviton_node_get_id (GravitonNode *self, GError **err)
 }
 
 GVariant *
-graviton_node_get_property (GravitonNode *self, const gchar *control, const gchar *property, GError **err)
+graviton_node_call (GravitonNode *self,
+                    const gchar *method,
+                    GError **err,
+                    ...)
 {
-  GError *error = NULL;
+  va_list argList;
+  va_start (argList, err);
+  gchar *propName;
+  GVariant *propValue;
   GHashTable *args = g_hash_table_new_full (g_str_hash,
                                             g_str_equal,
-                                            g_free,
-                                            (GDestroyNotify)g_variant_unref);
-  g_hash_table_replace (args, g_strdup ("control"), g_variant_new_string (control));
-  g_hash_table_replace (args, g_strdup ("property"), g_variant_new_string (property));
-  GVariant *ret = graviton_node_call (self,
-                                      "graviton.introspection/getProperty",
-                                      args,
-                                      &error);
-  g_hash_table_unref (args);
-  if (error) {
-    g_propagate_error (err, error);
-    return NULL;
-  }
+                                            NULL,
+                                            (GDestroyNotify)unref_arg);
+  propName = va_arg (argList, gchar*);
 
+  while (propName != NULL) {
+    propValue = va_arg (argList, GVariant*);
+    g_hash_table_replace (args, propName, propValue);
+    if (propValue)
+      g_debug ("%s = %s", propName, g_variant_print (propValue, TRUE));
+    else
+      g_debug ("%s = NULL", propName);
+    propName = va_arg (argList, gchar*);
+  }
+  va_end (argList);
+
+  GVariant *ret = graviton_node_call_args (self,
+                                           method,
+                                           args,
+                                           err);
+  g_hash_table_unref (args);
   return ret;
 }
 
 GVariant *
-graviton_node_call (GravitonNode *self,
+graviton_node_call_args (GravitonNode *self,
                     const gchar *method,
                     GHashTable *args,
                     GError **err)
 {
-  SoupMessage *request = soup_message_new ("POST", self->priv->rpc_uri);
+  g_assert (self->priv->rpc_uri);
+  SoupMessage *request = soup_message_new_from_uri ("POST", self->priv->rpc_uri);
+  g_assert (request);
   GError *error = NULL;
   GVariant *ret = NULL;
 
@@ -212,7 +252,11 @@ graviton_node_call (GravitonNode *self,
   GList *cur = argList;
   while (cur) {
     json_builder_set_member_name (builder, cur->data);
-    json_builder_add_value (builder, json_gvariant_serialize (g_hash_table_lookup (args, cur->data)));
+    GVariant *val = g_hash_table_lookup (args, cur->data);
+    if (val)
+      json_builder_add_value (builder, json_gvariant_serialize (val));
+    else
+      json_builder_add_null_value (builder);
     cur = cur->next;
   }
   
@@ -226,15 +270,19 @@ graviton_node_call (GravitonNode *self,
   gsize length;
   gchar *data = json_generator_to_data (generator, &length);
 
-  g_debug ("Submitting to %s: %s", self->priv->rpc_uri, data);
+  gchar *uri_str = soup_uri_to_string (self->priv->rpc_uri, FALSE);
+  g_debug ("Submitting to %s: %s", uri_str, data);
+  g_free (uri_str);
   soup_message_set_request (request, "text/json", SOUP_MEMORY_TAKE, data, length);
   soup_session_send_message (self->priv->soup, request);
   guint code;
   g_object_get (request, SOUP_MESSAGE_STATUS_CODE, &code, NULL);
-  g_debug ("Got status: %d", code);
+  g_debug ("Got status: %u", code);
 
-  SoupMessageBody *responseBody;
+  SoupMessageBody *responseBody = NULL;
   g_object_get (request, SOUP_MESSAGE_RESPONSE_BODY, &responseBody, NULL);
+
+  g_assert (responseBody != NULL);
 
   JsonParser *parser = json_parser_new ();
   if (json_parser_load_from_data (parser, responseBody->data, responseBody->length, &error)) {
@@ -257,7 +305,7 @@ graviton_node_call (GravitonNode *self,
         g_critical ("JSON-RPC reply from %s wasn't JSON-RPC: %s", self->priv->rpc_uri, responseBody->data);
       }
     } else {
-      g_critical ("Got badly structured JSON-RPC reply from node %s: %s", self->priv->rpc_uri, responseBody->data);
+      g_critical ("Got badly structured JSON-RPC reply from node %s: <<%s>>", self->priv->rpc_uri, responseBody->data);
     }
   } else {
     g_critical ("Got unparsable JSON from node %s: %s", self->priv->rpc_uri, error->message);
@@ -272,4 +320,10 @@ graviton_node_call (GravitonNode *self,
   soup_message_body_free (responseBody);
   g_object_unref (request);
   return ret;
+}
+
+GravitonNodeControl *
+graviton_node_get_control (GravitonNode *node, const gchar *name, GError **error)
+{
+  return NULL;
 }

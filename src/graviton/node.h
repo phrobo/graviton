@@ -6,6 +6,8 @@
 #include <glib-object.h>
 #include <libsoup/soup.h>
 
+#include "node-control.h"
+
 G_BEGIN_DECLS
 
 #define GRAVITON_NODE_TYPE            (graviton_node_get_type ())
@@ -21,23 +23,23 @@ typedef struct _GravitonNodePrivate GravitonNodePrivate;
 
 struct _GravitonNodeClass
 {
-  GObjectClass parent_class;
+  GravitonNodeControlClass parent_class;
 };
 
 struct _GravitonNode
 {
-  GObject parent;
+  GravitonNodeControl parent;
   GravitonNodePrivate *priv;
 };
 
 GType graviton_node_get_type (void);
 
 GravitonNode *graviton_node_proxy_to_id (GravitonNode *node, gchar *id, GError **error);
-GravitonNode *graviton_node_new_from_address (SoupAddress *address);
+GravitonNode *graviton_node_new_from_address (GInetSocketAddress *address);
 
 const gchar *graviton_node_get_id (GravitonNode *node, GError **err);
-GVariant *graviton_node_call (GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
-GVariant *graviton_node_get_property (GravitonNode *node, const gchar *control, const gchar *property, GError **error);
+GVariant *graviton_node_call (GravitonNode *node, const gchar *method, GError **error, ...);
+GVariant *graviton_node_call_args (GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
 
 G_END_DECLS
 

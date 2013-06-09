@@ -64,13 +64,15 @@ cb_resolve (AvahiServiceResolver *resolver,
       ip_str = g_new0(gchar, AVAHI_ADDRESS_STR_MAX);
       avahi_address_snprint (ip_str, AVAHI_ADDRESS_STR_MAX, address);
 
-      if (protocol == AVAHI_PROTO_INET6) {
-        gchar *tmpstr = g_strdup_printf("[%s]", ip_str);
-        g_free (ip_str);
-        ip_str = tmpstr;
-      }
+      GInetSocketAddress *addr = NULL;
+      GInetAddress *addrName = NULL;
+
+      addrName = g_inet_address_new_from_string (ip_str);
+
+      if (addrName)
+        addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
+
       g_debug ("Found %s: %s:%d", type, ip_str, port);
-      SoupAddress *addr = soup_address_new (ip_str, port);
       g_free (ip_str);
       GravitonNode *node = graviton_node_new_from_address (addr);
       g_object_unref (addr);
@@ -181,7 +183,7 @@ graviton_client_init (GravitonClient *self)
   self->priv = priv = GRAVITON_CLIENT_GET_PRIVATE (self);
 
   priv->avahi_poll_api = avahi_glib_poll_new (NULL, G_PRIORITY_DEFAULT);
-  AvahiPoll *poll_api = avahi_glib_poll_get (priv->avahi_poll_api);
+  const AvahiPoll *poll_api = avahi_glib_poll_get (priv->avahi_poll_api);
   priv->avahi = avahi_client_new (poll_api,
                                   0,
                                   cb_avahi,

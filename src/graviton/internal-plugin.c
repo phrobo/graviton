@@ -43,7 +43,9 @@ grab_control_arg (GravitonInternalPlugin *self, GHashTable *args, GError **error
   GravitonPluginManager *plugins = graviton_server_get_plugin_manager (self->priv->server);
 
   if (g_hash_table_lookup (args, "control")) {
-    control_name = g_variant_get_string (g_hash_table_lookup (args, "control"), NULL);
+    GVariant *controlArg = g_hash_table_lookup (args, "control");
+    if (g_variant_is_of_type (controlArg, G_VARIANT_TYPE_STRING))
+      control_name = g_variant_get_string (controlArg, NULL);
   }
 
   if (control_name) {

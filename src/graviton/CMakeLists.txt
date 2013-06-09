@@ -1,7 +1,9 @@
 set(libgraviton_SRCS
   client.c
   control.c
+  introspection-control.c
   node.c
+  node-control.c
   plugin.c
   plugin-manager.c
   server.c
@@ -11,7 +13,9 @@ set(libgraviton_SRCS
 set(libgraviton_HEADERS
   client.h
   control.h
+  introspection-control.h
   node.h
+  node-control.h
   plugin.h
   plugin-manager.h
   server.h
