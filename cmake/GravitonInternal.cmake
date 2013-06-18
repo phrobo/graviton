@@ -1,12 +1,13 @@
 set(GRAVITON_VERSION
   "${GRAVITON_VERSION_MAJOR}.${GRAVITON_VERSION_MINOR}.${GRAVITON_VERSION_PATCH}")
 
-macro(add_graviton_plugin _name _source)
-  add_library(graviton-plugin-${_name} MODULE ${_source})
+function(add_graviton_plugin)
+  cmake_parse_arguments(_plugin "" "NAME" "SOURCES" ${ARGN})
+  add_library(graviton-plugin-${_plugin_NAME} MODULE ${_plugin_SOURCES})
   string(REPLACE ";" " " _LDFLAGS "${GRAVITON_LDFLAGS};${GRAVITON_LDFLAGS_OTHER}")
-  set_target_properties(graviton-plugin-${_name} PROPERTIES
-    OUTPUT_NAME ${_name}
+  set_target_properties(graviton-plugin-${_plugin_NAME} PROPERTIES
+    OUTPUT_NAME ${_plugin_NAME}
     PREFIX ""
     LINK_FLAGS "${_LDFLAGS}"
   )
-endmacro(add_graviton_plugin)
+endfunction(add_graviton_plugin)
