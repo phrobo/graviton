@@ -1,4 +1,5 @@
 #include "control.h"
+#include <string.h>
 
 #define GRAVITON_CONTROL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_CONTROL, GravitonControlPrivate))
 
@@ -34,6 +35,8 @@ struct _GravitonControlPrivate
   GHashTable *method_data;
   GHashTable *method_destroys;
   GHashTable *method_args;
+  GHashTable *streams;
+  GHashTable *stream_data;
 };
 
 static void
@@ -109,6 +112,14 @@ graviton_control_init (GravitonControl *self)
   GravitonControlPrivate *priv;
   self->priv = priv = GRAVITON_CONTROL_GET_PRIVATE (self);
   priv->name = 0;
+  priv->streams = g_hash_table_new_full (g_str_hash,
+                                         g_str_equal,
+                                         g_free,
+                                         NULL);
+  priv->stream_data = g_hash_table_new_full (g_str_hash,
+                                         g_str_equal,
+                                         g_free,
+                                         NULL);
   priv->controls = g_hash_table_new_full (g_str_hash,
                                           g_str_equal,
                                           g_free,
@@ -237,11 +248,11 @@ graviton_control_get_subcontrol (GravitonControl *self,
   gchar **tokens;
   g_return_val_if_fail (path != NULL, NULL);
   g_return_val_if_fail (strlen(path) > 0, NULL);
-  tokens = g_strsplit (path, ".", 0);
+  tokens = g_strsplit (path, "/", 0);
   control = g_hash_table_lookup (self->priv->controls, tokens[0]);
   if (control) {
     if (g_strv_length (tokens) > 1) {
-      gchar *subname = g_strjoinv (".", &tokens[1]);
+      gchar *subname = g_strjoinv ("/", &tokens[1]);
       control = graviton_control_get_subcontrol (control, subname);
       g_free (subname);
     } else {
@@ -300,4 +311,30 @@ GList *
 graviton_control_list_subcontrols (GravitonControl *self)
 {
   return g_hash_table_get_keys (self->priv->controls);
+}
+
+void
+graviton_control_add_stream (GravitonControl *self,
+                             const gchar *name,
+                             GravitonControlStreamGenerator func,
+                             gpointer user_data)
+{
+  g_hash_table_replace (self->priv->streams, g_strdup (name), func);
+  g_hash_table_replace (self->priv->stream_data, g_strdup (name), user_data);
+}
+
+GList *
+graviton_control_list_streams (GravitonControl *self)
+{
+  return g_hash_table_get_keys (self->priv->streams);
+}
+
+GravitonStream *
+graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTable *args, GError **error)
+{
+  GravitonControlStreamGenerator func = g_hash_table_lookup (self->priv->streams, name);
+  gpointer func_data = g_hash_table_lookup (self->priv->stream_data, name);
+  if (func)
+    return func(self, name, args, error, func_data);
+  return NULL;
 }

@@ -151,6 +151,40 @@ graviton_internal_plugin_class_init (GravitonInternalPluginClass *klass)
                                      obj_properties);
 }
 
+static GravitonStream *
+cb_stream_zero (GravitonControl *self, const gchar *name, GHashTable *args, GError **error, gpointer user_data)
+{
+  GFile *dev = g_file_new_for_path ("/dev/zero");
+  GravitonStream *ret = graviton_file_stream_new (dev);
+  g_object_unref (dev);
+  return ret;
+}
+
+static GVariant *
+cb_streams(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+{
+  GVariantBuilder ret;
+  GravitonControl *subcontrol;
+  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
+
+  subcontrol = grab_control_arg (self, args, error);
+  
+  if (!subcontrol)
+    return NULL;
+
+  g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
+  GList *streams = graviton_control_list_streams (subcontrol);
+  GList *cur = streams;
+  while (cur) {
+    g_variant_builder_add (&ret, "s", cur->data);
+    cur = cur->next;
+  }
+  g_object_unref (subcontrol);
+
+  return g_variant_builder_end (&ret);
+}
+
+
 static GVariant *
 cb_properties(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
 {
@@ -205,7 +239,7 @@ cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpo
       converted_variant = g_value_get_variant (&property_value);
       g_variant_ref (converted_variant);
     } else {
-      g_warning ("Unsupported value type: %s", G_VALUE_TYPE_NAME (&property_value));
+      g_debug ("Unsupported value type: %s", G_VALUE_TYPE_NAME (&property_value));
     }
     g_value_unset (&property_value);
     return converted_variant;
@@ -277,7 +311,7 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
 {
   GravitonInternalPluginPrivate *priv;
   self->priv = priv = GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE (self);
-  self->priv->hostname = g_get_host_name ();
+  self->priv->hostname = g_strdup (g_get_host_name ());
   self->priv->guid = g_new0(gchar, 36);
   uuid_t uuid;
   uuid_generate (uuid);
@@ -306,11 +340,23 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
                                self,
                                NULL);
   graviton_control_add_method (introspection,
+                               "listStreams",
+                               cb_streams,
+                               0,
+                               NULL,
+                               self,
+                               NULL);
+  graviton_control_add_method (introspection,
                                "getProperty",
                                cb_get_property,
                                0,
                                NULL,
                                self,
                                NULL);
+  graviton_control_add_stream (introspection,
+                               "zero",
+                               cb_stream_zero,
+                               self);
+
   graviton_control_add_subcontrol (GRAVITON_CONTROL (self), introspection);
 }

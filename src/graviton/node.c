@@ -13,6 +13,7 @@ struct _GravitonNodePrivate
   GInetAddress *address;
   SoupURI *rpc_uri;
   SoupURI *event_uri;
+  SoupURI *stream_uri;
   GravitonNodeControl *gobj;
 };
 
@@ -45,9 +46,11 @@ static void
 rebuild_uri (GravitonNode *self)
 {
   if (self->priv->rpc_uri)
-    g_free (self->priv->rpc_uri);
+    soup_uri_free (self->priv->rpc_uri);
   if (self->priv->event_uri)
-    g_free (self->priv->event_uri);
+    soup_uri_free (self->priv->event_uri);
+  if (self->priv->stream_uri)
+    soup_uri_free (self->priv->stream_uri);
   gchar *ip_str;
   GInetAddress *addr;
   guint port;
@@ -68,6 +71,7 @@ rebuild_uri (GravitonNode *self)
 
   self->priv->rpc_uri = soup_uri_new_with_base (base, "rpc");
   self->priv->event_uri = soup_uri_new_with_base (base, "events");
+  self->priv->stream_uri = soup_uri_new_with_base (base, "stream/");
   soup_uri_free (base);
 }
 
@@ -140,6 +144,7 @@ graviton_node_init (GravitonNode *self)
   self->priv = priv = GRAVITON_NODE_GET_PRIVATE (self);
   self->priv->rpc_uri = 0;
   self->priv->event_uri = 0;
+  self->priv->stream_uri = 0;
   self->priv->address = NULL;
   self->priv->soup = soup_session_sync_new ();
   g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
@@ -192,8 +197,19 @@ graviton_node_call (GravitonNode *self,
 {
   va_list argList;
   va_start (argList, err);
-  gchar *propName;
-  GVariant *propValue;
+  GVariant *ret = graviton_node_call_va (self, method, err, argList);
+  va_end (argList);
+  return ret;
+}
+
+GVariant *
+graviton_node_call_va (GravitonNode *self,
+                       const gchar *method,
+                       GError **err,
+                       va_list argList)
+{
+  gchar *propName = NULL;
+  GVariant *propValue = NULL;
   GHashTable *args = g_hash_table_new_full (g_str_hash,
                                             g_str_equal,
                                             NULL,
@@ -326,4 +342,13 @@ GravitonNodeControl *
 graviton_node_get_control (GravitonNode *node, const gchar *name, GError **error)
 {
   return NULL;
+}
+
+GIOStream *
+graviton_node_open_stream (GravitonNode *self, const gchar *name)
+{
+  SoupURI *stream_uri = soup_uri_new_with_base (self->priv->stream_uri, name);
+  GIOStream *ret = graviton_node_io_stream_new (stream_uri, self->priv->soup);
+  soup_uri_free (stream_uri);
+  return ret;
 }

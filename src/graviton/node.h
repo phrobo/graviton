@@ -40,6 +40,9 @@ GravitonNode *graviton_node_new_from_address (GInetSocketAddress *address);
 const gchar *graviton_node_get_id (GravitonNode *node, GError **err);
 GVariant *graviton_node_call (GravitonNode *node, const gchar *method, GError **error, ...);
 GVariant *graviton_node_call_args (GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
+GVariant *graviton_node_call_va (GravitonNode *node, const gchar *method, GError **error, va_list args);
+
+GIOStream *graviton_node_open_stream (GravitonNode *node, const gchar *name);
 
 G_END_DECLS
 

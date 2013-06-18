@@ -132,7 +132,7 @@ graviton_node_control_get_subcontrol (GravitonNodeControl *self, const gchar *na
   GravitonNodeControl *node = self;
   if (self->priv->node) {
     node = g_object_ref (self->priv->node);
-    full_name = g_strdup_printf ("%s.%s", self->priv->name, name);
+    full_name = g_strdup_printf ("%s/%s", self->priv->name, name);
   } else {
     full_name = g_strdup (name);
   }
@@ -154,7 +154,7 @@ graviton_node_control_get_property (GravitonNodeControl *self, const gchar *prop
 {
   GError *error = NULL;
   GVariant *ret = graviton_node_call (graviton_node_control_get_node (self),
-                                      "graviton.introspection/getProperty",
+                                      "graviton/introspection.getProperty",
                                       &error,
                                       "control",
                                       g_variant_new_string (graviton_node_control_get_name (self)),
@@ -169,3 +169,27 @@ graviton_node_control_get_property (GravitonNodeControl *self, const gchar *prop
   return ret;
 }
 
+gchar *make_method_name (GravitonNodeControl *control, const gchar *method)
+{
+  return g_strdup_printf ("%s.%s", graviton_node_control_get_name (control), method);
+}
+
+GVariant *
+graviton_node_control_call (GravitonNodeControl *control,
+    const gchar *method,
+    GError **error, ...)
+{
+  va_list args;
+  va_start (args, error);
+  gchar *full_method = make_method_name (control, method);
+  GVariant *ret = graviton_node_call_va (graviton_node_control_get_node (control), full_method, error, args);
+  va_end (args);
+  return ret;
+}
+
+GravitonNodeStream *
+graviton_node_control_get_stream (GravitonNodeControl *control, const gchar *name)
+{
+  GravitonNodeStream *stream = graviton_node_stream_new (control, name);
+  return stream;
+}

@@ -118,7 +118,28 @@ graviton_introspection_control_new_from_control (GravitonNodeControl *control)
 GravitonIntrospectionControl *
 graviton_introspection_control_new (GravitonNode *node, const gchar *name)
 {
-  return g_object_new (GRAVITON_INTROSPECTION_CONTROL_TYPE, "node", node, "name", "graviton.introspection", "target", name, NULL);
+  return g_object_new (GRAVITON_INTROSPECTION_CONTROL_TYPE, "node", node, "name", "graviton/introspection", "target", name, NULL);
+}
+
+static GList *
+call_string_list_method (GravitonIntrospectionControl *self, const gchar *method, GError **err, ...)
+{
+  va_list args;
+  va_start (args, err);
+
+  GVariant *result = graviton_node_call_va (graviton_node_control_get_node (GRAVITON_NODE_CONTROL (self)),
+                                            method,
+                                            err,
+                                            args);
+  GList *ret = NULL;
+  int i;
+  for(i = 0;i < g_variant_n_children (result);i++) {
+    GVariant *idx = g_variant_get_child_value (result, i);
+    GVariant *strIdx = g_variant_get_variant (idx);
+    ret = g_list_prepend (ret, g_variant_dup_string (strIdx, NULL));
+  }
+  g_variant_unref (result);
+  return ret;
 }
 
 GList *graviton_introspection_control_list_controls (GravitonIntrospectionControl *self, GError **err)
@@ -129,7 +150,7 @@ GList *graviton_introspection_control_list_controls (GravitonIntrospectionContro
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
   GVariant *result = graviton_node_call (graviton_node_control_get_node (GRAVITON_NODE_CONTROL (self)),
-                                         "graviton.introspection/listControls",
+                                         "graviton/introspection.listControls",
                                          &error,
                                          "control",
                                          name,
@@ -157,7 +178,7 @@ GList *graviton_introspection_control_list_properties (GravitonIntrospectionCont
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
   GVariant *result = graviton_node_call (graviton_node_control_get_node (GRAVITON_NODE_CONTROL (self)),
-                                         "graviton.introspection/listProperties",
+                                         "graviton/introspection.listProperties",
                                          &error,
                                          "control",
                                          name,
@@ -175,4 +196,19 @@ GList *graviton_introspection_control_list_properties (GravitonIntrospectionCont
   }
 
   return ret;
+}
+
+GList *graviton_introspection_control_list_streams (GravitonIntrospectionControl *self, GError **err)
+{
+  GError *error = NULL;
+  GList *ret = NULL;
+  GVariant *name = NULL;
+  if (self->priv->target)
+    name = g_variant_new_string (self->priv->target);
+  return call_string_list_method (self,
+                                  "graviton/introspection.listStreams",
+                                  err,
+                                  "control",
+                                  name,
+                                  NULL);
 }

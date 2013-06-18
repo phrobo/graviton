@@ -34,6 +34,7 @@ GType graviton_introspection_control_get_type (void);
 
 GList *graviton_introspection_control_list_controls (GravitonIntrospectionControl *self, GError **error);
 GList *graviton_introspection_control_list_properties (GravitonIntrospectionControl *self, GError **error);
+GList *graviton_introspection_control_list_streams (GravitonIntrospectionControl *self, GError **error);
 GravitonIntrospectionControl *graviton_introspection_control_new_from_control (GravitonNodeControl *control);
 GravitonIntrospectionControl *graviton_introspection_control_new (GravitonNode *node, const gchar *name);
 

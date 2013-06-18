@@ -14,6 +14,7 @@ G_BEGIN_DECLS
 #define GRAVITON_NODE_CONTROL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_NODE_CONTROL_TYPE, GravitonNodeControlClass))
 
 typedef struct _GravitonNode GravitonNode;
+typedef struct _GravitonNodeStream GravitonNodeStream;
 
 typedef struct _GravitonNodeControl      GravitonNodeControl;
 typedef struct _GravitonNodeControlClass GravitonNodeControlClass;
@@ -39,6 +40,11 @@ GravitonNodeControl *graviton_node_control_get_subcontrol (GravitonNodeControl *
 GList *graviton_node_control_list_properties (GravitonNodeControl *control, GError **error);
 GVariant *graviton_node_control_get_property (GravitonNodeControl *control, const gchar *prop, GError **error);
 GravitonNode *graviton_node_control_get_node (GravitonNodeControl *control);
+GVariant *graviton_node_control_call (GravitonNodeControl *control, const gchar *method, GError **error, ...);
+GVariant *graviton_node_control_call_args (GravitonNodeControl *control, const gchar *method, GHashTable *args, GError **error);
+GVariant *graviton_node_control_call_va (GravitonNodeControl *control, const gchar *method, GError **error, va_list args);
+
+GravitonNodeStream *graviton_node_control_get_stream (GravitonNodeControl *control, const gchar *name);
 
 G_END_DECLS
 

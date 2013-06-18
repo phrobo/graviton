@@ -2,6 +2,7 @@
 #define GRAVITON_CONTROL_H
 
 #include <glib-object.h>
+#include <gio/gio.h>
 
 #define GRAVITON_TYPE_CONTROL            (graviton_control_get_type ())
 #define GRAVITON_CONTROL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_CONTROL, GravitonControl))
@@ -15,6 +16,8 @@
 typedef enum {
   GRAVITON_CONTROL_ERROR_NO_SUCH_METHOD
 } GravitonControlError;
+
+typedef struct _GravitonStream GravitonStream;
 
 typedef struct _GravitonControl GravitonControl;
 typedef struct _GravitonControlClass GravitonControlClass;
@@ -75,5 +78,17 @@ GravitonControl *graviton_control_get_subcontrol (GravitonControl *self,
  * Returns: (element-type gchar*) (transfer full): the names of the available controls
  */
 GList *graviton_control_list_subcontrols (GravitonControl *self);
+
+typedef GravitonStream *(*GravitonControlStreamGenerator)(GravitonControl *self, const gchar *name, GHashTable *args, GError **error, gpointer user_data);
+
+void graviton_control_add_stream (GravitonControl *self, const gchar *name, GravitonControlStreamGenerator func, gpointer user_data);
+
+/**
+ * graviton_control_list_streams:
+ * Returns: (element-type gchar*) (transfer full): the names of the available
+ * streams
+ */
+GList *graviton_control_list_streams (GravitonControl *self);
+GravitonStream *graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTable *args, GError **error);
 
 #endif // GRAVITON_CONTROL_H

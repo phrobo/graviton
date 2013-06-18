@@ -9,6 +9,7 @@
 #include <avahi-client/client.h>
 #include <avahi-client/publish.h>
 #include <avahi-glib/glib-watch.h>
+#include "stream.h"
 
 #include "config.h"
 
@@ -29,10 +30,90 @@ struct _GravitonServerPrivate
   GravitonPluginManager *plugins;
   GList *event_listeners;
   GHashTable *plugin_names;
+  GList *streams;
   AvahiClient *avahi;
   AvahiGLibPoll *avahi_poll_api;
   AvahiEntryGroup *avahi_group;
 };
+
+typedef struct _StreamConnection
+{
+  GravitonStream *stream;
+  SoupMessage *message;
+  gchar *buf;
+  gsize bufsize;
+  GCancellable *cancellable;
+  GravitonServer *server;
+  gint refcount;
+} StreamConnection;
+
+static StreamConnection *
+new_stream (SoupMessage *message, GravitonStream *stream, GravitonServer *server)
+{
+  StreamConnection *connection = g_new0 (StreamConnection, 1);
+  connection->message = g_object_ref (message);
+  connection->stream = g_object_ref (stream);
+  connection->server = g_object_ref (server);
+  connection->cancellable = g_cancellable_new ();
+
+  connection->bufsize = 8192;
+  connection->buf = g_new0 (gchar, connection->bufsize);
+}
+
+static void
+free_stream (StreamConnection *connection)
+{
+  g_object_unref (connection->cancellable);
+  if (connection->message) {
+    //g_object_unref (connection->message);
+    connection->message = 0;
+  }
+  if (connection->stream) {
+    g_object_unref (connection->stream);
+    connection->stream = 0;
+  }
+  if (connection->buf) {
+    g_free (connection->buf);
+    connection->buf = 0;
+  }
+  connection->server->priv->streams = g_list_remove (connection->server->priv->streams, connection);
+  g_object_unref (connection->server);
+}
+
+static void
+cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  GError *error = NULL;
+  StreamConnection *connection = (StreamConnection*)user_data;
+  if (g_cancellable_set_error_if_cancelled (connection->cancellable, &error)) {
+    free_stream (connection);
+    return;
+  }
+  gssize read_size = g_input_stream_read_finish (G_INPUT_STREAM (source), res, &error);
+  if (error) {
+    g_debug ("Error while streaming: %s", error->message);
+    free_stream (connection);
+    return;
+  }
+
+  if (read_size == 0) {
+    g_debug ("End of stream.");
+    free_stream (connection);
+    return;
+  }
+  SoupMessageBody *body;
+  g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+  soup_message_body_append (body, SOUP_MEMORY_COPY, connection->buf, read_size);
+  g_debug ("Read %d", read_size);
+  soup_server_unpause_message (connection->server->priv->server, connection->message);
+  g_input_stream_read_async (G_INPUT_STREAM (source),
+                             connection->buf,
+                             connection->bufsize,
+                             G_PRIORITY_DEFAULT,
+                             connection->cancellable,
+                             cb_read_stream,
+                             connection);
+}
 
 static void
 cb_avahi_group (AvahiEntryGroup *g, AvahiEntryGroupState state, gpointer data)
@@ -95,7 +176,7 @@ handle_rpc (GravitonServer *self, JsonObject *request)
   builder = json_builder_new ();
 
   request_id = json_object_get_string_member (request, "id");
-  rpc_method_name = g_strsplit (json_object_get_string_member (request, "method"), "/", 0);
+  rpc_method_name = g_strsplit (json_object_get_string_member (request, "method"), ".", 0);
 
   control_name = g_strdup (rpc_method_name[0]);
   method_name = g_strdup (rpc_method_name[1]);
@@ -189,6 +270,96 @@ out:
   if (control)
     g_object_unref (control);
   return result;
+}
+
+static void
+cb_handle_stream (SoupServer *server,
+         SoupMessage *msg,
+         const char *path,
+         GHashTable *query,
+         SoupClientContext *client,
+         gpointer user_data)
+{
+  GravitonServer *self = GRAVITON_SERVER (user_data);
+  GravitonStream *stream = NULL;
+  GravitonControl *control = NULL;
+  GError *error = NULL;
+  gchar **stream_path;
+  gchar *control_name;
+  gchar *stream_name;
+
+  const gchar *path_start = &path[strlen("/stream/")];
+
+  stream_path = g_strsplit (path_start, ".", 0);
+
+  control_name = g_strdup (stream_path[0]);
+  stream_name = g_strdup (stream_path[1]);
+  g_strfreev (stream_path);
+
+  control = graviton_control_get_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
+                                             control_name);
+
+  if (!control) {
+    soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+    g_debug ("Couldn't find control %s for streaming", control_name);
+    return;
+  }
+
+  stream = graviton_control_get_stream (control, stream_name, query, &error);
+
+  if (error) {
+    g_debug ("Error getting stream: %s", error->message);
+    return;
+  }
+
+  if (stream) {
+    SoupMessageHeaders *headers;
+    StreamConnection *connection;
+
+    g_object_get (msg, SOUP_MESSAGE_RESPONSE_HEADERS, &headers, NULL);
+
+    connection = new_stream (msg, stream, self);
+
+    self->priv->streams = g_list_append (self->priv->streams, connection);
+
+    soup_message_set_status (msg, SOUP_STATUS_OK);
+    soup_message_headers_set_encoding (headers, SOUP_ENCODING_CHUNKED);
+    soup_message_headers_append (headers, "Connection", "close");
+
+    gboolean success = FALSE;
+    gchar *method;
+    g_object_get (msg, SOUP_MESSAGE_METHOD, &method, NULL);
+
+    if (strcmp (method, "GET") == 0) {
+      GInputStream *input = graviton_stream_open_read (stream, &error);
+      if (input) {
+        success = TRUE;
+        g_input_stream_read_async (input,
+                                   connection->buf,
+                                   connection->bufsize,
+                                   G_PRIORITY_DEFAULT,
+                                   connection->cancellable,
+                                   cb_read_stream,
+                                   connection);
+      }
+    }
+
+    if (!success) {
+      soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+      g_debug ("Unsupported operation %s for %s.%s.", method, control_name, stream_name);
+      free_stream (connection);
+    }
+
+    g_free (method);
+
+    g_debug ("Now streaming: %s", path_start);
+  } else {
+    soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+    g_debug ("Couldn't find stream %s for %s: ", stream_name, control_name);
+  }
+
+  g_free (control_name);
+  g_free (stream_name);
 }
 
 static void
@@ -317,6 +488,17 @@ cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext 
   GravitonServer *self = GRAVITON_SERVER (user_data);
 
   self->priv->event_listeners = g_list_remove (self->priv->event_listeners, message);
+
+  GList *cur = self->priv->streams;
+  while (cur) {
+    StreamConnection *conn = (StreamConnection*)cur->data;
+    if (conn->message == message) {
+      g_cancellable_cancel (conn->cancellable);
+      break;
+    }
+    cur = cur->next;
+  }
+
   g_object_unref (G_OBJECT (message));
   
   g_debug ("Aborted event stream");
@@ -414,6 +596,7 @@ new_server (GravitonServer *self, SoupAddressFamily family)
 
   soup_server_add_handler (server, "/rpc", cb_handle_rpc, self, NULL);
   soup_server_add_handler (server, "/events", cb_handle_events, self, NULL);
+  soup_server_add_handler (server, "/stream", cb_handle_stream, self, NULL);
   return server;
 }
 
@@ -426,6 +609,7 @@ graviton_server_init (GravitonServer *self)
 
   priv->plugins = graviton_plugin_manager_new ();
   priv->event_listeners = NULL;
+  priv->streams = NULL;
   g_signal_connect (priv->plugins,
                     "property-update",
                     G_CALLBACK (cb_property_update),

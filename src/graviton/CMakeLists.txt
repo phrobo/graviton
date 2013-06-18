@@ -1,12 +1,17 @@
 set(libgraviton_SRCS
   client.c
   control.c
+  file-stream.c
   introspection-control.c
   node.c
   node-control.c
+  node-io-stream.c
+  node-input-stream.c
+  node-stream.c
   plugin.c
   plugin-manager.c
   server.c
+  stream.c
   internal-plugin.c
 )
 
@@ -16,9 +21,13 @@ set(libgraviton_HEADERS
   introspection-control.h
   node.h
   node-control.h
+  node-input-stream.h
+  node-io-stream.h
+  node-stream.h
   plugin.h
   plugin-manager.h
   server.h
+  stream.h
 )
 
 add_library(graviton SHARED ${libgraviton_SRCS})
@@ -97,8 +106,8 @@ add_custom_target(
 add_custom_target(
   do_vapi
   ALL
-  DEPENDS
-    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
+  #DEPENDS
+  #    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
 )
 
 install(

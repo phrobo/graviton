@@ -162,7 +162,7 @@ graviton_client_class_init (GravitonClientClass *klass)
                   g_cclosure_marshal_VOID__OBJECT,
                   G_TYPE_NONE,
                   1,
-                  G_TYPE_OBJECT);
+                  GRAVITON_NODE_TYPE);
   obj_signals[SIGNAL_ALL_NODES_FOUND] =
     g_signal_new ("all-nodes-found",
                   G_TYPE_FROM_CLASS (klass),
