@@ -32,6 +32,7 @@ struct _GravitonInternalPluginPrivate
   GravitonServer *server;
   gchar *hostname;
   gchar *guid;
+  gchar *cloud_guid;
 };
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
@@ -263,6 +264,18 @@ cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpo
 }
 
 static GVariant *
+cb_nodes(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+{
+  return NULL;
+}
+
+static GVariant *
+cb_clouds(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+{
+  return NULL;
+}
+
+static GVariant *
 cb_controls(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
 {
   GVariantBuilder ret;
@@ -355,6 +368,13 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
   graviton_control_add_method (introspection,
                                "listStreams",
                                cb_streams,
+                               0,
+                               NULL,
+                               self,
+                               NULL);
+  graviton_control_add_method (introspection,
+                               "listNodes",
+                               cb_nodes,
                                0,
                                NULL,
                                self,
