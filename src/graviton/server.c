@@ -215,6 +215,7 @@ handle_rpc (GravitonServer *self, JsonObject *request)
           g_debug ("Setting param %s", param->data);
           param = g_list_next (param);
         }
+        g_list_free (param_names);
       }
     }
     method_result = graviton_control_call_method (control, method_name, args, &error);
@@ -446,6 +447,7 @@ cb_handle_rpc (SoupServer *server,
   }
 
 out:
+  g_object_unref (parser);
   json_generator_set_root (generator, result);
   gsize length;
   gchar *data = json_generator_to_data (generator, &length);

@@ -73,6 +73,8 @@ rebuild_uri (GravitonNode *self)
   self->priv->event_uri = soup_uri_new_with_base (base, "events");
   self->priv->stream_uri = soup_uri_new_with_base (base, "stream/");
   soup_uri_free (base);
+
+  g_free (ip_str);
 }
 
 static void
@@ -285,6 +287,8 @@ graviton_node_call_args (GravitonNode *self,
   json_generator_set_root (generator, root);
   gsize length;
   gchar *data = json_generator_to_data (generator, &length);
+  g_object_unref (generator);
+  json_node_free (root);
 
   gchar *uri_str = soup_uri_to_string (self->priv->rpc_uri, FALSE);
   g_debug ("Submitting to %s: %s", uri_str, data);
