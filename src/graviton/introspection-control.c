@@ -149,25 +149,12 @@ GList *graviton_introspection_control_list_controls (GravitonIntrospectionContro
   GVariant *name = NULL;
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
-  GVariant *result = graviton_node_call (graviton_node_control_get_node (GRAVITON_NODE_CONTROL (self)),
-                                         "graviton/introspection.listControls",
-                                         &error,
-                                         "control",
-                                         name,
-                                         NULL);
-  if (error) {
-    g_propagate_error (err, error);
-    return NULL;
-  }
-
-  int i;
-  for(i = 0;i < g_variant_n_children (result);i++) {
-    GVariant *idx = g_variant_get_child_value (result, i);
-    GVariant *strIdx = g_variant_get_variant (idx);
-    ret = g_list_prepend (ret, g_variant_dup_string (strIdx, NULL));
-  }
-
-  return ret;
+  return call_string_list_method (self,
+                                  "graviton/introspection.listControls",
+                                  err,
+                                  "control",
+                                  name,
+                                  NULL);
 }
 
 GList *graviton_introspection_control_list_properties (GravitonIntrospectionControl *self, GError **err)
@@ -177,25 +164,12 @@ GList *graviton_introspection_control_list_properties (GravitonIntrospectionCont
   GVariant *name = NULL;
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
-  GVariant *result = graviton_node_call (graviton_node_control_get_node (GRAVITON_NODE_CONTROL (self)),
-                                         "graviton/introspection.listProperties",
-                                         &error,
-                                         "control",
-                                         name,
-                                         NULL);
-  if (error) {
-    g_propagate_error (err, error);
-    return NULL;
-  }
-
-  int i;
-  for(i = 0;i < g_variant_n_children (result);i++) {
-    GVariant *idx = g_variant_get_child_value (result, i);
-    GVariant *strIdx = g_variant_get_variant (idx);
-    ret = g_list_prepend (ret, g_variant_dup_string (strIdx, NULL));
-  }
-
-  return ret;
+  return call_string_list_method (self,
+                                  "graviton/introspection.listProperties",
+                                  err,
+                                  "control",
+                                  name,
+                                  NULL);
 }
 
 GList *graviton_introspection_control_list_streams (GravitonIntrospectionControl *self, GError **err)
