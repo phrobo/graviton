@@ -13,6 +13,7 @@ print_streams (GravitonNodeControl *control)
 
   if (error) {
     g_print ("Error listing streams for %s: %s", graviton_node_control_get_name (control), error->message);
+    g_object_unref (inspect);
     return;
   }
 
@@ -42,6 +43,8 @@ print_streams (GravitonNodeControl *control)
       g_print ("Error: %s", error->message);
     cur = cur->next;
   }
+
+  g_object_unref (inspect);
 }
 
 void
@@ -71,6 +74,8 @@ print_properties (GravitonNodeControl *control)
     }
     cur = cur->next;
   }
+
+  g_object_unref (inspect);
 }
 
 void
