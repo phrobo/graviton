@@ -23,6 +23,7 @@ enum
   PROP_SERVER,
   PROP_HOSTNAME,
   PROP_DEVICE_ID,
+  PROP_CLOUD_ID,
   N_PROPERTIES
 };
 
@@ -111,6 +112,9 @@ get_property (GObject *object,
     case PROP_DEVICE_ID:
       g_value_set_string (value, self->priv->guid);
       break;
+    case PROP_CLOUD_ID:
+      g_value_set_string (value, self->priv->cloud_guid);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -144,6 +148,12 @@ graviton_internal_plugin_class_init (GravitonInternalPluginClass *klass)
     g_param_spec_string ("deviceid",
                          "Device UUID",
                          "Universally Unique Node ID",
+                         "",
+                         G_PARAM_READABLE);
+  obj_properties[PROP_CLOUD_ID] =
+    g_param_spec_string ("cloud-id",
+                         "Cloud UUID",
+                         "Universally Unique Cloud ID",
                          "",
                          G_PARAM_READABLE);
   g_object_class_install_properties (gobject_class,
@@ -313,9 +323,12 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
   self->priv = priv = GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE (self);
   self->priv->hostname = g_strdup (g_get_host_name ());
   self->priv->guid = g_new0(gchar, 36);
+  self->priv->cloud_guid = g_new0(gchar, 36);
   uuid_t uuid;
   uuid_generate (uuid);
   uuid_unparse_upper (uuid, self->priv->guid);
+  uuid_generate (uuid);
+  uuid_unparse_upper (uuid, self->priv->cloud_guid);
 
   GravitonControl *introspection = g_object_new (GRAVITON_TYPE_CONTROL, "name", "introspection", NULL);
   graviton_control_add_method (introspection,
@@ -342,6 +355,13 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
   graviton_control_add_method (introspection,
                                "listStreams",
                                cb_streams,
+                               0,
+                               NULL,
+                               self,
+                               NULL);
+  graviton_control_add_method (introspection,
+                               "listClouds",
+                               cb_clouds,
                                0,
                                NULL,
                                self,
