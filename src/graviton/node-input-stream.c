@@ -36,7 +36,7 @@ read_buffer (GList *buffer_list, void *buffer, gsize count)
 static GList *
 add_buffer (GList *buffer_list, const void *buffer, gsize size)
 {
-  Buffer *buf = g_new0 (Buffer, 0);
+  Buffer *buf = g_new0 (Buffer, 1);
   buf->data = g_memdup (buffer, size);
   buf->size = size;
   return g_list_append (buffer_list, buf);
