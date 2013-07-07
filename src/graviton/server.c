@@ -316,8 +316,10 @@ cb_handle_stream (SoupServer *server,
   if (stream) {
     SoupMessageHeaders *headers;
     StreamConnection *connection;
+    SoupMessageBody *body;
 
-    g_object_get (msg, SOUP_MESSAGE_RESPONSE_HEADERS, &headers, NULL);
+    g_object_get (msg, SOUP_MESSAGE_RESPONSE_HEADERS, &headers, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+    soup_message_body_set_accumulate (body, FALSE);
 
     connection = new_stream (msg, stream, self);
 
