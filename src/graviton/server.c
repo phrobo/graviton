@@ -211,8 +211,8 @@ handle_rpc (GravitonServer *self, JsonObject *request)
         while (param) {
           GVariant *param_value;
           param_value = json_gvariant_deserialize (json_object_get_member (param_obj, param->data), NULL, &error);
-          g_hash_table_replace (args, param->data, param_value);
-          g_debug ("Setting param %s", param->data);
+          g_hash_table_replace (args, g_strdup (param->data), param_value);
+          g_debug ("Setting param %s %p", param->data, param_value);
           param = g_list_next (param);
         }
         g_list_free (param_names);
