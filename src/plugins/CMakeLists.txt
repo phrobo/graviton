@@ -6,7 +6,7 @@ if (USE_MPD)
 
   if (${MPD_FOUND})
     include_directories(${MPD_INCLUDE_DIRS} ${GIO_UNIX_INCLUDE_DIRS})
-    add_graviton_plugin(mpd mpd-plugin.c)
+    add_graviton_plugin(NAME mpd SOURCES mpd-plugin.c)
     target_link_libraries(graviton-plugin-mpd ${MPD_LIBRARIES} ${GIO_UNIX_LIBRARIES})
     install(TARGETS graviton-plugin-mpd DESTINATION ${GRAVITON_PLUGIN_PATH})
   endif()
