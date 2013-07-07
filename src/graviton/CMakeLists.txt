@@ -56,73 +56,77 @@ install(
     lib${LIB_SUFFIX}/pkgconfig
 )
 
-add_custom_command(
-  OUTPUT
-    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
-  COMMAND
-    g-ir-scanner
-      -n Graviton
-      --library graviton
-      --verbose
-      --warn-all
-      --pkg=glib-2.0
-      -L${CMAKE_CURRENT_BINARY_DIR}
-      plugin.c
-      plugin.h
-      control.h
-      control.h
-      -I${CMAKE_CURRENT_SOURCE_DIR}/../
-      --no-libtool
-      --nsversion=${GRAVITON_VERSION_PLATFORM}
-      --output=${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
-  DEPENDS
-    ${libgraviton_SRCS}
-    ${libgraviton_HEADERS}
-  WORKING_DIRECTORY
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+option(BUILD_G_BINDINGS "Build experimental g-i-r and vala bindings" FALSE)
 
-add_custom_command(
-  OUTPUT
-    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
-  COMMAND
-    ${VAPIGEN}
-    --library Graviton-${GRAVITON_VERSION_PLATFORM}
-      --pkg=glib-2.0
+if (BUILD_G_BINDINGS)
+  add_custom_command(
+    OUTPUT
       ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
-  DEPENDS
-    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
-    graviton
-  WORKING_DIRECTORY
-    ${CMAKE_CURRENT_BINARY_DIR}
-)
+    COMMAND
+      g-ir-scanner
+        -n Graviton
+        --library graviton
+        --verbose
+        --warn-all
+        --pkg=glib-2.0
+        -L${CMAKE_CURRENT_BINARY_DIR}
+        plugin.c
+        plugin.h
+        control.h
+        control.h
+        -I${CMAKE_CURRENT_SOURCE_DIR}/../
+        --no-libtool
+        --nsversion=${GRAVITON_VERSION_PLATFORM}
+        --output=${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
+    DEPENDS
+      ${libgraviton_SRCS}
+      ${libgraviton_HEADERS}
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_SOURCE_DIR}
+  )
 
-add_custom_target(
-  do_gir
-  DEPENDS
-    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
-)
+  add_custom_command(
+    OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
+    COMMAND
+      ${VAPIGEN}
+      --library Graviton-${GRAVITON_VERSION_PLATFORM}
+        --pkg=glib-2.0
+        ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
+    DEPENDS
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
+      graviton
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+  )
 
-add_custom_target(
-  do_vapi
-  ALL
-  #DEPENDS
-  #    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
-)
+  add_custom_target(
+    do_gir
+    DEPENDS
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
+  )
 
-install(
-  FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
-  DESTINATION
-    share/gir-1.0/
-)
+  add_custom_target(
+    do_vapi
+    ALL
+    #DEPENDS
+    #    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
+  )
 
-install(
-  FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
-  DESTINATION
-    share/vala/vapi/
-)
+  install(
+    FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.gir
+    DESTINATION
+      share/gir-1.0/
+  )
+
+  install(
+    FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-${GRAVITON_VERSION_PLATFORM}.vapi
+    DESTINATION
+      share/vala/vapi/
+  )
+endif()
 
 install(
   FILES
