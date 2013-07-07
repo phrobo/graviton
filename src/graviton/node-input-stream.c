@@ -11,10 +11,36 @@ struct _GravitonNodeInputStreamPrivate
 {
   GravitonNodeIOStream *stream;
   SoupMessage *msg;
-  GMemoryInputStream *input;
+  GList *buffers;
   GCond input_cond;
   GMutex input_lock;
 };
+
+typedef struct _Buffer
+{
+  void *data;
+  gsize size;
+} Buffer;
+
+static gssize
+read_buffer (GList *buffer_list, void *buffer, gsize count)
+{
+  gssize read_size = 0;
+  void *ret;
+  GList *cur = buffer_list;
+  while (read_size < count && cur) {
+    cur = cur->next;
+  }
+}
+
+static GList *
+add_buffer (GList *buffer_list, const void *buffer, gsize size)
+{
+  Buffer *buf = g_new0 (Buffer, 0);
+  buf->data = g_memdup (buffer, size);
+  buf->size = size;
+  return g_list_append (buffer_list, buf);
+}
 
 #define GRAVITON_NODE_INPUT_STREAM_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_INPUT_STREAM_TYPE, GravitonNodeInputStreamPrivate))
@@ -75,7 +101,7 @@ cb_chunk_ready (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
   //g_debug ("Read in a chunk of %d bytes", chunk->length);
 
   g_mutex_lock (&self->priv->input_lock);
-  g_memory_input_stream_add_data (self->priv->input, chunk->data, chunk->length, g_free);
+  self->priv->buffers = add_buffer (self->priv->buffers, chunk->data, chunk->length);
   g_cond_signal (&self->priv->input_cond);
   g_mutex_unlock (&self->priv->input_lock);
 }
@@ -101,7 +127,7 @@ stream_read (GInputStream *stream,
 
   g_cond_wait (&self->priv->input_cond, &self->priv->input_lock);
 
-  read_size = g_input_stream_read (G_INPUT_STREAM (self->priv->input), buffer, count, cancellable, err);
+  read_size = read_buffer (self->priv->buffers, buffer, count);
 
   return read_size;
 }
@@ -116,7 +142,7 @@ stream_skip (GInputStream *stream,
   g_assert (self->priv->stream);
 
   //FIXME: Resubmit the underlying HTTP request with proper ranges
-  return g_input_stream_skip (G_INPUT_STREAM (self->priv->input), count, cancellable, err);
+  return 0;
 }
 
 static gboolean
@@ -132,7 +158,7 @@ stream_close (GInputStream *stream,
 
   g_debug ("Closed!");
 
-  return g_input_stream_close (G_INPUT_STREAM (self->priv->input), cancellable, err);
+  return TRUE;
 }
 
 static void
@@ -169,7 +195,6 @@ graviton_node_input_stream_init (GravitonNodeInputStream *self)
 {
   GravitonNodeInputStreamPrivate *priv;
   priv = self->priv = GRAVITON_NODE_INPUT_STREAM_GET_PRIVATE (self);
-  priv->input = (GMemoryInputStream*)g_memory_input_stream_new ();
   g_mutex_init (&priv->input_lock);
   g_cond_init (&priv->input_cond);
 }
