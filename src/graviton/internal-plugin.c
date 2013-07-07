@@ -335,8 +335,8 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
   GravitonInternalPluginPrivate *priv;
   self->priv = priv = GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE (self);
   self->priv->hostname = g_strdup (g_get_host_name ());
-  self->priv->guid = g_new0(gchar, 36);
-  self->priv->cloud_guid = g_new0(gchar, 36);
+  self->priv->guid = g_new0(gchar, 37);
+  self->priv->cloud_guid = g_new0(gchar, 37);
   uuid_t uuid;
   uuid_generate (uuid);
   uuid_unparse_upper (uuid, self->priv->guid);
