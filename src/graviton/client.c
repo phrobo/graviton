@@ -107,7 +107,7 @@ cb_browse (AvahiServiceBrowser *browser,
                                   name,
                                   type,
                                   domain,
-                                  AVAHI_PROTO_UNSPEC,
+                                  AVAHI_PROTO_INET,
                                   0,
                                   cb_resolve,
                                   self);
