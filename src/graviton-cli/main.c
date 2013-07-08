@@ -18,7 +18,7 @@ print_streams (GravitonNodeControl *control)
   }
 
   while (cur) {
-    GravitonNodeStream *stream = graviton_node_control_get_stream (control, (gchar*)cur->data);
+    /*GravitonNodeStream *stream = graviton_node_control_get_stream (control, (gchar*)cur->data, args);
     g_print ("\t\t%s\n", graviton_stream_get_name (stream));
     GIOStream *ioStream = graviton_node_stream_open (stream);
     GInputStream *input = g_io_stream_get_input_stream (ioStream);
@@ -40,7 +40,8 @@ print_streams (GravitonNodeControl *control)
     }
     g_print ("\n");
     if (error)
-      g_print ("Error: %s", error->message);
+      g_print ("Error: %s", error->message);*/
+    g_print ("\t\t%s\n", cur->data);
     cur = cur->next;
   }
 
