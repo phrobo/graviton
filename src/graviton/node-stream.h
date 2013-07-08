@@ -34,7 +34,7 @@ struct _GravitonNodeStream
 
 GType graviton_node_stream_get_type (void);
 
-GravitonNodeStream *graviton_node_stream_new (GravitonNodeControl *node, const gchar *name);
+GravitonNodeStream *graviton_node_stream_new (GravitonNodeControl *node, const gchar *name, GHashTable *args);
 const gchar *graviton_node_stream_get_name (GravitonNodeStream *stream);
 GIOStream *graviton_node_stream_open (GravitonNodeStream *stream);
 

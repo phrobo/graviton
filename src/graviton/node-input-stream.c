@@ -4,6 +4,7 @@
 
 #include "node-input-stream.h"
 #include "node-io-stream.h"
+#include <string.h>
 
 typedef struct _GravitonNodeInputStreamPrivate GravitonNodeInputStreamPrivate;
 
@@ -11,35 +12,58 @@ struct _GravitonNodeInputStreamPrivate
 {
   GravitonNodeIOStream *stream;
   SoupMessage *msg;
-  GList *buffers;
+  GQueue *buffers;
   GCond input_cond;
   GMutex input_lock;
 };
 
 typedef struct _Buffer
 {
-  void *data;
+  char *data;
   gsize size;
 } Buffer;
 
 static gssize
-read_buffer (GList *buffer_list, void *buffer, gsize count)
+read_buffer (GQueue *queue, void *buffer, gsize count)
 {
+  g_debug ("Requesting to read %i bytes, we have %i buffers", count, g_queue_get_length (queue));
   gssize read_size = 0;
-  void *ret;
-  GList *cur = buffer_list;
-  while (read_size < count && cur) {
-    cur = cur->next;
+  while (read_size < count && !g_queue_is_empty (queue)) {
+    Buffer *curBuf = (Buffer*) g_queue_pop_head (queue);
+    g_debug ("Looking to read %i more out of %i, current buffer is %i", count-read_size, count, curBuf->size);
+    if (curBuf->size == 0 && curBuf->data == NULL) {
+      g_debug ("Got empty buffer, must mean we are done.");
+      return 0;
+    }
+    if (count-read_size > curBuf->size) {
+      memcpy (buffer + read_size, curBuf->data, curBuf->size);
+      g_debug ("Consuming first buffer of size %i", curBuf->size);
+      g_free (curBuf->data);
+      g_free (curBuf);
+      read_size += curBuf->size;
+    } else {
+      memcpy (buffer + read_size, curBuf->data, count-read_size);
+      char *newSegment = g_new (char, curBuf->size-count-read_size);
+      memcpy (newSegment, curBuf->data + (count-read_size), curBuf->size-count-read_size);
+      g_debug ("Consuming first %i bytes of first buffer", count-read_size);
+      g_free (curBuf->data);
+      curBuf->data = newSegment;
+      curBuf->size = curBuf->size-count-read_size;
+      read_size += count-read_size;
+      g_queue_push_head (queue, curBuf);
+    }
   }
+  return read_size;
 }
 
-static GList *
-add_buffer (GList *buffer_list, const void *buffer, gsize size)
+static void
+add_buffer (GQueue *queue, const void *buffer, gsize size)
 {
   Buffer *buf = g_new0 (Buffer, 1);
   buf->data = g_memdup (buffer, size);
   buf->size = size;
-  return g_list_append (buffer_list, buf);
+  g_debug ("Added a buffer of size %i", size);
+  g_queue_push_tail (queue, buf);
 }
 
 #define GRAVITON_NODE_INPUT_STREAM_GET_PRIVATE(o) \
@@ -95,13 +119,24 @@ get_property (GObject *object,
 }
 
 static void
+cb_finished (SoupMessage *msg, gpointer user_data)
+{
+  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (user_data);
+  g_debug ("Finished with transmission.");
+  g_mutex_lock (&self->priv->input_lock);
+  add_buffer (self->priv->buffers, NULL, 0);
+  g_cond_signal (&self->priv->input_cond);
+  g_mutex_unlock (&self->priv->input_lock);
+}
+
+static void
 cb_chunk_ready (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 {
   GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (user_data);
   //g_debug ("Read in a chunk of %d bytes", chunk->length);
 
   g_mutex_lock (&self->priv->input_lock);
-  self->priv->buffers = add_buffer (self->priv->buffers, chunk->data, chunk->length);
+  add_buffer (self->priv->buffers, chunk->data, chunk->length);
   g_cond_signal (&self->priv->input_cond);
   g_mutex_unlock (&self->priv->input_lock);
 }
@@ -116,18 +151,26 @@ stream_read (GInputStream *stream,
   GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (stream);
   gssize read_size;
   g_assert (self->priv->stream);
+  g_debug ("Reading stream");
   if (!self->priv->msg) {
     SoupMessageBody *body;
-    self->priv->msg = soup_message_new_from_uri ( "GET", graviton_node_io_stream_get_uri (self->priv->stream));
+    SoupURI *uri = graviton_node_io_stream_get_uri (self->priv->stream);
+    g_debug ("Opening node input stream to %s", soup_uri_to_string (uri, FALSE));
+    self->priv->msg = soup_message_new_from_uri ( "GET", uri);
     g_object_get (self->priv->msg, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
     soup_message_body_set_accumulate (body, FALSE);
     g_signal_connect (self->priv->msg, "got-chunk", G_CALLBACK (cb_chunk_ready), self);
+    g_signal_connect (self->priv->msg, "finished", G_CALLBACK (cb_finished), self);
     soup_session_queue_message (graviton_node_io_stream_get_session (self->priv->stream), self->priv->msg, NULL, NULL);
   }
 
-  g_cond_wait (&self->priv->input_cond, &self->priv->input_lock);
+  if (g_queue_get_length (self->priv->buffers) == 0) {
+    g_debug ("Waiting for new buffers to arrive...");
+    g_cond_wait (&self->priv->input_cond, &self->priv->input_lock);
+  }
 
   read_size = read_buffer (self->priv->buffers, buffer, count);
+  g_debug ("Got a buffer of size %i after asking for %i", read_size, count);
 
   return read_size;
 }
@@ -195,6 +238,7 @@ graviton_node_input_stream_init (GravitonNodeInputStream *self)
 {
   GravitonNodeInputStreamPrivate *priv;
   priv = self->priv = GRAVITON_NODE_INPUT_STREAM_GET_PRIVATE (self);
+  priv->buffers = g_queue_new ();
   g_mutex_init (&priv->input_lock);
   g_cond_init (&priv->input_cond);
 }

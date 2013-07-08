@@ -42,7 +42,7 @@ GVariant *graviton_node_call (GravitonNode *node, const gchar *method, GError **
 GVariant *graviton_node_call_args (GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
 GVariant *graviton_node_call_va (GravitonNode *node, const gchar *method, GError **error, va_list args);
 
-GIOStream *graviton_node_open_stream (GravitonNode *node, const gchar *name);
+GIOStream *graviton_node_open_stream (GravitonNode *node, const gchar *name, GHashTable *args);
 
 G_END_DECLS
 

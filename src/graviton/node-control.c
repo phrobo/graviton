@@ -188,8 +188,8 @@ graviton_node_control_call (GravitonNodeControl *control,
 }
 
 GravitonNodeStream *
-graviton_node_control_get_stream (GravitonNodeControl *control, const gchar *name)
+graviton_node_control_get_stream (GravitonNodeControl *control, const gchar *name, GHashTable *args)
 {
-  GravitonNodeStream *stream = graviton_node_stream_new (control, name);
+  GravitonNodeStream *stream = graviton_node_stream_new (control, name, args);
   return stream;
 }

@@ -44,7 +44,7 @@ GVariant *graviton_node_control_call (GravitonNodeControl *control, const gchar 
 GVariant *graviton_node_control_call_args (GravitonNodeControl *control, const gchar *method, GHashTable *args, GError **error);
 GVariant *graviton_node_control_call_va (GravitonNodeControl *control, const gchar *method, GError **error, va_list args);
 
-GravitonNodeStream *graviton_node_control_get_stream (GravitonNodeControl *control, const gchar *name);
+GravitonNodeStream *graviton_node_control_get_stream (GravitonNodeControl *control, const gchar *name, GHashTable *args);
 
 G_END_DECLS
 

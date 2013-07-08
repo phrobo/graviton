@@ -212,7 +212,9 @@ handle_rpc (GravitonServer *self, JsonObject *request)
           GVariant *param_value;
           param_value = json_gvariant_deserialize (json_object_get_member (param_obj, param->data), NULL, &error);
           g_hash_table_replace (args, g_strdup (param->data), param_value);
-          g_debug ("Setting param %s %p", param->data, param_value);
+          gchar *display = g_variant_print (param_value, TRUE);
+          g_debug ("Setting param %s to %s", param->data, display);
+          g_free (display);
           param = g_list_next (param);
         }
         g_list_free (param_names);
@@ -350,6 +352,9 @@ cb_handle_stream (SoupServer *server,
     if (!success) {
       soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
       g_debug ("Unsupported operation %s for %s.%s.", method, control_name, stream_name);
+      if (error) {
+        g_debug ("Associated error: %s", error->message);
+      }
       free_stream (connection);
     }
 

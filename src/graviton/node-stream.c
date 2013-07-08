@@ -11,6 +11,7 @@ struct _GravitonNodeStreamPrivate
 {
   gchar *name;
   GravitonNodeControl *control;
+  GHashTable *args;
 };
 
 #define GRAVITON_NODE_STREAM_GET_PRIVATE(o) \
@@ -27,6 +28,7 @@ enum {
   PROP_0,
   PROP_NAME,
   PROP_CONTROL,
+  PROP_ARGS,
   N_PROPERTIES
 };
 
@@ -45,6 +47,9 @@ set_property (GObject *object,
       break;
     case PROP_CONTROL:
       self->priv->control = GRAVITON_NODE_CONTROL (g_value_dup_object (value));
+      break;
+    case PROP_ARGS:
+      self->priv->args = g_value_get_pointer (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -94,6 +99,11 @@ graviton_node_stream_class_init (GravitonNodeStreamClass *klass)
                          "The underlying GravitonNodeControl",
                          GRAVITON_NODE_CONTROL_TYPE,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
+  obj_properties [PROP_ARGS] = 
+    g_param_spec_pointer ("args",
+                         "Request arguments",
+                         "A GHashTable of strings for arguments",
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
                                      obj_properties);
@@ -119,16 +129,16 @@ graviton_node_stream_finalize (GObject *object)
 }
 
 GravitonNodeStream *
-graviton_node_stream_new (GravitonNodeControl *control, const gchar *name)
+graviton_node_stream_new (GravitonNodeControl *control, const gchar *name, GHashTable *args)
 {
-  return g_object_new (GRAVITON_NODE_STREAM_TYPE, "control", control, "name", name);
+  return g_object_new (GRAVITON_NODE_STREAM_TYPE, "control", control, "name", name, "args", args, NULL);
 }
 
 GIOStream *
 graviton_node_stream_open (GravitonNodeStream *self)
 {
   gchar *full_name = g_strdup_printf ("%s.%s", graviton_node_control_get_name (self->priv->control), self->priv->name);
-  GIOStream *ret = graviton_node_open_stream (graviton_node_control_get_node (self->priv->control), full_name);
+  GIOStream *ret = graviton_node_open_stream (graviton_node_control_get_node (self->priv->control), full_name, self->priv->args);
   g_free (full_name);
   return ret;
 }
