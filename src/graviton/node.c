@@ -10,7 +10,7 @@ typedef struct _GravitonNodePrivate GravitonNodePrivate;
 struct _GravitonNodePrivate
 {
   SoupSession *soup;
-  GInetAddress *address;
+  GInetSocketAddress *address;
   SoupURI *rpc_uri;
   SoupURI *event_uri;
   SoupURI *stream_uri;
