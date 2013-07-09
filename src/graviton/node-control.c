@@ -4,6 +4,7 @@
 
 #include "node-control.h"
 #include "node.h"
+#include "node-stream.h"
 
 typedef struct _GravitonNodeControlPrivate GravitonNodeControlPrivate;
 

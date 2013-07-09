@@ -18,6 +18,7 @@ set(libgraviton_SRCS
 set(libgraviton_HEADERS
   client.h
   control.h
+  file-stream.h
   introspection-control.h
   node.h
   node-control.h

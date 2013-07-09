@@ -172,7 +172,7 @@ graviton_control_add_method (GravitonControl *self,
   GList *paramList = NULL;
 
   for (i = 0; i < arg_count; i++) {
-    g_list_append (paramList, args[i]);
+    paramList = g_list_append (paramList, args[i]);
     g_param_spec_ref (args[i]);
   }
   g_hash_table_replace (self->priv->method_args, g_strdup (name), paramList);

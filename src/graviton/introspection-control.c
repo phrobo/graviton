@@ -3,6 +3,8 @@
 #endif
 
 #include "introspection-control.h"
+#include "node-control.h"
+#include "node.h"
 
 typedef struct _GravitonIntrospectionControlPrivate GravitonIntrospectionControlPrivate;
 

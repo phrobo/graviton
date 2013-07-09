@@ -71,9 +71,10 @@ get_property (GObject *object,
   }
 }
 
-static GInputStream *
-get_output_stream (GravitonNodeIOStream *self)
+static GOutputStream *
+get_output_stream (GIOStream *stream)
 {
+  GravitonNodeIOStream *self = GRAVITON_NODE_IO_STREAM (stream);
   if (self->priv->output == NULL) {
 
   }
@@ -81,12 +82,13 @@ get_output_stream (GravitonNodeIOStream *self)
 }
 
 static GInputStream *
-get_input_stream (GravitonNodeIOStream *self)
+get_input_stream (GIOStream *stream)
 {
+  GravitonNodeIOStream *self = GRAVITON_NODE_IO_STREAM (stream);
   if (self->priv->input == NULL) {
     self->priv->input = graviton_node_input_stream_new (self);
   }
-  return self->priv->input;
+  return G_INPUT_STREAM (self->priv->input);
 }
 
 static void

@@ -1,8 +1,9 @@
 #include "config.h"
 #include "internal-plugin.h"
 #include "server.h"
+#include "control.h"
+#include "file-stream.h"
 #include <json-glib/json-glib.h>
-#include <graviton/control.h>
 #include <uuid/uuid.h>
 
 #define GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_INTERNAL_PLUGIN, GravitonInternalPluginPrivate))
@@ -166,7 +167,7 @@ static GravitonStream *
 cb_stream_zero (GravitonControl *self, const gchar *name, GHashTable *args, GError **error, gpointer user_data)
 {
   GFile *dev = g_file_new_for_path ("/dev/zero");
-  GravitonStream *ret = graviton_file_stream_new (dev);
+  GravitonStream *ret = GRAVITON_STREAM (graviton_file_stream_new (dev));
   g_object_unref (dev);
   return ret;
 }

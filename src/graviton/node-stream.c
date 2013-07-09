@@ -112,7 +112,7 @@ graviton_node_stream_class_init (GravitonNodeStreamClass *klass)
 static void
 graviton_node_stream_init (GravitonNodeStream *self)
 {
-  GravitonNodeStream *priv;
+  GravitonNodeStreamPrivate *priv;
   priv = self->priv = GRAVITON_NODE_STREAM_GET_PRIVATE (self);
 }
 

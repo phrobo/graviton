@@ -634,7 +634,7 @@ graviton_server_init (GravitonServer *self)
                                                  NULL));
 
   priv->avahi_poll_api = avahi_glib_poll_new (NULL, G_PRIORITY_DEFAULT);
-  AvahiPoll *poll_api = avahi_glib_poll_get (priv->avahi_poll_api);
+  const AvahiPoll *poll_api = avahi_glib_poll_get (priv->avahi_poll_api);
   priv->avahi = avahi_client_new (poll_api,
                                   0,
                                   cb_avahi,

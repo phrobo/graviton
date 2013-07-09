@@ -68,7 +68,7 @@ open_read (GravitonStream *stream, GError **error)
 {
   GravitonFileStream *self = GRAVITON_FILE_STREAM (stream);
   GFileInputStream *ret = g_file_read (self->priv->file, NULL, error);
-  return ret;
+  return G_INPUT_STREAM (ret);
 }
 
 static GOutputStream *
