@@ -21,6 +21,12 @@ struct _GravitonNodePrivate
 #define GRAVITON_NODE_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_TYPE, GravitonNodePrivate))
 
+GQuark
+graviton_node_error_quark ()
+{
+  return g_quark_from_static_string ("graviton-node-error-quark");
+}
+
 static void graviton_node_class_init (GravitonNodeClass *klass);
 static void graviton_node_init       (GravitonNode *self);
 static void graviton_node_dispose    (GObject *object);
@@ -299,6 +305,51 @@ graviton_node_call_args (GravitonNode *self,
   guint code;
   g_object_get (request, SOUP_MESSAGE_STATUS_CODE, &code, NULL);
   g_debug ("Got status: %u", code);
+
+  if (SOUP_STATUS_IS_TRANSPORT_ERROR (code)) {
+    const gchar *msg;
+    switch (code) {
+      case SOUP_STATUS_CANCELLED:
+        msg = "Request cancelled";
+        break;
+      case SOUP_STATUS_CANT_RESOLVE:
+        msg = "Cannot resolve hostname";
+        break;
+      case SOUP_STATUS_CANT_RESOLVE_PROXY:
+        msg = "Proxy cannot resolve hostname";
+        break;
+      case SOUP_STATUS_CANT_CONNECT:
+        msg = "Could not connect";
+        break;
+      case SOUP_STATUS_CANT_CONNECT_PROXY:
+        msg = "Proxy could not connect";
+        break;
+      case SOUP_STATUS_SSL_FAILED:
+        msg = "SSL failure";
+        break;
+      case SOUP_STATUS_IO_ERROR:
+        msg = "IO Error";
+        break;
+      case SOUP_STATUS_MALFORMED:
+        msg = "Malformed request";
+        break;
+      case SOUP_STATUS_TRY_AGAIN:
+        msg = "Try again";
+        break;
+      case SOUP_STATUS_TOO_MANY_REDIRECTS:
+        msg = "Too many redirects";
+        break;
+      case SOUP_STATUS_TLS_FAILED:
+        msg = "TLS failure";
+        break;
+    }
+    g_set_error (err,
+                 GRAVITON_NODE_ERROR,
+                 code,
+                 msg);
+    g_object_unref (request);
+    return NULL;
+  }
 
   SoupMessageBody *responseBody = NULL;
   g_object_get (request, SOUP_MESSAGE_RESPONSE_BODY, &responseBody, NULL);

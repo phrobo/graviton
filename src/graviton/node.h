@@ -17,6 +17,13 @@ G_BEGIN_DECLS
 #define IS_GRAVITON_NODE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_NODE_TYPE))
 #define GRAVITON_NODE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_NODE_TYPE, GravitonNodeClass))
 
+#define GRAVITON_NODE_ERROR (graviton_node_error_quark ())
+
+typedef enum {
+  GRAVITON_NODE_ERROR_TRANSPORT = 1
+  //TODO: Fill in with values from libsoup
+} GravitonNodeError;
+
 typedef struct _GravitonNode      GravitonNode;
 typedef struct _GravitonNodeClass GravitonNodeClass;
 typedef struct _GravitonNodePrivate GravitonNodePrivate;
