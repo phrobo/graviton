@@ -588,7 +588,7 @@ cb_property_update (GravitonControl *control, const gchar *name, gpointer user_d
 SoupServer *
 new_server (GravitonServer *self, SoupAddressFamily family)
 {
-  SoupAddress *address = soup_address_new_any (SOUP_ADDRESS_FAMILY_IPV4, SOUP_ADDRESS_ANY_PORT);
+  SoupAddress *address = soup_address_new_any (family, SOUP_ADDRESS_ANY_PORT);
   SoupServer *server;
   server = soup_server_new (
     "interface", address,

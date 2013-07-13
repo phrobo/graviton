@@ -146,6 +146,18 @@ int main (int argc, char** argv)
                     G_CALLBACK (cb_nodes),
                     loop);
 
+  if (argc == 3) {
+    GInetSocketAddress *addr = NULL;
+    GInetAddress *addrName = NULL;
+    guint port = atoi (argv[2]);
+    addrName = g_inet_address_new_from_string (argv[1]);
+    if (addrName) {
+      addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
+    }
+    GravitonNode *node = graviton_node_new_from_address (addr);
+    graviton_client_add_node (client, node);
+  }
+
   g_main_loop_run (loop);
 
   return 0;

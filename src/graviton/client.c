@@ -76,8 +76,7 @@ cb_resolve (AvahiServiceResolver *resolver,
       g_free (ip_str);
       GravitonNode *node = graviton_node_new_from_address (addr);
       g_object_unref (addr);
-      self->priv->discovered_nodes = g_list_append (self->priv->discovered_nodes, node);
-      g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, node);
+      graviton_client_add_node (self, node);
       self->priv->unresolved_count--;
       break;
   }
@@ -213,4 +212,11 @@ GList *
 graviton_client_get_found_nodes (GravitonClient *self)
 {
   return self->priv->discovered_nodes;
+}
+
+void
+graviton_client_add_node (GravitonClient *self, GravitonNode *node)
+{
+  self->priv->discovered_nodes = g_list_append (self->priv->discovered_nodes, node);
+  g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, node);
 }

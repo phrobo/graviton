@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <graviton/node.h>
 
 G_BEGIN_DECLS
 
@@ -34,6 +35,9 @@ GravitonClient *graviton_client_new ();
 
 GList *
 graviton_client_get_found_nodes (GravitonClient *client);
+
+void
+graviton_client_add_node (GravitonClient *client, GravitonNode *node);
 
 G_END_DECLS
 
