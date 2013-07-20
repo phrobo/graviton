@@ -42,8 +42,6 @@ typedef GVariant *(*GravitonControlMethod)(GravitonControl *self, GHashTable *ar
 void graviton_control_add_method (GravitonControl *self,
                                   const gchar *name,
                                   GravitonControlMethod func,
-                                  int arg_count,
-                                  GParamSpec **args,
                                   gpointer user_data,
                                   GDestroyNotify destroy_func);
 
