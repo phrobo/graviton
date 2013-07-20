@@ -2,8 +2,8 @@
 #include "internal-plugin.h"
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
-#include <graviton/plugin-manager.h>
 #include <graviton/plugin.h>
+#include <graviton/root-control.h>
 #include <graviton/control.h>
 #include <string.h>
 #include <avahi-client/client.h>
@@ -27,7 +27,7 @@ struct _GravitonServerPrivate
 {
   SoupServer *server;
   SoupServer *server6;
-  GravitonPluginManager *plugins;
+  GravitonRootControl *plugins;
   GList *event_listeners;
   GHashTable *plugin_names;
   GList *streams;
@@ -616,7 +616,7 @@ graviton_server_init (GravitonServer *self)
   self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
   priv->avahi_group = NULL;
 
-  priv->plugins = graviton_plugin_manager_new ();
+  priv->plugins = graviton_root_control_new ();
   priv->event_listeners = NULL;
   priv->streams = NULL;
   g_signal_connect (priv->plugins,
@@ -657,7 +657,7 @@ void graviton_server_load_plugins (GravitonServer *self)
   int i;
   GArray *plugins;
   
-  plugins = graviton_plugin_manager_find_plugins (self->priv->plugins);
+  plugins = graviton_control_manager_find_plugins (self->priv->plugins);
   for (i = 0; i < plugins->len; i++) {
     GravitonPluginLoaderFunc factory = g_array_index (plugins, GravitonPluginLoaderFunc, i);
     GravitonPlugin *plugin = factory();
@@ -665,8 +665,8 @@ void graviton_server_load_plugins (GravitonServer *self)
   }
 }
 
-GravitonPluginManager *
-graviton_server_get_plugin_manager (GravitonServer *self)
+GravitonRootControl *
+graviton_server_get_root_control (GravitonServer *self)
 {
   g_object_ref (self->priv->plugins);
   return self->priv->plugins;

@@ -43,7 +43,7 @@ grab_control_arg (GravitonInternalPlugin *self, GHashTable *args, GError **error
 {
   GravitonControl *subcontrol;
   const gchar *control_name = NULL;
-  GravitonPluginManager *plugins = graviton_server_get_plugin_manager (self->priv->server);
+  GravitonRootControl *plugins = graviton_server_get_root_control (self->priv->server);
 
   if (g_hash_table_lookup (args, "control")) {
     GVariant *controlArg = g_hash_table_lookup (args, "control");
@@ -282,7 +282,7 @@ cb_controls(GravitonControl *control, GHashTable *args, GError **error, gpointer
   GVariantBuilder ret;
   GravitonControl *subcontrol;
   GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
-  GravitonPluginManager *plugins = graviton_server_get_plugin_manager (self->priv->server);
+  GravitonRootControl *plugins = graviton_server_get_root_control (self->priv->server);
 
   subcontrol = grab_control_arg (self, args, error);
 

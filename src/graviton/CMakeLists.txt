@@ -1,6 +1,7 @@
 set(libgraviton_SRCS
   client.c
   control.c
+  root-control.c
   discovery-method.c
   file-stream.c
   introspection-control.c
@@ -10,7 +11,6 @@ set(libgraviton_SRCS
   node-input-stream.c
   node-stream.c
   plugin.c
-  plugin-manager.c
   server.c
   stream.c
   internal-plugin.c
@@ -27,7 +27,7 @@ set(libgraviton_HEADERS
   node-io-stream.h
   node-stream.h
   plugin.h
-  plugin-manager.h
+  root-control.h
   server.h
   stream.h
 )
