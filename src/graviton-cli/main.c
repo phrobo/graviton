@@ -112,7 +112,8 @@ print_node (GravitonNode *node)
   GError *error = NULL;
   const gchar *id = graviton_node_get_id (node, &error);
   if (error) {
-    g_print ("Error: %s", error->message);
+    g_print ("Error: %s\n", error->message);
+    return;
   } else {
     g_print ("Found node: %s\n", id);
   }
@@ -165,9 +166,9 @@ int main (int argc, char** argv)
     g_object_unref (node);
   } else {
     graviton_client_load_discovery_plugins (client);
+    g_main_loop_run (loop);
   }
 
-  g_main_loop_run (loop);
 
   return 0;
 }
