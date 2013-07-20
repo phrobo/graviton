@@ -2,7 +2,6 @@
 #include "internal-plugin.h"
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
-#include <graviton/plugin.h>
 #include <graviton/root-control.h>
 #include <graviton/control.h>
 #include <string.h>
@@ -650,19 +649,6 @@ void graviton_server_run_async (GravitonServer *self)
 {
   soup_server_run_async (self->priv->server);
   soup_server_run_async (self->priv->server6);
-}
-
-void graviton_server_load_plugins (GravitonServer *self)
-{
-  int i;
-  GArray *plugins;
-  
-  plugins = graviton_control_manager_find_plugins (self->priv->plugins);
-  for (i = 0; i < plugins->len; i++) {
-    GravitonPluginLoaderFunc factory = g_array_index (plugins, GravitonPluginLoaderFunc, i);
-    GravitonPlugin *plugin = factory();
-    graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins), GRAVITON_CONTROL (plugin));
-  }
 }
 
 GravitonRootControl *

@@ -10,7 +10,6 @@ set(libgraviton_SRCS
   node-io-stream.c
   node-input-stream.c
   node-stream.c
-  plugin.c
   server.c
   stream.c
   internal-plugin.c
@@ -26,7 +25,6 @@ set(libgraviton_HEADERS
   node-input-stream.h
   node-io-stream.h
   node-stream.h
-  plugin.h
   root-control.h
   server.h
   stream.h

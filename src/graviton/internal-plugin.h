@@ -2,7 +2,7 @@
 #define GRAVITON_INTERNAL_PLUGIN_H
 
 #include <glib-object.h>
-#include <graviton/plugin.h>
+#include <graviton/control.h>
 
 #define GRAVITON_TYPE_INTERNAL_PLUGIN     (graviton_internal_plugin_get_type ())
 #define GRAVITON_INTERNAL_PLUGIN(obj)          (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_INTERNAL_PLUGIN, GravitonInternalPlugin))
@@ -26,13 +26,13 @@ typedef struct _GravitonInternalPluginPrivate GravitonInternalPluginPrivate;
 
 struct _GravitonInternalPlugin
 {
-  GravitonPlugin parent_instance;
+  GravitonControl parent_instance;
   GravitonInternalPluginPrivate *priv;
 };
 
 struct _GravitonInternalPluginClass
 {
-  GravitonPluginClass parent_class;
+  GravitonControlClass parent_class;
 };
 
 GType graviton_internal_plugin_get_type ();

@@ -16,7 +16,7 @@ graviton_introspection_error_quark()
   return g_quark_from_static_string ("graviton-introspection-error-quark");
 }
 
-G_DEFINE_TYPE (GravitonInternalPlugin, graviton_internal_plugin, GRAVITON_TYPE_PLUGIN);
+G_DEFINE_TYPE (GravitonInternalPlugin, graviton_internal_plugin, GRAVITON_TYPE_CONTROL);
 
 enum
 {
@@ -128,7 +128,6 @@ graviton_internal_plugin_class_init (GravitonInternalPluginClass *klass)
 {
   g_type_class_add_private (klass, sizeof (GravitonInternalPluginPrivate));
 
-  GravitonPluginClass *plugin_class = GRAVITON_PLUGIN_CLASS (klass);
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
   gobject_class->set_property = set_property;
