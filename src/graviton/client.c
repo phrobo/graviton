@@ -4,19 +4,14 @@
 
 #include "client.h"
 #include "node.h"
-#include <avahi-client/client.h>
-#include <avahi-client/lookup.h>
-#include <avahi-glib/glib-watch.h>
 
 typedef struct _GravitonClientPrivate GravitonClientPrivate;
 
 struct _GravitonClientPrivate
 {
-  AvahiClient *avahi;
-  AvahiGLibPoll *avahi_poll_api;
+  GList *discovery_methods;
   GList *discovered_nodes;
-  guint unresolved_count;
-  gboolean end_of_avahi_list;
+  int pending_discovery_methods;
 };
 
 #define GRAVITON_CLIENT_GET_PRIVATE(o) \
@@ -32,114 +27,12 @@ G_DEFINE_TYPE (GravitonClient, graviton_client, G_TYPE_OBJECT);
 enum {
   SIGNAL_0,
   SIGNAL_NODE_FOUND,
+  SIGNAL_NODE_LOST,
   SIGNAL_ALL_NODES_FOUND,
   N_SIGNALS
 };
 
 static int obj_signals[N_SIGNALS] = {0, };
-
-static void
-cb_resolve (AvahiServiceResolver *resolver,
-            AvahiIfIndex interface,
-            AvahiProtocol protocol,
-            AvahiResolverEvent event,
-            const char *name,
-            const char *type,
-            const char *domain,
-            const char *host_name,
-            const AvahiAddress *address,
-            uint16_t port,
-            AvahiStringList *txt,
-            AvahiLookupResultFlags flags,
-            void *user_data)
-{
-  GravitonClient *self = GRAVITON_CLIENT (user_data);
-  gchar *ip_str;
-
-  switch (event) {
-    case AVAHI_RESOLVER_FAILURE:
-      self->priv->unresolved_count--;
-      break;
-    case AVAHI_RESOLVER_FOUND:
-      ip_str = g_new0(gchar, AVAHI_ADDRESS_STR_MAX);
-      avahi_address_snprint (ip_str, AVAHI_ADDRESS_STR_MAX, address);
-
-      GInetSocketAddress *addr = NULL;
-      GInetAddress *addrName = NULL;
-
-      addrName = g_inet_address_new_from_string (ip_str);
-
-      if (addrName)
-        addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
-
-      g_debug ("Found %s: %s:%d", type, ip_str, port);
-      g_free (ip_str);
-      GravitonNode *node = graviton_node_new_from_address (addr);
-      g_object_unref (addr);
-      graviton_client_add_node (self, node);
-      self->priv->unresolved_count--;
-      break;
-  }
-  if (self->priv->end_of_avahi_list && self->priv->unresolved_count == 0)
-    g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
-
-  avahi_service_resolver_free (resolver);
-}
-
-static void
-cb_browse (AvahiServiceBrowser *browser,
-           AvahiIfIndex interface,
-           AvahiProtocol protocol,
-           AvahiBrowserEvent event,
-           const gchar *name,
-           const gchar *type,
-           const gchar *domain,
-           AvahiLookupResultFlags flags,
-           void *user_data)
-{
-  GravitonClient *self = GRAVITON_CLIENT (user_data);
-  switch (event) {
-    case AVAHI_BROWSER_NEW:
-      avahi_service_resolver_new (self->priv->avahi,
-                                  interface,
-                                  protocol,
-                                  name,
-                                  type,
-                                  domain,
-                                  AVAHI_PROTO_INET,
-                                  0,
-                                  cb_resolve,
-                                  self);
-      self->priv->unresolved_count++;
-      break;
-    case AVAHI_BROWSER_ALL_FOR_NOW:
-      self->priv->end_of_avahi_list = TRUE;
-      if (self->priv->unresolved_count == 0)
-        g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
-      break;
-  }
-}
-
-static void
-browse_services (AvahiClient *client, GravitonClient *self)
-{
-  avahi_service_browser_new (client,
-                             AVAHI_IF_UNSPEC,
-                             AVAHI_PROTO_UNSPEC,
-                             "_graviton._tcp",
-                             NULL,
-                             0,
-                             cb_browse,
-                             self);
-}
-
-static void
-cb_avahi (AvahiClient *client, AvahiClientState state, gpointer data)
-{
-  if (state == AVAHI_CLIENT_S_RUNNING) {
-    browse_services (client, GRAVITON_CLIENT(data));
-  }
-}
 
 static void
 graviton_client_class_init (GravitonClientClass *klass)
@@ -151,6 +44,16 @@ graviton_client_class_init (GravitonClientClass *klass)
   object_class->dispose = graviton_client_dispose;
   object_class->finalize = graviton_client_finalize;
 
+  /**
+   * GravitonClient::node-found:
+   * @client: The client that is reporting the found node
+   * @node: The node that was found
+   *
+   * A #GravitonNode has appeared through a discovery method. No guarantee about
+   * its reachability is made, which might be the case for i.e. a
+   * file-based discovery method that reports a static list of nodes
+   * the user has bookmarked or recently accessed.
+   */
   obj_signals[SIGNAL_NODE_FOUND] =
     g_signal_new ("node-found",
                   G_TYPE_FROM_CLASS (klass),
@@ -162,6 +65,34 @@ graviton_client_class_init (GravitonClientClass *klass)
                   G_TYPE_NONE,
                   1,
                   GRAVITON_NODE_TYPE);
+  /**
+   * GravitonClient::node-lost:
+   * @client: The client that is reporting the lost node
+   * @node: The node that was lost
+   *
+   * A #GravitonNode has disappeared from view. It might still be reachable, but
+   * a discovery method has reported it as gone.
+   */
+  //FIXME: Add method argument
+  obj_signals[SIGNAL_NODE_LOST] =
+    g_signal_new ("node-lost",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL,
+                  NULL,
+                  g_cclosure_marshal_VOID__OBJECT,
+                  G_TYPE_NONE,
+                  1,
+                  GRAVITON_NODE_TYPE);
+  /**
+   * GravitonNode::all-nodes-found:
+   * @client: The client
+   *
+   * All current discovery methods have finished their initial enumeration of
+   * available nodes. This does not mean that they won't discover more later
+   * while the methods are active.
+   */
   obj_signals[SIGNAL_ALL_NODES_FOUND] =
     g_signal_new ("all-nodes-found",
                   G_TYPE_FROM_CLASS (klass),
@@ -180,14 +111,6 @@ graviton_client_init (GravitonClient *self)
 {
   GravitonClientPrivate *priv;
   self->priv = priv = GRAVITON_CLIENT_GET_PRIVATE (self);
-
-  priv->avahi_poll_api = avahi_glib_poll_new (NULL, G_PRIORITY_DEFAULT);
-  const AvahiPoll *poll_api = avahi_glib_poll_get (priv->avahi_poll_api);
-  priv->avahi = avahi_client_new (poll_api,
-                                  0,
-                                  cb_avahi,
-                                  self,
-                                  NULL);
 }
 
 static void
@@ -202,12 +125,43 @@ graviton_client_finalize (GObject *object)
   G_OBJECT_CLASS (graviton_client_parent_class)->finalize (object);
 }
 
+static void
+cb_node_found (GravitonDiscoveryMethod *method, GravitonNode *node, gpointer data)
+{
+  GravitonClient *self = GRAVITON_CLIENT (data);
+  self->priv->discovered_nodes = g_list_append (self->priv->discovered_nodes, node);
+  g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, node);
+}
+
+static void
+cb_node_lost (GravitonDiscoveryMethod *method, GravitonNode *node, gpointer data)
+{
+  GravitonClient *self = GRAVITON_CLIENT (data);
+  g_signal_emit (self, obj_signals[SIGNAL_NODE_LOST], 0, node);
+}
+
+static void
+cb_discovery_finished (GravitonDiscoveryMethod *method, gpointer data)
+{
+  GravitonClient *self = GRAVITON_CLIENT (data);
+  self->priv->pending_discovery_methods--;
+  if (self->priv->pending_discovery_methods == 0)
+    g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
+}
+
 GravitonClient *
 graviton_client_new ()
 {
   return g_object_new (GRAVITON_CLIENT_TYPE, NULL);
 }
 
+/**
+ * graviton_client_get_found_nodes:
+ * @client: a #GravitonClient to query
+ *
+ * Returns: (transfer none): List of nodes that have been discovered in this
+ * client's lifetime. No guarantees are made about their availability.
+ */
 GList *
 graviton_client_get_found_nodes (GravitonClient *self)
 {
@@ -215,8 +169,84 @@ graviton_client_get_found_nodes (GravitonClient *self)
 }
 
 void
-graviton_client_add_node (GravitonClient *self, GravitonNode *node)
+graviton_client_add_discovery_method (GravitonClient *self, GravitonDiscoveryMethod *method)
 {
-  self->priv->discovered_nodes = g_list_append (self->priv->discovered_nodes, node);
-  g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, node);
+  self->priv->discovery_methods = g_list_append (self->priv->discovery_methods, method);
+  g_signal_connect (method,
+                    "finished",
+                    G_CALLBACK (cb_discovery_finished),
+                    self);
+  g_signal_connect (method,
+                    "node-found",
+                    G_CALLBACK (cb_node_found),
+                    self);
+  g_signal_connect (method,
+                    "node-lost",
+                    G_CALLBACK (cb_node_lost),
+                    self);
+  self->priv->pending_discovery_methods++;
+}
+
+void
+graviton_client_load_discovery_plugins (GravitonClient *self)
+{
+  int i;
+  GArray *plugins;
+
+  plugins = graviton_client_find_discovery_plugins (self);
+  for (i = 0; i < plugins->len; i++) {
+    GravitonDiscoveryPluginLoaderFunc factory = g_array_index (plugins, GravitonDiscoveryPluginLoaderFunc, i);
+    GravitonDiscoveryMethod *method = factory();
+    graviton_client_add_discovery_method (self, method);
+    graviton_discovery_method_start (method);
+  }
+  g_debug ("loaded %i plugins", i);
+}
+
+GArray*
+graviton_client_find_discovery_plugins (GravitonClient *self)
+{
+  GArray *pluginList = g_array_new(FALSE, FALSE, sizeof (GravitonDiscoveryPluginLoaderFunc));
+  const gchar *pluginPath = g_getenv("GRAVITON_DISCOVERY_PLUGIN_PATH");
+  if (!pluginPath)
+    pluginPath = GRAVITON_DEFAULT_DISCOVERY_PLUGIN_PATH;
+  g_debug ("Searching %s for plugins\n", pluginPath);
+  GDir *pluginDir = g_dir_open (pluginPath, 0, NULL);
+  if (!pluginDir) {
+    g_debug ("Plugin path not found: %s", pluginPath);
+    return pluginList;
+  }
+  const gchar *entry = g_dir_read_name (pluginDir);
+  while (entry) {
+    gchar *entryPath = g_build_path ("/", pluginPath, entry, NULL);
+    if (!g_str_has_suffix (entryPath, ".so"))
+      goto nextPlugin;
+    g_debug ("Attempting to load plugin %s", entryPath);
+    GModule *module = g_module_open (entryPath, G_MODULE_BIND_LOCAL);
+    GravitonDiscoveryPluginLoaderFunc loader = NULL;
+    if (!module) {
+      g_warning ("Can't open plugin %s: %s", entryPath, g_module_error ());
+      goto nextPlugin;
+    }
+
+    if (!g_module_symbol (module, "make_graviton_discovery_plugin", (gpointer *)&loader)) {
+      g_warning ("Can't find graviton_plugin symbol in %s: %s", entryPath, g_module_error ());
+      goto nextPlugin;
+    }
+
+    if (loader == NULL) {
+      g_warning ("graviton_plugin symbol is NULL in %s: %s", entryPath, g_module_error ());
+      goto nextPlugin;
+    }
+
+    g_array_append_val (pluginList, loader);
+
+nextPlugin:
+    g_free (entryPath);
+    entry = g_dir_read_name (pluginDir);
+  }
+
+  g_dir_close (pluginDir);
+
+  return pluginList;
 }

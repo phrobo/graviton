@@ -31,6 +31,8 @@ include_directories(
   ${UUID_INCLUDE_DIRS}
 )
 
+add_definitions (-DHAVE_CONFIG_H)
+
 add_subdirectory(graviton)
 add_subdirectory(plugins)
 add_subdirectory(server)

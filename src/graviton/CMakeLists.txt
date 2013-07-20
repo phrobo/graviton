@@ -1,6 +1,7 @@
 set(libgraviton_SRCS
   client.c
   control.c
+  discovery-method.c
   file-stream.c
   introspection-control.c
   node.c

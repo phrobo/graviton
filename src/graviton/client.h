@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <graviton/node.h>
+#include <graviton/discovery-method.h>
 
 G_BEGIN_DECLS
 
@@ -37,7 +38,13 @@ GList *
 graviton_client_get_found_nodes (GravitonClient *client);
 
 void
-graviton_client_add_node (GravitonClient *client, GravitonNode *node);
+graviton_client_add_discovery_method (GravitonClient *client, GravitonDiscoveryMethod *method);
+
+void
+graviton_client_load_discovery_methods (GravitonClient *client);
+
+GArray *
+graviton_client_find_discovery_plugins (GravitonClient *client);
 
 G_END_DECLS
 

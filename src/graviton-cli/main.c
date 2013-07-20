@@ -107,6 +107,20 @@ print_controls (GravitonNodeControl *control)
 }
 
 void
+print_node (GravitonNode *node)
+{
+  GError *error = NULL;
+  const gchar *id = graviton_node_get_id (node, &error);
+  if (error) {
+    g_print ("Error: %s", error->message);
+  } else {
+    g_print ("Found node: %s\n", id);
+  }
+  g_print ("Controls:\n");
+  print_controls (GRAVITON_NODE_CONTROL (node));
+}
+
+void
 cb_nodes (GravitonClient *client, gpointer data)
 {
   GMainLoop *loop = (GMainLoop*)(data);
@@ -116,16 +130,8 @@ cb_nodes (GravitonClient *client, gpointer data)
   g_print ("Discovered nodes:\n", nodes);
 
   while(cur) {
-    GError *error = NULL;
     GravitonNode *node = GRAVITON_NODE (cur->data);
-    const gchar *id = graviton_node_get_id (node, &error);
-    if (error) {
-      g_print ("Error: %s", error->message);
-    } else {
-      g_print ("Found node: %s\n", id);
-    }
-    g_print ("Controls:\n");
-    print_controls (GRAVITON_NODE_CONTROL (node));
+    print_node (node);
     cur = cur->next;
   }
 
@@ -155,7 +161,10 @@ int main (int argc, char** argv)
       addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
     }
     GravitonNode *node = graviton_node_new_from_address (addr);
-    graviton_client_add_node (client, node);
+    print_node (node);
+    g_object_unref (node);
+  } else {
+    graviton_client_load_discovery_plugins (client);
   }
 
   g_main_loop_run (loop);
