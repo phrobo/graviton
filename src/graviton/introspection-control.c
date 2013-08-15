@@ -120,7 +120,7 @@ graviton_introspection_control_new_from_control (GravitonNodeControl *control)
 GravitonIntrospectionControl *
 graviton_introspection_control_new (GravitonNode *node, const gchar *name)
 {
-  return g_object_new (GRAVITON_INTROSPECTION_CONTROL_TYPE, "node", node, "name", "graviton/introspection", "target", name, NULL);
+  return g_object_new (GRAVITON_INTROSPECTION_CONTROL_TYPE, "node", node, "name", "net:phrobo:graviton/introspection", "target", name, NULL);
 }
 
 static GList *
@@ -154,7 +154,7 @@ GList *graviton_introspection_control_list_controls (GravitonIntrospectionContro
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
   return call_string_list_method (self,
-                                  "graviton/introspection.listControls",
+                                  "net:phrobo:graviton/introspection.listControls",
                                   err,
                                   "control",
                                   name,
@@ -169,7 +169,7 @@ GList *graviton_introspection_control_list_properties (GravitonIntrospectionCont
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
   return call_string_list_method (self,
-                                  "graviton/introspection.listProperties",
+                                  "net:phrobo:graviton/introspection.listProperties",
                                   err,
                                   "control",
                                   name,
@@ -184,7 +184,7 @@ GList *graviton_introspection_control_list_streams (GravitonIntrospectionControl
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
   return call_string_list_method (self,
-                                  "graviton/introspection.listStreams",
+                                  "net:phrobo:graviton/introspection.listStreams",
                                   err,
                                   "control",
                                   name,

@@ -155,7 +155,7 @@ graviton_node_control_get_property (GravitonNodeControl *self, const gchar *prop
 {
   GError *error = NULL;
   GVariant *ret = graviton_node_call (graviton_node_control_get_node (self),
-                                      "graviton/introspection.getProperty",
+                                      "net:phrobo:graviton/introspection.getProperty",
                                       &error,
                                       "control",
                                       g_variant_new_string (graviton_node_control_get_name (self)),

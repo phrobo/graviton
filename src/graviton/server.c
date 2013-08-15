@@ -629,7 +629,7 @@ graviton_server_init (GravitonServer *self)
   graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
                                    g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 
                                                  "server", self,
-                                                 "name", "graviton",
+                                                 "name", "net:phrobo:graviton",
                                                  NULL));
 
   priv->avahi_poll_api = avahi_glib_poll_new (NULL, G_PRIORITY_DEFAULT);
