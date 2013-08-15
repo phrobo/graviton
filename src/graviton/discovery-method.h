@@ -33,10 +33,10 @@ struct _GravitonDiscoveryMethod
 
 GType graviton_discovery_method_get_type (void);
 
-typedef GravitonDiscoveryMethod *(*GravitonDiscoveryPluginLoaderFunc)(void);
+typedef GravitonDiscoveryMethod *(*GravitonDiscoveryPluginLoaderFunc)(GravitonClient *client);
 
 #define GRAVITON_DEFINE_DISCOVERY_PLUGIN(type) \
-  GravitonDiscoveryMethod *make_graviton_discovery_plugin(void) { return g_object_new ((type), NULL); }
+  GravitonDiscoveryMethod *make_graviton_discovery_plugin(GravitonClient *client) { return g_object_new ((type), "client", client, NULL); }
 
 void graviton_discovery_method_start (GravitonDiscoveryMethod *method);
 void graviton_discovery_method_stop (GravitonDiscoveryMethod *method);
@@ -44,6 +44,8 @@ void graviton_discovery_method_stop (GravitonDiscoveryMethod *method);
 void graviton_discovery_method_node_found (GravitonDiscoveryMethod *method, GravitonNode *node);
 void graviton_discovery_method_finished (GravitonDiscoveryMethod *method);
 void graviton_discovery_method_node_lost (GravitonDiscoveryMethod *method, GravitonNode *node);
+
+GravitonClient *graviton_discovery_method_get_client (GravitonDiscoveryMethod *method);
 
 GList *graviton_discovery_method_found_nodes (GravitonDiscoveryMethod *method);
 

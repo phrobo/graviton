@@ -4,7 +4,6 @@
 #include "control.h"
 #include "file-stream.h"
 #include <json-glib/json-glib.h>
-#include <uuid/uuid.h>
 
 #define GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_INTERNAL_PLUGIN, GravitonInternalPluginPrivate))
 
@@ -23,7 +22,7 @@ enum
   PROP_0,
   PROP_SERVER,
   PROP_HOSTNAME,
-  PROP_DEVICE_ID,
+  PROP_NODE_ID,
   PROP_CLOUD_ID,
   N_PROPERTIES
 };
@@ -32,8 +31,6 @@ struct _GravitonInternalPluginPrivate
 {
   GravitonServer *server;
   gchar *hostname;
-  gchar *guid;
-  gchar *cloud_guid;
 };
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
@@ -111,11 +108,11 @@ get_property (GObject *object,
     case PROP_HOSTNAME:
       g_value_set_string (value, self->priv->hostname);
       break;
-    case PROP_DEVICE_ID:
-      g_value_set_string (value, self->priv->guid);
+    case PROP_NODE_ID:
+      g_value_set_string (value, graviton_server_get_node_id (self->priv->server));
       break;
     case PROP_CLOUD_ID:
-      g_value_set_string (value, self->priv->cloud_guid);
+      g_value_set_string (value, graviton_server_get_cloud_id (self->priv->server));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -145,9 +142,9 @@ graviton_internal_plugin_class_init (GravitonInternalPluginClass *klass)
                          "Hostname",
                          "",
                          G_PARAM_READWRITE);
-  obj_properties[PROP_DEVICE_ID] =
-    g_param_spec_string ("deviceid",
-                         "Device UUID",
+  obj_properties[PROP_NODE_ID] =
+    g_param_spec_string ("node-id",
+                         "Node UUID",
                          "Universally Unique Node ID",
                          "",
                          G_PARAM_READABLE);
@@ -335,13 +332,6 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
   GravitonInternalPluginPrivate *priv;
   self->priv = priv = GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE (self);
   self->priv->hostname = g_strdup (g_get_host_name ());
-  self->priv->guid = g_new0(gchar, 37);
-  self->priv->cloud_guid = g_new0(gchar, 37);
-  uuid_t uuid;
-  uuid_generate (uuid);
-  uuid_unparse_upper (uuid, self->priv->guid);
-  uuid_generate (uuid);
-  uuid_unparse_upper (uuid, self->priv->cloud_guid);
 
   GravitonControl *introspection = g_object_new (GRAVITON_TYPE_CONTROL, "name", "introspection", NULL);
   graviton_control_add_method (introspection,

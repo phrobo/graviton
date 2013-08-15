@@ -18,29 +18,6 @@ print_streams (GravitonNodeControl *control)
   }
 
   while (cur) {
-    /*GravitonNodeStream *stream = graviton_node_control_get_stream (control, (gchar*)cur->data, args);
-    g_print ("\t\t%s\n", graviton_stream_get_name (stream));
-    GIOStream *ioStream = graviton_node_stream_open (stream);
-    GInputStream *input = g_io_stream_get_input_stream (ioStream);
-    gchar buf[1024];
-    GError *error = NULL;
-    gssize total_size = 0;
-    GTimer *timer = g_timer_new ();
-    gssize read_size = g_input_stream_read (input, &buf, sizeof (buf), NULL, &error);
-    while (read_size > 0) {
-      read_size = g_input_stream_read (input, &buf, sizeof (buf), NULL, &error);
-      total_size += read_size;
-      gdouble elapsed = g_timer_elapsed (timer, NULL);
-      gdouble rate = total_size / elapsed;
-      g_print ("Read %db %.2lfb/s", total_size, rate);
-      int i;
-      for (i = 0;i < read_size % 3;i++)
-        g_print (".");
-      g_print("\r");
-    }
-    g_print ("\n");
-    if (error)
-      g_print ("Error: %s", error->message);*/
     g_print ("\t\t%s\n", cur->data);
     cur = cur->next;
   }
@@ -146,13 +123,6 @@ int main (int argc, char** argv)
 
   GMainLoop *loop = g_main_loop_new (NULL, 0);
 
-  GravitonClient *client = graviton_client_new ();
-
-  g_signal_connect (client,
-                    "all-nodes-found",
-                    G_CALLBACK (cb_nodes),
-                    loop);
-
   if (argc == 3) {
     GInetSocketAddress *addr = NULL;
     GInetAddress *addrName = NULL;
@@ -164,7 +134,20 @@ int main (int argc, char** argv)
     GravitonNode *node = graviton_node_new_from_address (addr);
     print_node (node);
     g_object_unref (node);
+  } else if (argc == 2) {
+    const gchar *cloud_id;
+    const gchar *node_id;
+    GravitonClient *client = graviton_client_new (cloud_id);
+    GravitonNode *node = graviton_client_find_node_sync (client, node_id, NULL);
+    print_node (node);
+    g_object_unref (node);
+    g_object_unref (client);
   } else {
+    GravitonClient *client = graviton_client_new_default_cloud ();
+    g_signal_connect (client,
+                      "all-nodes-found",
+                      G_CALLBACK (cb_nodes),
+                      loop);
     graviton_client_load_discovery_plugins (client);
     g_main_loop_run (loop);
   }

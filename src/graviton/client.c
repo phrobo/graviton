@@ -4,6 +4,7 @@
 
 #include "client.h"
 #include "node.h"
+#include <uuid/uuid.h>
 
 typedef struct _GravitonClientPrivate GravitonClientPrivate;
 
@@ -12,6 +13,7 @@ struct _GravitonClientPrivate
   GList *discovery_methods;
   GList *discovered_nodes;
   int pending_discovery_methods;
+  const gchar *cloud_id;
 };
 
 #define GRAVITON_CLIENT_GET_PRIVATE(o) \
@@ -32,7 +34,52 @@ enum {
   N_SIGNALS
 };
 
+enum {
+  PROP_0,
+  PROP_CLOUD_ID,
+  N_PROPERTIES
+};
+
 static int obj_signals[N_SIGNALS] = {0, };
+
+static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
+
+static void
+set_property (GObject *object,
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
+{
+  GravitonClient *self = GRAVITON_CLIENT (object);
+
+  switch (property_id) {
+    case PROP_CLOUD_ID:
+      self->priv->cloud_id = g_value_get_string (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
+get_property (GObject *object,
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
+{
+  GravitonClient *self = GRAVITON_CLIENT (object);
+
+
+  switch (property_id) {
+    case PROP_CLOUD_ID:
+      g_value_set_string (value, self->priv->cloud_id);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
 
 static void
 graviton_client_class_init (GravitonClientClass *klass)
@@ -43,6 +90,20 @@ graviton_client_class_init (GravitonClientClass *klass)
 
   object_class->dispose = graviton_client_dispose;
   object_class->finalize = graviton_client_finalize;
+
+  object_class->set_property = set_property;
+  object_class->get_property = get_property;
+
+  obj_properties[PROP_CLOUD_ID] =
+    g_param_spec_string ("cloud-id",
+                         "Cloud UUID",
+                         "Universally Unique Cloud ID",
+                         "",
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+
+  g_object_class_install_properties (object_class,
+                                     N_PROPERTIES,
+                                     obj_properties);
 
   /**
    * GravitonClient::node-found:
@@ -149,10 +210,40 @@ cb_discovery_finished (GravitonDiscoveryMethod *method, gpointer data)
     g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
 }
 
-GravitonClient *
-graviton_client_new ()
+GravitonNode *
+graviton_client_find_node_sync (GravitonClient *self, const gchar *guid, GError **error)
 {
-  return g_object_new (GRAVITON_CLIENT_TYPE, NULL);
+  GList *cur = self->priv->discovered_nodes;
+  while (cur) {
+    const gchar *node_id = graviton_node_get_id (cur->data, NULL);
+    if (strcmp(node_id, guid) == 0) {
+
+    }
+    cur = cur->next;
+  }
+}
+
+GList *
+graviton_client_find_service_sync (GravitonClient *self, const gchar *controlName, GError **error)
+{
+  GList *cur = self->priv->discovered_nodes;
+  while (cur) {
+    const gchar *node_id = graviton_node_get_id (cur->data, NULL);
+    if (strcmp(node_id, self->priv->cloud_id) == 0) {
+
+    }
+    cur = cur->next;
+  }
+}
+
+/**
+ * graviton_client_new: Creates a new #GravitonClient
+ *
+ */
+GravitonClient *
+graviton_client_new (const gchar *cloud_id)
+{
+  return g_object_new (GRAVITON_CLIENT_TYPE, "cloud-id", cloud_id, NULL);
 }
 
 /**
@@ -196,7 +287,7 @@ graviton_client_load_discovery_plugins (GravitonClient *self)
   plugins = graviton_client_find_discovery_plugins (self);
   for (i = 0; i < plugins->len; i++) {
     GravitonDiscoveryPluginLoaderFunc factory = g_array_index (plugins, GravitonDiscoveryPluginLoaderFunc, i);
-    GravitonDiscoveryMethod *method = factory();
+    GravitonDiscoveryMethod *method = factory(self);
     graviton_client_add_discovery_method (self, method);
     graviton_discovery_method_start (method);
   }
@@ -249,4 +340,24 @@ nextPlugin:
   g_dir_close (pluginDir);
 
   return pluginList;
+}
+
+GravitonClient *
+graviton_client_new_default_cloud ()
+{
+  GKeyFile *keyfile = g_key_file_new ();
+  g_key_file_load_from_data_dirs (keyfile, "gravitonrc", NULL, G_KEY_FILE_KEEP_COMMENTS, NULL);
+  gchar *cloud_id = g_key_file_get_string (keyfile, "graviton", "default-cloud-id", NULL);
+  if (cloud_id == NULL) {
+    cloud_id = g_new0 (gchar, 37);
+    uuid_t uuid;
+    uuid_generate (uuid);
+    uuid_unparse_upper (uuid, cloud_id);
+    g_key_file_set_string (keyfile, "graviton", "default-cloud-id", cloud_id);
+  }
+
+  g_key_file_unref (keyfile);
+  GravitonClient *client = graviton_client_new (cloud_id);
+  g_free (cloud_id);
+  return client;
 }

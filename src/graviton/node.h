@@ -28,6 +28,8 @@ typedef struct _GravitonNode      GravitonNode;
 typedef struct _GravitonNodeClass GravitonNodeClass;
 typedef struct _GravitonNodePrivate GravitonNodePrivate;
 
+typedef struct _GravitonClient GravitonClient;
+
 struct _GravitonNodeClass
 {
   GravitonNodeControlClass parent_class;
@@ -41,10 +43,13 @@ struct _GravitonNode
 
 GType graviton_node_get_type (void);
 
-GravitonNode *graviton_node_proxy_to_id (GravitonNode *node, gchar *id, GError **error);
+GravitonNode *graviton_node_proxy_to_id (GravitonNode *node, const gchar *id, GError **error);
 GravitonNode *graviton_node_new_from_address (GInetSocketAddress *address);
 
 const gchar *graviton_node_get_id (GravitonNode *node, GError **err);
+const gchar *graviton_node_get_cloud_id (GravitonNode *node, GError **err);
+GList *graviton_node_get_services (GravitonNode *node, GError **err);
+GList *graviton_node_has_service (GravitonNode *node, GError **err);
 GVariant *graviton_node_call (GravitonNode *node, const gchar *method, GError **error, ...);
 GVariant *graviton_node_call_args (GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
 GVariant *graviton_node_call_va (GravitonNode *node, const gchar *method, GError **error, va_list args);

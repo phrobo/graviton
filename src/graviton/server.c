@@ -8,6 +8,7 @@
 #include <avahi-client/client.h>
 #include <avahi-client/publish.h>
 #include <avahi-glib/glib-watch.h>
+#include <uuid/uuid.h>
 #include "stream.h"
 
 #include "config.h"
@@ -22,6 +23,14 @@ graviton_server_error_quark ()
 
 G_DEFINE_TYPE (GravitonServer, graviton_server, G_TYPE_OBJECT);
 
+enum
+{
+  PROP_0,
+  PROP_CLOUD_ID,
+  PROP_NODE_ID,
+  N_PROPERTIES
+};
+
 struct _GravitonServerPrivate
 {
   SoupServer *server;
@@ -33,7 +42,12 @@ struct _GravitonServerPrivate
   AvahiClient *avahi;
   AvahiGLibPoll *avahi_poll_api;
   AvahiEntryGroup *avahi_group;
+
+  gchar *cloud_id;
+  gchar *node_id;
 };
+
+static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
 typedef struct _StreamConnection
 {
@@ -154,9 +168,67 @@ cb_avahi (AvahiClient *client, AvahiClientState state, gpointer data)
 }
 
 static void
+set_property (GObject *object,
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
+{
+  GravitonServer *self = GRAVITON_SERVER (object);
+
+  switch (property_id) {
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
+get_property (GObject *object,
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
+{
+  GravitonServer *self = GRAVITON_SERVER (object);
+  
+  switch (property_id) {
+    case PROP_NODE_ID:
+      g_value_set_string (value, self->priv->node_id);
+      break;
+    case PROP_CLOUD_ID:
+      g_value_set_string (value, self->priv->cloud_id);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
 graviton_server_class_init (GravitonServerClass *klass)
 {
   g_type_class_add_private (klass, sizeof (GravitonServerPrivate));
+
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
+  gobject_class->set_property = set_property;
+  gobject_class->get_property = get_property;
+
+  obj_properties[PROP_NODE_ID] =
+    g_param_spec_string ("node-id",
+                         "Node UUID",
+                         "Universally Unique Node ID",
+                         "",
+                         G_PARAM_READABLE);
+  obj_properties[PROP_CLOUD_ID] =
+    g_param_spec_string ("cloud-id",
+                         "Cloud UUID",
+                         "Universally Unique Cloud ID",
+                         "",
+                         G_PARAM_READABLE);
+
+  g_object_class_install_properties (gobject_class,
+                                     N_PROPERTIES,
+                                     obj_properties);
 }
 
 static JsonNode *
@@ -613,6 +685,15 @@ graviton_server_init (GravitonServer *self)
 {
   GravitonServerPrivate *priv;
   self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
+
+  self->priv->node_id = g_new0(gchar, 37);
+  self->priv->cloud_id = g_new0(gchar, 37);
+  uuid_t uuid;
+  uuid_generate (uuid);
+  uuid_unparse_upper (uuid, self->priv->cloud_id);
+  uuid_generate (uuid);
+  uuid_unparse_upper (uuid, self->priv->node_id);
+
   priv->avahi_group = NULL;
 
   priv->plugins = graviton_root_control_new ();
@@ -645,6 +726,7 @@ GravitonServer *graviton_server_new ()
 {
   return g_object_new (GRAVITON_TYPE_SERVER, NULL);
 }
+
 void graviton_server_run_async (GravitonServer *self)
 {
   soup_server_run_async (self->priv->server);
@@ -656,4 +738,16 @@ graviton_server_get_root_control (GravitonServer *self)
 {
   g_object_ref (self->priv->plugins);
   return self->priv->plugins;
+}
+
+const gchar *
+graviton_server_get_node_id (GravitonServer *self)
+{
+  return self->priv->node_id;
+}
+
+const gchar *
+graviton_server_get_cloud_id (GravitonServer *self)
+{
+  return self->priv->cloud_id;
 }

@@ -20,8 +20,15 @@ int main(int argc, char** argv)
 
   server = graviton_server_new ();
   GravitonRootControl *root = graviton_server_get_root_control (server);
+  GravitonControl *pingControl = graviton_control_new ("net:phrobo:graviton:ping");
+  graviton_control_add_subcontrol (GRAVITON_CONTROL (root), pingControl);
 
-  graviton_control_add_method (GRAVITON_CONTROL (root), "ping", cb_ping, NULL, NULL);
+  graviton_control_add_method (pingControl, "ping", cb_ping, NULL, NULL);
+
+  const gchar *cloud_id = graviton_server_get_cloud_id (server);
+  const gchar *node_id = graviton_server_get_node_id (server);
+  
+  g_printf ("Echo server running at %s:%s", cloud_id, node_id);
 
   graviton_server_run_async (server);
 

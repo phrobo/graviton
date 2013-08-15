@@ -3,6 +3,7 @@
 #endif
 
 #include "node.h"
+#include "client.h"
 #include "node-io-stream.h"
 #include <json-glib/json-glib.h>
 
@@ -174,10 +175,32 @@ graviton_node_finalize (GObject *object)
 
 GravitonNode *
 graviton_node_proxy_to_id (GravitonNode *node,
-                           gchar *id,
+                           const gchar *id,
                            GError **error)
 {
   return NULL;
+}
+
+static void
+cb_resolve_id (GravitonClient *client, GravitonNode **result)
+{
+  GList *nodes = graviton_client_get_found_nodes (client);
+  GList *cur = nodes;
+  while (cur) {
+    cur = cur->next;
+  }
+}
+
+GravitonNode *graviton_node_new_from_id (const gchar *node_id, GError **error)
+{
+  GravitonNode *result = NULL;
+  GravitonClient *client = graviton_client_new_default_cloud ();
+  g_signal_connect (client,
+                    "all-nodes-found",
+                    G_CALLBACK (cb_resolve_id),
+                    &result);
+  g_object_unref (client);
+  return result;
 }
 
 GravitonNode *
@@ -189,7 +212,19 @@ graviton_node_new_from_address (GInetSocketAddress *address)
 const gchar *
 graviton_node_get_id (GravitonNode *self, GError **err)
 {
-  GVariant *ret = graviton_node_control_get_property (self->priv->gobj, "deviceid", err);
+  GVariant *ret = graviton_node_control_get_property (self->priv->gobj, "node-id", err);
+  if (ret) {
+    gchar *r = g_variant_dup_string (ret, NULL);
+    g_variant_unref (ret);
+    return r;
+  }
+  return NULL;
+}
+
+const gchar *
+graviton_node_get_cloud_id (GravitonNode *self, GError **err)
+{
+  GVariant *ret = graviton_node_control_get_property (self->priv->gobj, "cloud-id", err);
   if (ret) {
     gchar *r = g_variant_dup_string (ret, NULL);
     g_variant_unref (ret);

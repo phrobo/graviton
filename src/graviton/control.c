@@ -299,3 +299,9 @@ graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTabl
     return func(self, name, args, error, func_data);
   return NULL;
 }
+
+GravitonControl *
+graviton_control_new (const gchar *serviceName)
+{
+  return g_object_new (GRAVITON_TYPE_CONTROL, "name", serviceName, NULL);
+}

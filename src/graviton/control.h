@@ -89,4 +89,6 @@ void graviton_control_add_stream (GravitonControl *self, const gchar *name, Grav
 GList *graviton_control_list_streams (GravitonControl *self);
 GravitonStream *graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTable *args, GError **error);
 
+GravitonControl *graviton_control_new (const gchar *serviceName);
+
 #endif // GRAVITON_CONTROL_H

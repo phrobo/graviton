@@ -5,11 +5,13 @@
 #include "node.h"
 
 #include "discovery-method.h"
+#include "client.h"
 
 typedef struct _GravitonDiscoveryMethodPrivate GravitonDiscoveryMethodPrivate;
 
 struct _GravitonDiscoveryMethodPrivate
 {
+  GravitonClient *client;
   GList *discovered_nodes;
 };
 
@@ -27,6 +29,7 @@ G_DEFINE_TYPE (GravitonDiscoveryMethod, graviton_discovery_method, G_TYPE_OBJECT
 
 enum {
   PROP_ZERO,
+  PROP_CLIENT,
   N_PROPERTIES
 };
 
@@ -53,9 +56,17 @@ graviton_discovery_method_class_init (GravitonDiscoveryMethodClass *klass)
   object_class->finalize = graviton_discovery_method_finalize;
   object_class->set_property =  graviton_discovery_method_set_property;
   object_class->get_property =  graviton_discovery_method_get_property;
-  /*g_object_class_install_properties (object_class,
+
+  obj_properties[PROP_CLIENT] =
+    g_param_spec_object ("client",
+                         "client",
+                         "GravitonClient object",
+                         GRAVITON_CLIENT_TYPE,
+                         G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
+
+  g_object_class_install_properties (object_class,
       N_PROPERTIES,
-      obj_properties);*/
+      obj_properties);
 
   obj_signals[SIGNAL_NODE_LOST] =
     g_signal_new ("node-lost",
@@ -100,6 +111,11 @@ graviton_discovery_method_set_property (GObject *object,
 {
   GravitonDiscoveryMethod *self = GRAVITON_DISCOVERY_METHOD (object);
   switch (property_id) {
+    case PROP_CLIENT:
+      if (self->priv->client)
+        g_object_unref (self->priv->client);
+      self->priv->client = g_value_get_object (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -114,6 +130,8 @@ graviton_discovery_method_get_property (GObject *object,
 {
   GravitonDiscoveryMethod *self = GRAVITON_DISCOVERY_METHOD (object);
   switch (property_id) {
+    case PROP_CLIENT:
+      g_value_set_object (value, self->priv->client);
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -179,4 +197,10 @@ void
 graviton_discovery_method_stop (GravitonDiscoveryMethod *method)
 {
   GRAVITON_DISCOVERY_METHOD_GET_CLASS (method)->stop (method);
+}
+
+GravitonClient *
+graviton_discovery_method_get_client (GravitonDiscoveryMethod *self)
+{
+  return g_object_ref (self->priv->client);
 }
