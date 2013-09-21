@@ -1,10 +1,10 @@
-#include <graviton/client.h>
+#include <graviton/cloud.h>
 #include <graviton/node.h>
-#include <graviton/node-control.h>
+#include <graviton/service.h>
 #include <graviton/introspection-control.h>
 
 void
-print_streams (GravitonNodeControl *control)
+print_streams (GravitonService *control)
 {
   GError *error = NULL;
   GravitonIntrospectionControl *inspect = graviton_introspection_control_new_from_control (control);
@@ -12,7 +12,7 @@ print_streams (GravitonNodeControl *control)
   GList *cur = streams;
 
   if (error) {
-    g_print ("Error listing streams for %s: %s", graviton_node_control_get_name (control), error->message);
+    g_print ("Error listing streams for %s: %s", graviton_service_get_name (control), error->message);
     g_object_unref (inspect);
     return;
   }
@@ -26,7 +26,7 @@ print_streams (GravitonNodeControl *control)
 }
 
 void
-print_properties (GravitonNodeControl *control)
+print_properties (GravitonService *control)
 {
   GError *error = NULL;
   GravitonIntrospectionControl *inspect = graviton_introspection_control_new_from_control (control);
@@ -34,12 +34,12 @@ print_properties (GravitonNodeControl *control)
   GList *cur = properties;
 
   if (error) {
-    g_print ("Error listing properties for %s: %s", graviton_node_control_get_name (control), error->message);
+    g_print ("Error listing properties for %s: %s", graviton_service_get_name (control), error->message);
     return;
   }
 
   while (cur) {
-    GVariant *prop = graviton_node_control_get_property (control, (gchar*)cur->data, &error);
+    GVariant *prop = graviton_service_get_property (control, (gchar*)cur->data, &error);
     if (error ){
       g_print ("Error getting property %s: %s", cur->data, error->message);
     } else {
@@ -57,11 +57,11 @@ print_properties (GravitonNodeControl *control)
 }
 
 void
-print_controls (GravitonNodeControl *control)
+print_controls (GravitonService *control)
 {
   GError *error = NULL;
-  if (graviton_node_control_get_name (control) != NULL) {
-    g_printf("%s:\n", graviton_node_control_get_name (control));
+  if (graviton_service_get_name (control) != NULL) {
+    g_printf("%s:\n", graviton_service_get_name (control));
     g_printf ("\tProperties: \n");
     print_properties (control);
     g_print ("\tStreams:\n");
@@ -71,7 +71,7 @@ print_controls (GravitonNodeControl *control)
   GList *controls = graviton_introspection_control_list_controls (inspect, &error);
   GList *cur = controls;
   while (cur) {
-    GravitonNodeControl *subcontrol = graviton_node_control_get_subcontrol (control, cur->data);
+    GravitonService *subcontrol = graviton_service_get_subcontrol (control, cur->data);
     print_controls (subcontrol);
     cur = cur->next;
     g_object_unref (subcontrol);
@@ -79,7 +79,7 @@ print_controls (GravitonNodeControl *control)
   g_object_unref (inspect);
 
   if (error) {
-    g_print("Error listing controls for %s: %s", graviton_node_control_get_name (control), error->message);
+    g_print("Error listing controls for %s: %s", graviton_service_get_name (control), error->message);
   }
 }
 
@@ -94,15 +94,15 @@ print_node (GravitonNode *node)
   } else {
     g_print ("Found node: %s\n", id);
   }
-  g_print ("Controls:\n");
-  print_controls (GRAVITON_NODE_CONTROL (node));
+  g_print ("Services:\n");
+  print_controls (GRAVITON_SERVICE (node));
 }
 
 void
-cb_nodes (GravitonClient *client, gpointer data)
+cb_nodes (GravitonCloud *cloud, gpointer data)
 {
   GMainLoop *loop = (GMainLoop*)(data);
-  GList *nodes = graviton_client_get_found_nodes (client);
+  GList *nodes = graviton_cloud_get_found_nodes (cloud);
   GList *cur = nodes;
 
   g_print ("Discovered nodes:\n", nodes);
@@ -137,18 +137,18 @@ int main (int argc, char** argv)
   } else if (argc == 2) {
     const gchar *cloud_id;
     const gchar *node_id;
-    GravitonClient *client = graviton_client_new (cloud_id);
-    GravitonNode *node = graviton_client_find_node_sync (client, node_id, NULL);
+    GravitonCloud *cloud = graviton_cloud_new (cloud_id);
+    GravitonNode *node = graviton_cloud_find_node_sync (cloud, node_id, NULL);
     print_node (node);
     g_object_unref (node);
-    g_object_unref (client);
+    g_object_unref (cloud);
   } else {
-    GravitonClient *client = graviton_client_new_default_cloud ();
-    g_signal_connect (client,
+    GravitonCloud *cloud = graviton_cloud_new_default_cloud ();
+    g_signal_connect (cloud,
                       "all-nodes-found",
                       G_CALLBACK (cb_nodes),
                       loop);
-    graviton_client_load_discovery_plugins (client);
+    graviton_cloud_load_discovery_plugins (cloud);
     g_main_loop_run (loop);
   }
 
