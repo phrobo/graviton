@@ -34,6 +34,7 @@ include_directories(
 add_definitions (-DHAVE_CONFIG_H)
 
 add_subdirectory(graviton)
-add_subdirectory(graviton-echo-server)
+add_subdirectory(graviton-ping-server)
+add_subdirectory(graviton-ping-client)
 #add_subdirectory(plugins)
 add_subdirectory(graviton-cli)
