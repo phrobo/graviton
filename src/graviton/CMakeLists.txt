@@ -1,12 +1,12 @@
 set(libgraviton_SRCS
-  client.c
+  cloud.c
   control.c
   root-control.c
   discovery-method.c
   file-stream.c
   introspection-control.c
   node.c
-  node-control.c
+  service.c
   node-io-stream.c
   node-input-stream.c
   node-stream.c
@@ -16,13 +16,13 @@ set(libgraviton_SRCS
 )
 
 set(libgraviton_HEADERS
-  client.h
+  cloud.h
   control.h
   discovery-method.h
   file-stream.h
   introspection-control.h
   node.h
-  node-control.h
+  service.h
   node-input-stream.h
   node-io-stream.h
   node-stream.h

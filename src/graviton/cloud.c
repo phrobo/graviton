@@ -2,13 +2,13 @@
 #include "config.h"
 #endif
 
-#include "client.h"
+#include "cloud.h"
 #include "node.h"
 #include <uuid/uuid.h>
 
-typedef struct _GravitonClientPrivate GravitonClientPrivate;
+typedef struct _GravitonCloudPrivate GravitonCloudPrivate;
 
-struct _GravitonClientPrivate
+struct _GravitonCloudPrivate
 {
   GList *discovery_methods;
   GList *discovered_nodes;
@@ -16,15 +16,15 @@ struct _GravitonClientPrivate
   const gchar *cloud_id;
 };
 
-#define GRAVITON_CLIENT_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_CLIENT_TYPE, GravitonClientPrivate))
+#define GRAVITON_CLOUD_GET_PRIVATE(o) \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_CLOUD_TYPE, GravitonCloudPrivate))
 
-static void graviton_client_class_init (GravitonClientClass *klass);
-static void graviton_client_init       (GravitonClient *self);
-static void graviton_client_dispose    (GObject *object);
-static void graviton_client_finalize   (GObject *object);
+static void graviton_cloud_class_init (GravitonCloudClass *klass);
+static void graviton_cloud_init       (GravitonCloud *self);
+static void graviton_cloud_dispose    (GObject *object);
+static void graviton_cloud_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonClient, graviton_client, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GravitonCloud, graviton_cloud, G_TYPE_OBJECT);
 
 enum {
   SIGNAL_0,
@@ -50,11 +50,12 @@ set_property (GObject *object,
               const GValue *value,
               GParamSpec *pspec)
 {
-  GravitonClient *self = GRAVITON_CLIENT (object);
+  GravitonCloud *self = GRAVITON_CLOUD (object);
 
   switch (property_id) {
     case PROP_CLOUD_ID:
-      self->priv->cloud_id = g_value_get_string (value);
+      self->priv->cloud_id = g_value_dup_string (value);
+      g_debug ("Got new cloud id: %s", self->priv->cloud_id);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -68,7 +69,7 @@ get_property (GObject *object,
               GValue *value,
               GParamSpec *pspec)
 {
-  GravitonClient *self = GRAVITON_CLIENT (object);
+  GravitonCloud *self = GRAVITON_CLOUD (object);
 
 
   switch (property_id) {
@@ -82,14 +83,14 @@ get_property (GObject *object,
 }
 
 static void
-graviton_client_class_init (GravitonClientClass *klass)
+graviton_cloud_class_init (GravitonCloudClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (GravitonClientPrivate));
+  g_type_class_add_private (klass, sizeof (GravitonCloudPrivate));
 
-  object_class->dispose = graviton_client_dispose;
-  object_class->finalize = graviton_client_finalize;
+  object_class->dispose = graviton_cloud_dispose;
+  object_class->finalize = graviton_cloud_finalize;
 
   object_class->set_property = set_property;
   object_class->get_property = get_property;
@@ -106,7 +107,7 @@ graviton_client_class_init (GravitonClientClass *klass)
                                      obj_properties);
 
   /**
-   * GravitonClient::node-found:
+   * GravitonCloud::node-found:
    * @client: The client that is reporting the found node
    * @node: The node that was found
    *
@@ -127,7 +128,7 @@ graviton_client_class_init (GravitonClientClass *klass)
                   1,
                   GRAVITON_NODE_TYPE);
   /**
-   * GravitonClient::node-lost:
+   * GravitonCloud::node-lost:
    * @client: The client that is reporting the lost node
    * @node: The node that was lost
    *
@@ -168,28 +169,28 @@ graviton_client_class_init (GravitonClientClass *klass)
 }
 
 static void
-graviton_client_init (GravitonClient *self)
+graviton_cloud_init (GravitonCloud *self)
 {
-  GravitonClientPrivate *priv;
-  self->priv = priv = GRAVITON_CLIENT_GET_PRIVATE (self);
+  GravitonCloudPrivate *priv;
+  self->priv = priv = GRAVITON_CLOUD_GET_PRIVATE (self);
 }
 
 static void
-graviton_client_dispose (GObject *object)
+graviton_cloud_dispose (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_client_parent_class)->dispose (object);
+  G_OBJECT_CLASS (graviton_cloud_parent_class)->dispose (object);
 }
 
 static void
-graviton_client_finalize (GObject *object)
+graviton_cloud_finalize (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_client_parent_class)->finalize (object);
+  G_OBJECT_CLASS (graviton_cloud_parent_class)->finalize (object);
 }
 
 static void
 cb_node_found (GravitonDiscoveryMethod *method, GravitonNode *node, gpointer data)
 {
-  GravitonClient *self = GRAVITON_CLIENT (data);
+  GravitonCloud *self = GRAVITON_CLOUD (data);
   self->priv->discovered_nodes = g_list_append (self->priv->discovered_nodes, node);
   g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, node);
 }
@@ -197,21 +198,21 @@ cb_node_found (GravitonDiscoveryMethod *method, GravitonNode *node, gpointer dat
 static void
 cb_node_lost (GravitonDiscoveryMethod *method, GravitonNode *node, gpointer data)
 {
-  GravitonClient *self = GRAVITON_CLIENT (data);
+  GravitonCloud *self = GRAVITON_CLOUD (data);
   g_signal_emit (self, obj_signals[SIGNAL_NODE_LOST], 0, node);
 }
 
 static void
 cb_discovery_finished (GravitonDiscoveryMethod *method, gpointer data)
 {
-  GravitonClient *self = GRAVITON_CLIENT (data);
+  GravitonCloud *self = GRAVITON_CLOUD (data);
   self->priv->pending_discovery_methods--;
   if (self->priv->pending_discovery_methods == 0)
     g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
 }
 
 GravitonNode *
-graviton_client_find_node_sync (GravitonClient *self, const gchar *guid, GError **error)
+graviton_cloud_find_node_sync (GravitonCloud *self, const gchar *guid, GError **error)
 {
   GList *cur = self->priv->discovered_nodes;
   while (cur) {
@@ -223,44 +224,88 @@ graviton_client_find_node_sync (GravitonClient *self, const gchar *guid, GError 
   }
 }
 
-GList *
-graviton_client_find_service_sync (GravitonClient *self, const gchar *controlName, GError **error)
+static void
+cb_sync_node_discovery (GravitonCloud *self, GMainLoop *loop)
 {
-  GList *cur = self->priv->discovered_nodes;
-  while (cur) {
-    const gchar *node_id = graviton_node_get_id (cur->data, NULL);
-    if (strcmp(node_id, self->priv->cloud_id) == 0) {
+  g_main_loop_quit (loop);
+}
 
+GList *
+graviton_cloud_find_service_sync (GravitonCloud *self, const gchar *serviceName, GError **error)
+{
+  if (!self->priv->discovered_nodes) {
+    g_debug ("Loading discovery plugins");
+    graviton_cloud_load_discovery_plugins (self);
+    g_debug ("Waiting for all-nodes-found...");
+    GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+    g_signal_connect (self,
+        "all-nodes-found",
+        G_CALLBACK (cb_sync_node_discovery),
+        loop);
+    g_main_loop_run (loop);
+    g_signal_handlers_disconnect_by_data (self, loop);
+    g_main_loop_unref (loop);
+    g_debug ("All nodes found!");
+  }
+  GList *cur = self->priv->discovered_nodes;
+  GList *ret = NULL;
+  g_debug ("Browsing %s for %s", self->priv->cloud_id, serviceName);
+  while (cur) {
+    GError *error = NULL;
+    const gchar *cloud_id = graviton_node_get_cloud_id (cur->data, &error);
+    if (error) {
+      g_debug ("Error while querying for cloud id: %s", error->message);
+    } else {
+      const gchar *node_id = graviton_node_get_id (cur->data, &error);
+      if (error) {
+        g_debug ("Error while querying for node id: %s", error->message);
+      } else {
+        g_debug ("Found member of %s: %s", cloud_id, node_id);
+        if (strcmp(cloud_id, self->priv->cloud_id) == 0) {
+          if (graviton_node_has_service (cur->data, serviceName, &error)) {
+            g_debug ("Hit!");
+            GravitonService *service = graviton_service_get_subcontrol (GRAVITON_SERVICE (cur->data), serviceName);
+            ret = g_list_append (ret, service);
+          } else {
+            if (error) {
+              g_debug ("Error while asking about service: %s", error->message);
+
+            }
+          }
+        }
+      }
     }
     cur = cur->next;
   }
+
+  return ret;
 }
 
 /**
- * graviton_client_new: Creates a new #GravitonClient
+ * graviton_cloud_new: Creates a new #GravitonCloud
  *
  */
-GravitonClient *
-graviton_client_new (const gchar *cloud_id)
+GravitonCloud *
+graviton_cloud_new (const gchar *cloud_id)
 {
-  return g_object_new (GRAVITON_CLIENT_TYPE, "cloud-id", cloud_id, NULL);
+  return g_object_new (GRAVITON_CLOUD_TYPE, "cloud-id", cloud_id, NULL);
 }
 
 /**
- * graviton_client_get_found_nodes:
- * @client: a #GravitonClient to query
+ * graviton_cloud_get_found_nodes:
+ * @client: a #GravitonCloud to query
  *
  * Returns: (transfer none): List of nodes that have been discovered in this
  * client's lifetime. No guarantees are made about their availability.
  */
 GList *
-graviton_client_get_found_nodes (GravitonClient *self)
+graviton_cloud_get_found_nodes (GravitonCloud *self)
 {
   return self->priv->discovered_nodes;
 }
 
 void
-graviton_client_add_discovery_method (GravitonClient *self, GravitonDiscoveryMethod *method)
+graviton_cloud_add_discovery_method (GravitonCloud *self, GravitonDiscoveryMethod *method)
 {
   self->priv->discovery_methods = g_list_append (self->priv->discovery_methods, method);
   g_signal_connect (method,
@@ -279,23 +324,23 @@ graviton_client_add_discovery_method (GravitonClient *self, GravitonDiscoveryMet
 }
 
 void
-graviton_client_load_discovery_plugins (GravitonClient *self)
+graviton_cloud_load_discovery_plugins (GravitonCloud *self)
 {
   int i;
   GArray *plugins;
 
-  plugins = graviton_client_find_discovery_plugins (self);
+  plugins = graviton_cloud_find_discovery_plugins (self);
   for (i = 0; i < plugins->len; i++) {
     GravitonDiscoveryPluginLoaderFunc factory = g_array_index (plugins, GravitonDiscoveryPluginLoaderFunc, i);
     GravitonDiscoveryMethod *method = factory(self);
-    graviton_client_add_discovery_method (self, method);
+    graviton_cloud_add_discovery_method (self, method);
     graviton_discovery_method_start (method);
   }
   g_debug ("loaded %i plugins", i);
 }
 
 GArray*
-graviton_client_find_discovery_plugins (GravitonClient *self)
+graviton_cloud_find_discovery_plugins (GravitonCloud *self)
 {
   GArray *pluginList = g_array_new(FALSE, FALSE, sizeof (GravitonDiscoveryPluginLoaderFunc));
   const gchar *pluginPath = g_getenv("GRAVITON_DISCOVERY_PLUGIN_PATH");
@@ -342,22 +387,30 @@ nextPlugin:
   return pluginList;
 }
 
-GravitonClient *
-graviton_client_new_default_cloud ()
+GravitonCloud *
+graviton_cloud_new_default_cloud ()
 {
   GKeyFile *keyfile = g_key_file_new ();
   g_key_file_load_from_data_dirs (keyfile, "gravitonrc", NULL, G_KEY_FILE_KEEP_COMMENTS, NULL);
   gchar *cloud_id = g_key_file_get_string (keyfile, "graviton", "default-cloud-id", NULL);
+  cloud_id = g_strdup ("3857E91C-BA9F-4CB9-B667-4BBB42C06FC3");
   if (cloud_id == NULL) {
     cloud_id = g_new0 (gchar, 37);
     uuid_t uuid;
     uuid_generate (uuid);
     uuid_unparse_upper (uuid, cloud_id);
     g_key_file_set_string (keyfile, "graviton", "default-cloud-id", cloud_id);
+    g_debug ("Generated new default cloud id %s", cloud_id);
   }
 
   g_key_file_unref (keyfile);
-  GravitonClient *client = graviton_client_new (cloud_id);
+  GravitonCloud *client = graviton_cloud_new (cloud_id);
   g_free (cloud_id);
   return client;
+}
+
+const gchar *
+graviton_cloud_get_cloud_id (GravitonCloud *self)
+{
+  return self->priv->cloud_id;
 }

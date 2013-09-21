@@ -751,3 +751,14 @@ graviton_server_get_cloud_id (GravitonServer *self)
 {
   return self->priv->cloud_id;
 }
+
+int
+graviton_server_get_port (GravitonServer *self)
+{
+  SoupSocket *socket = soup_server_get_listener (self->priv->server);
+  SoupAddress *address = soup_socket_get_local_address (socket);
+  int port = soup_address_get_port (address);
+  g_object_unref (address);
+  g_object_unref (socket);
+  return port;
+}

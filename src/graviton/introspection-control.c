@@ -3,7 +3,7 @@
 #endif
 
 #include "introspection-control.h"
-#include "node-control.h"
+#include "service.h"
 #include "node.h"
 
 typedef struct _GravitonIntrospectionControlPrivate GravitonIntrospectionControlPrivate;
@@ -21,7 +21,7 @@ static void graviton_introspection_control_init       (GravitonIntrospectionCont
 static void graviton_introspection_control_dispose    (GObject *object);
 static void graviton_introspection_control_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonIntrospectionControl, graviton_introspection_control, GRAVITON_NODE_CONTROL_TYPE);
+G_DEFINE_TYPE (GravitonIntrospectionControl, graviton_introspection_control, GRAVITON_SERVICE_TYPE);
 
 enum {
   PROP_0,
@@ -112,9 +112,9 @@ graviton_introspection_control_finalize (GObject *object)
 }
 
 GravitonIntrospectionControl *
-graviton_introspection_control_new_from_control (GravitonNodeControl *control)
+graviton_introspection_control_new_from_control (GravitonService *control)
 {
-  return graviton_introspection_control_new (graviton_node_control_get_node (control), graviton_node_control_get_name (control));
+  return graviton_introspection_control_new (graviton_service_get_node (control), graviton_service_get_name (control));
 }
 
 GravitonIntrospectionControl *
@@ -129,7 +129,7 @@ call_string_list_method (GravitonIntrospectionControl *self, const gchar *method
   va_list args;
   va_start (args, err);
 
-  GVariant *result = graviton_node_call_va (graviton_node_control_get_node (GRAVITON_NODE_CONTROL (self)),
+  GVariant *result = graviton_node_call_va (graviton_service_get_node (GRAVITON_SERVICE (self)),
                                             method,
                                             err,
                                             args);

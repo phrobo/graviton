@@ -48,5 +48,6 @@ GravitonRootControl *graviton_server_get_root_control (GravitonServer *server);
 
 const gchar *graviton_server_get_cloud_id (GravitonServer *server);
 const gchar *graviton_server_get_node_id (GravitonServer *server);
+int graviton_server_get_port (GravitonServer *server);
 
 #endif // GRAVITON_SERVER_H

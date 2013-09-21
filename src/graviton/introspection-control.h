@@ -3,7 +3,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include "node-control.h"
+#include "service.h"
 
 G_BEGIN_DECLS
 
@@ -21,12 +21,12 @@ typedef struct _GravitonIntrospectionControlClass GravitonIntrospectionControlCl
 
 struct _GravitonIntrospectionControlClass
 {
-  GravitonNodeControlClass parent_class;
+  GravitonServiceClass parent_class;
 };
 
 struct _GravitonIntrospectionControl
 {
-  GravitonNodeControl parent;
+  GravitonService parent;
   GravitonIntrospectionControlPrivate *priv;
 };
 
@@ -35,7 +35,7 @@ GType graviton_introspection_control_get_type (void);
 GList *graviton_introspection_control_list_controls (GravitonIntrospectionControl *self, GError **error);
 GList *graviton_introspection_control_list_properties (GravitonIntrospectionControl *self, GError **error);
 GList *graviton_introspection_control_list_streams (GravitonIntrospectionControl *self, GError **error);
-GravitonIntrospectionControl *graviton_introspection_control_new_from_control (GravitonNodeControl *control);
+GravitonIntrospectionControl *graviton_introspection_control_new_from_control (GravitonService *control);
 GravitonIntrospectionControl *graviton_introspection_control_new (GravitonNode *node, const gchar *name);
 
 G_END_DECLS

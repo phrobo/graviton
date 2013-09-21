@@ -5,13 +5,13 @@
 #include "node.h"
 
 #include "discovery-method.h"
-#include "client.h"
+#include "cloud.h"
 
 typedef struct _GravitonDiscoveryMethodPrivate GravitonDiscoveryMethodPrivate;
 
 struct _GravitonDiscoveryMethodPrivate
 {
-  GravitonClient *client;
+  GravitonCloud *client;
   GList *discovered_nodes;
 };
 
@@ -60,8 +60,8 @@ graviton_discovery_method_class_init (GravitonDiscoveryMethodClass *klass)
   obj_properties[PROP_CLIENT] =
     g_param_spec_object ("client",
                          "client",
-                         "GravitonClient object",
-                         GRAVITON_CLIENT_TYPE,
+                         "GravitonCloud object",
+                         GRAVITON_CLOUD_TYPE,
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
 
   g_object_class_install_properties (object_class,
@@ -199,8 +199,8 @@ graviton_discovery_method_stop (GravitonDiscoveryMethod *method)
   GRAVITON_DISCOVERY_METHOD_GET_CLASS (method)->stop (method);
 }
 
-GravitonClient *
-graviton_discovery_method_get_client (GravitonDiscoveryMethod *self)
+GravitonCloud *
+graviton_discovery_method_get_cloud (GravitonDiscoveryMethod *self)
 {
   return g_object_ref (self->priv->client);
 }

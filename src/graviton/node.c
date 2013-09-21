@@ -3,7 +3,7 @@
 #endif
 
 #include "node.h"
-#include "client.h"
+#include "cloud.h"
 #include "node-io-stream.h"
 #include <json-glib/json-glib.h>
 
@@ -16,7 +16,7 @@ struct _GravitonNodePrivate
   SoupURI *rpc_uri;
   SoupURI *event_uri;
   SoupURI *stream_uri;
-  GravitonNodeControl *gobj;
+  GravitonService *gobj;
 };
 
 #define GRAVITON_NODE_GET_PRIVATE(o) \
@@ -33,7 +33,7 @@ static void graviton_node_init       (GravitonNode *self);
 static void graviton_node_dispose    (GObject *object);
 static void graviton_node_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonNode, graviton_node, GRAVITON_NODE_CONTROL_TYPE);
+G_DEFINE_TYPE (GravitonNode, graviton_node, GRAVITON_SERVICE_TYPE);
 
 enum {
   PROP_0,
@@ -158,7 +158,7 @@ graviton_node_init (GravitonNode *self)
   self->priv->address = NULL;
   self->priv->soup = soup_session_sync_new ();
   g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
-  self->priv->gobj = graviton_node_control_get_subcontrol (GRAVITON_NODE_CONTROL (self), "net:phrobo:graviton");
+  self->priv->gobj = graviton_service_get_subcontrol (GRAVITON_SERVICE (self), "net:phrobo:graviton");
 }
 
 static void
@@ -182,9 +182,9 @@ graviton_node_proxy_to_id (GravitonNode *node,
 }
 
 static void
-cb_resolve_id (GravitonClient *client, GravitonNode **result)
+cb_resolve_id (GravitonCloud *client, GravitonNode **result)
 {
-  GList *nodes = graviton_client_get_found_nodes (client);
+  GList *nodes = graviton_cloud_get_found_nodes (client);
   GList *cur = nodes;
   while (cur) {
     cur = cur->next;
@@ -194,7 +194,7 @@ cb_resolve_id (GravitonClient *client, GravitonNode **result)
 GravitonNode *graviton_node_new_from_id (const gchar *node_id, GError **error)
 {
   GravitonNode *result = NULL;
-  GravitonClient *client = graviton_client_new_default_cloud ();
+  GravitonCloud *client = graviton_cloud_new_default_cloud ();
   g_signal_connect (client,
                     "all-nodes-found",
                     G_CALLBACK (cb_resolve_id),
@@ -212,7 +212,7 @@ graviton_node_new_from_address (GInetSocketAddress *address)
 const gchar *
 graviton_node_get_id (GravitonNode *self, GError **err)
 {
-  GVariant *ret = graviton_node_control_get_property (self->priv->gobj, "node-id", err);
+  GVariant *ret = graviton_service_get_property (self->priv->gobj, "node-id", err);
   if (ret) {
     gchar *r = g_variant_dup_string (ret, NULL);
     g_variant_unref (ret);
@@ -224,7 +224,7 @@ graviton_node_get_id (GravitonNode *self, GError **err)
 const gchar *
 graviton_node_get_cloud_id (GravitonNode *self, GError **err)
 {
-  GVariant *ret = graviton_node_control_get_property (self->priv->gobj, "cloud-id", err);
+  GVariant *ret = graviton_service_get_property (self->priv->gobj, "cloud-id", err);
   if (ret) {
     gchar *r = g_variant_dup_string (ret, NULL);
     g_variant_unref (ret);
@@ -429,7 +429,7 @@ graviton_node_call_args (GravitonNode *self,
   return ret;
 }
 
-GravitonNodeControl *
+GravitonService *
 graviton_node_get_control (GravitonNode *node, const gchar *name, GError **error)
 {
   return NULL;
@@ -443,4 +443,20 @@ graviton_node_open_stream (GravitonNode *self, const gchar *name, GHashTable *ar
   GIOStream *ret = G_IO_STREAM (graviton_node_io_stream_new (stream_uri, self->priv->soup));
   soup_uri_free (stream_uri);
   return ret;
+}
+
+gboolean
+graviton_node_has_service (GravitonNode *node, const gchar *name, GError **err)
+{
+  return TRUE;
+}
+
+int graviton_node_get_port (GravitonNode *self)
+{
+  return g_inet_socket_address_get_port (self->priv->address);
+}
+
+GInetSocketAddress *graviton_node_get_address (GravitonNode *node)
+{
+  return g_object_ref (node->priv->address);
 }
