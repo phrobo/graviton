@@ -134,12 +134,12 @@ cb_resolve (AvahiServiceResolver *resolver,
 
       g_debug ("Found %s: %s:%d", type, ip_str, port);
       g_free (ip_str);
-      GravitonNode *node = graviton_node_new_from_address (self, addr);
+      GravitonNode *node = graviton_node_new_from_address (addr);
       g_object_unref (addr);
-      const gchar *cloud_id = graviton_node_get_cloud_id (node, &error);
+      const gchar *cloud_id = graviton_node_get_cloud_id (node, NULL);
       const gchar *target_cloud_id;
-      GravitonClient *client = graviton_discovery_method_get_client (self);
-      target_cloud_id = graviton_client_get_cloud_id (client);
+      GravitonCloud *cloud = graviton_discovery_method_get_cloud (self);
+      target_cloud_id = graviton_cloud_get_cloud_id (cloud);
       //TODO: Use public key checking here
       if (strcmp (cloud_id, target_cloud_id) == 0) {
 
