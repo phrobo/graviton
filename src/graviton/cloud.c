@@ -261,7 +261,8 @@ graviton_cloud_find_service_sync (GravitonCloud *self, const gchar *serviceName,
         g_debug ("Error while querying for node id: %s", error->message);
       } else {
         g_debug ("Found member of %s: %s", cloud_id, node_id);
-        if (strcmp(cloud_id, self->priv->cloud_id) == 0) {
+        //if (strcmp(cloud_id, self->priv->cloud_id) == 0) {
+        if (TRUE) {
           if (graviton_node_has_service (cur->data, serviceName, &error)) {
             g_debug ("Hit!");
             GravitonService *service = graviton_service_get_subcontrol (GRAVITON_SERVICE (cur->data), serviceName);
@@ -269,7 +270,6 @@ graviton_cloud_find_service_sync (GravitonCloud *self, const gchar *serviceName,
           } else {
             if (error) {
               g_debug ("Error while asking about service: %s", error->message);
-
             }
           }
         }
