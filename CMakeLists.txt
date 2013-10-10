@@ -8,7 +8,7 @@ set(GRAVITON_VERSION_PLATFORM
   "1.0")
 set(GRAVITON_PLUGIN_PATH "${CMAKE_INSTALL_PREFIX}/share/graviton/plugins/")
 set(GRAVITON_DISCOVERY_PLUGIN_PATH
-  "${CMAKE_INSTALL_PREFIX}/share/graviton/discovery-plugins/")
+  "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/graviton/discovery-plugins/")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -38,11 +38,4 @@ install(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GravitonInternal.cmake
   DESTINATION
     lib${LIB_SUFFIX}/cmake/Graviton/
-)
-
-install(
-  FILES
-    graviton.service
-  DESTINATION
-    lib/systemd/user/
 )

@@ -22,6 +22,27 @@ Graviton pulls your network together
 Requires:       %{name} = %{version}
 Summary:        Development files for %{name}
 
+%package cli
+Requires:       %{name} = %{version}
+Summary:        Command line interface for inspecting graviton services
+
+%description cli
+Command line interface for inspecting graviton services
+
+%package ping-client
+Requires:       %{name} = %{version}
+Summary:        Basic ping client example
+
+%description ping-client
+Example ping clinet
+
+%package ping-server
+Requires:       %{name} = %{version}
+Summary:        Basic ping server example
+
+%description ping-server
+Example ping server
+
 %package python-client
 Requires:       python dbus-python avahi-ui-tools pygobject2 python-requests
 Summary:        Python library and tools to interact with %{name}
@@ -32,14 +53,6 @@ Python library and tools to interact with %{name}
 
 %description devel
 Development files for %{name}
-
-%package plugin-mpd
-Requires:       %{name} = %{version}
-Requires:       mpd
-Summary:        MPD plugin for Graviton
-
-%description plugin-mpd
-MPD plugin for Graviton
 
 %prep
 %setup -q
@@ -61,21 +74,25 @@ cd bindings/python/
 
 %files
 %doc
-%{_bindir}/graviton-server
 %{_libdir}/*.so*
-%dir %{_datadir}/graviton/
-%dir %{_datadir}/graviton/plugins/
-/usr/lib/systemd/user/graviton.service
+%dir %{_libdir}/graviton/
+%{_libdir}/graviton/*
+
+%files cli
+%{_bindir}/graviton-cli
+
+%files ping-client
+%{_bindir}/graviton-ping-client
+
+%files ping-server
+%{_bindir}/graviton-ping-server
 
 %files devel
 %{_includedir}/*
 %{_libdir}/cmake/*
 %{_libdir}/pkgconfig/*
-%{_datadir}/gir-1.0/*
-%{_datadir}/vala/vapi/*
-
-%files plugin-mpd
-%{_datadir}/graviton/plugins/mpd.so
+#%{_datadir}/gir-1.0/*
+#%{_datadir}/vala/vapi/*
 
 %files python-client
 %{python_sitelib}/*
