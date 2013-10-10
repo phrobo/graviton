@@ -11,6 +11,8 @@
 #include <uuid/uuid.h>
 #include "stream.h"
 
+#include "server-interface.h"
+
 #include "config.h"
 
 #define GRAVITON_SERVER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_SERVER, GravitonServerPrivate))
@@ -42,6 +44,7 @@ struct _GravitonServerPrivate
   AvahiClient *avahi;
   AvahiGLibPoll *avahi_poll_api;
   AvahiEntryGroup *avahi_group;
+  GravitonDBusServer *dbus;
 
   gchar *cloud_id;
   gchar *node_id;
@@ -157,6 +160,23 @@ create_avahi_services (AvahiClient *client, GravitonServer *server)
                                  NULL);
   avahi_entry_group_commit (server->priv->avahi_group);
   g_debug ("Created avahi services for port %d", port);
+  graviton_dbus_server_set_port (server->priv->dbus, port);
+
+  GDBusConnection *connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
+  g_dbus_interface_skeleton_export ((GDBusInterfaceSkeleton*)server->priv->dbus,
+                                    connection,
+                                    "/",
+                                    NULL);
+  gchar *busName = g_strdup_printf ("org.aether.graviton-%d", port);
+  g_bus_own_name (G_BUS_TYPE_SESSION,
+                  busName, 
+                  G_BUS_NAME_OWNER_FLAGS_NONE,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL,
+                  NULL);
+  g_free (busName);
 }
 
 static void
@@ -699,13 +719,16 @@ graviton_server_init (GravitonServer *self)
   priv->plugins = graviton_root_control_new ();
   priv->event_listeners = NULL;
   priv->streams = NULL;
+  priv->server = new_server (self, SOUP_ADDRESS_FAMILY_IPV4);
+  priv->server6 = new_server (self, SOUP_ADDRESS_FAMILY_IPV6);
+
+
+  priv->dbus = graviton_dbus_server_skeleton_new ();
+
   g_signal_connect (priv->plugins,
                     "property-update",
                     G_CALLBACK (cb_property_update),
                     self);
-
-  priv->server = new_server (self, SOUP_ADDRESS_FAMILY_IPV4);
-  priv->server6 = new_server (self, SOUP_ADDRESS_FAMILY_IPV6);
 
   graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
                                    g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 
@@ -720,6 +743,7 @@ graviton_server_init (GravitonServer *self)
                                   cb_avahi,
                                   self,
                                   NULL);
+
 }
 
 GravitonServer *graviton_server_new ()

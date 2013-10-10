@@ -13,6 +13,7 @@ set(libgraviton_SRCS
   server.c
   stream.c
   internal-plugin.c
+  ${CMAKE_CURRENT_BINARY_DIR}/server-interface.c
 )
 
 set(libgraviton_HEADERS
@@ -31,12 +32,34 @@ set(libgraviton_HEADERS
   stream.h
 )
 
+include_directories(
+  ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+add_custom_command(
+  OUTPUT
+    ${CMAKE_CURRENT_BINARY_DIR}/server-interface.c
+    ${CMAKE_CURRENT_BINARY_DIR}/server-interface.h
+  COMMAND
+    gdbus-codegen 
+      --generate-c-code server-interface
+      --c-namespace GravitonDBus
+      --interface-prefix org.aether.graviton
+      ${CMAKE_CURRENT_SOURCE_DIR}/org.aether.graviton.Server.xml
+  DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/org.aether.graviton.Server.xml
+  WORKING_DIRECTORY
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 add_library(graviton SHARED ${libgraviton_SRCS})
 
 target_link_libraries(graviton
   ${GLIB_LIBRARIES}
   ${SOUP_LIBRARIES}
   ${JSON_LIBRARIES}
+  ${GIO_LIBRARIES}
+  ${GIO_UNIX_LIBRARIES}
   ${AVAHI_GLIB_LIBRARIES}
   ${AVAHI_CLIENT_LIBRARIES}
   ${UUID_LIBRARIES}

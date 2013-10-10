@@ -1,0 +1,5 @@
+<node>
+  <interface name="org.aether.graviton.Server">
+    <property name="port" type="i" access="read"/>
+  </interface>
+</node>

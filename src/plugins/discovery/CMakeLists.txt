@@ -5,3 +5,7 @@ if (USE_AVAHI)
   install(TARGETS graviton-discovery-plugin-avahi DESTINATION
     ${GRAVITON_DISCOVERY_PLUGIN_PATH})
 endif()
+
+add_graviton_discovery_plugin(NAME dbus SOURCES dbus-discovery.c)
+install(TARGETS graviton-discovery-plugin-dbus DESTINATION
+  ${GRAVITON_DISCOVERY_PLUGIN_PATH})
