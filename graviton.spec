@@ -3,7 +3,7 @@
 
 Name:           graviton
 Version:        0.0.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Graviton pulls your network together.
 
 License:        GPLv3
