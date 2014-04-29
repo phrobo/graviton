@@ -23,6 +23,36 @@ graviton_server_error_quark ()
   return g_quark_from_static_string ("graviton-server-error-quark");
 }
 
+/**
+ * GravitonServer:
+ *
+ * A core concept of Graviton is nodes that provide services to a cloud of other
+ * servers and clients.
+ *
+ * The #GravitonServer exposes a list #GravitonControl objects to a cloud. It
+ * may be addressed by a tuple of cloud-id and node-id.
+ *
+ * #GravitonServer supports routing of messages to other nodes in the network
+ * simply by receiving a request that is addressed to another node. The server
+ * will attempt to contact the destination node, or the next hop in the route
+ * and forward the message verbatim.
+ *
+ * To begin, create a server using graviton_server_new(). You can add a control
+ * that implements a given interface by attaching it to the
+ * #GravitonRootControl exposed via graviton_server_get_root_control().
+ *
+ * Servers have two unique properties: #GravitonServer:node-id and
+ * #GravitonServer:cloud-id. The cloud ID is shared by all members of the cloud
+ * and is used to identify the cloud. Each server has a unique node ID that is
+ * generated at startup. These properties can also be read with
+ * graviton_server_get_node_id() and graviton_server_get_cloud_id().
+ *
+ * All servers come equiped with an introspection control available as
+ * net:phrobo:graviton.
+ *
+ * FIXME: Document net:phrobo:graviton API
+ *
+ */
 G_DEFINE_TYPE (GravitonServer, graviton_server, G_TYPE_OBJECT);
 
 enum
@@ -746,17 +776,40 @@ graviton_server_init (GravitonServer *self)
 
 }
 
+/**
+ * graviton_server_new:
+ *
+ * Creates a new #GravitonServer object
+ *
+ * Returns: A new #GravitonServer
+ */
 GravitonServer *graviton_server_new ()
 {
   return g_object_new (GRAVITON_TYPE_SERVER, NULL);
 }
 
+/**
+ * graviton_server_run_async:
+ *
+ * Starts @server, causing it to listen for and process requests.
+ *
+ * This runs in @server's #GMainContext. It will not perform any processing
+ * unless the appropriate main loop is running.
+ */
 void graviton_server_run_async (GravitonServer *self)
 {
   soup_server_run_async (self->priv->server);
   soup_server_run_async (self->priv->server6);
 }
 
+/**
+ * graviton_server_get_root_control:
+ *
+ * Gets the #GravitonRootControl for this server. Required for attaching
+ * sub-controls and exposing them to the cloud this server is a member of.
+ *
+ * Returns: The #GravitonRootControl for this server
+ */
 GravitonRootControl *
 graviton_server_get_root_control (GravitonServer *self)
 {
@@ -764,18 +817,39 @@ graviton_server_get_root_control (GravitonServer *self)
   return self->priv->plugins;
 }
 
+/**
+ * graviton_server_get_node_id:
+ *
+ * Gets the ID of the node this server is providing
+ *
+ * Returns: Node ID of this server
+ */
 const gchar *
 graviton_server_get_node_id (GravitonServer *self)
 {
   return self->priv->node_id;
 }
 
+/**
+ * graviton_server_get_cloud_id:
+ *
+ * Gets the ID of the cloud this server is a member of
+ *
+ * Returns: Cloud ID of this server
+ */
 const gchar *
 graviton_server_get_cloud_id (GravitonServer *self)
 {
   return self->priv->cloud_id;
 }
 
+/**
+ * graviton_server_get_port:
+ *
+ * Gets the TCP port number this server is listening on.
+ *
+ * Returns: The port this server is listening on
+ */
 int
 graviton_server_get_port (GravitonServer *self)
 {

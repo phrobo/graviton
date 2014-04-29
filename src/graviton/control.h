@@ -50,12 +50,6 @@ GVariant *graviton_control_call_method (GravitonControl *self,
                                    GHashTable *args,
                                    GError **error);
 
-/**
- * graviton_control_list_methods:
- * List methods on this control
- *
- * Returns: (element-type *gchar) (transfer none): List of method names
- */
 GList *graviton_control_list_methods (GravitonControl *self);
 
 gboolean graviton_control_has_method (GravitonControl *self, const gchar *name);
@@ -63,29 +57,15 @@ gboolean graviton_control_has_method (GravitonControl *self, const gchar *name);
 void graviton_control_add_subcontrol (GravitonControl *self,
                                        GravitonControl *control);
 
-/**
- * graviton_control_get_subcontrol:
- * Gets the named control
- * Returns: (transfer full): The control
- */
 GravitonControl *graviton_control_get_subcontrol (GravitonControl *self,
                                   const gchar *name);
 
-/**
- * graviton_control_list_subcontrols:
- * Returns: (element-type gchar*) (transfer full): the names of the available controls
- */
 GList *graviton_control_list_subcontrols (GravitonControl *self);
 
 typedef GravitonStream *(*GravitonControlStreamGenerator)(GravitonControl *self, const gchar *name, GHashTable *args, GError **error, gpointer user_data);
 
 void graviton_control_add_stream (GravitonControl *self, const gchar *name, GravitonControlStreamGenerator func, gpointer user_data);
 
-/**
- * graviton_control_list_streams:
- * Returns: (element-type gchar*) (transfer full): the names of the available
- * streams
- */
 GList *graviton_control_list_streams (GravitonControl *self);
 GravitonStream *graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTable *args, GError **error);
 

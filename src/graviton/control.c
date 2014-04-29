@@ -9,6 +9,31 @@ graviton_control_error_quark ()
   return g_quark_from_static_string ("graviton-control-error-quark");
 }
 
+/**
+ * GravitonControl:
+ *
+ * Controls provide services to the graviton network by way of exposing a set of
+ * properties, methods, IO channels, and child controls. Controls have names
+ * which are browseable via the net:phrobo:graviton introspection control.
+ *
+ * After a #GravitonServer is created, you can attach controls to it by fetching
+ * its #GravitonRootControl via graviton_server_get_root_control() and calling
+ * graviton_control_add_subcontrol().
+ *
+ * Properties are exposed on a #GravitonControl through the normal #GObject API
+ * that is used by g_object_set()/g_object_get()
+ *
+ * FIXME: Example of properties
+ *
+ * Methods are exposed by calling graviton_control_add_method() and supplying a
+ * callback.
+ *
+ * FIXME: Example of adding a method
+ *
+ * IO channels use graviton_control_add_stream() with a supplied
+ * #GravitonControlStreamGenerator callback for later activation.
+ *
+ */
 G_DEFINE_TYPE (GravitonControl, graviton_control, G_TYPE_OBJECT);
 
 enum {
@@ -150,6 +175,16 @@ graviton_control_finalize (GravitonControl *self)
   g_free (self->priv->name);
 }
 
+/**
+ * graviton_control_add_method:
+ * @self: The #GravitonControl
+ * @name: String name of the method
+ * @func: Callback with a #GravitonControlMethod signature
+ * @user_data: (closure): Data for @func
+ * @destroy_func: (destroy): Destroy notifier to free @user_data
+ *
+ * Adds a method to the #GravitonControl @self.
+ */
 void
 graviton_control_add_method (GravitonControl *self,
                              const gchar *name,
@@ -163,6 +198,13 @@ graviton_control_add_method (GravitonControl *self,
   g_hash_table_replace (self->priv->method_destroys, g_strdup (name), destroy_func);
 }
 
+/**
+ * graviton_control_call_method:
+ * @self: The #GravitonControl
+ * @name: String name of the method
+ * @args: (element-type gchar* GValue): A mapping of argument names to values
+ * @error: return location for a #GError or NULL
+ */
 GVariant *
 graviton_control_call_method (GravitonControl *self,
                               const gchar *name,
@@ -189,18 +231,41 @@ graviton_control_call_method (GravitonControl *self,
   }
 }
 
+/**
+ * graviton_control_list_methods:
+ *
+ * Get a list of methods on this control
+ *
+ * Returns: (element-type *gchar) (transfer none): List of method names
+ */
 GList *
 graviton_control_list_methods (GravitonControl *self)
 {
   return g_hash_table_get_keys (self->priv->methods);
 }
 
+/**
+ * graviton_control_has_method:
+ * @self: The #GravitonControl
+ * @name: String name of the method
+ *
+ * Returns: TRUE if the method exists on this control, FALSE otherwise.
+ */
 gboolean
 graviton_control_has_method (GravitonControl *self, const gchar *name)
 {
   return g_hash_table_contains (self->priv->methods, name);
 }
 
+/**
+ * graviton_control_get_subcontrol:
+ * @self: The #GravitonControl
+ * @path: String path to the subcontrol
+ *
+ * Gets the named control.
+ *
+ * Returns: The control
+ */
 GravitonControl *
 graviton_control_get_subcontrol (GravitonControl *self,
                                  const gchar *path)
@@ -249,6 +314,14 @@ cb_propigate_property_update (GravitonControl *subcontrol, const gchar *name, gp
   g_free (full_name);
 }
 
+/**
+ * graviton_control_add_subcontrol:
+ * @self: The #GravitonControl
+ * @control: The #GravitonControl to add as a sub-control
+ *
+ * Adds a control to this one as a sub-control
+ *
+ */
 void
 graviton_control_add_subcontrol (GravitonControl *self,
                                       GravitonControl *control)
@@ -268,12 +341,28 @@ graviton_control_add_subcontrol (GravitonControl *self,
                     self);
 }
 
+/**
+ * graviton_control_list_subcontrols:
+ *
+ * Get a list of the names of available subcontrols.
+ *
+ * Returns: (element-type gchar*) (transfer full): the names of the available subcontrols
+ */
 GList *
 graviton_control_list_subcontrols (GravitonControl *self)
 {
   return g_hash_table_get_keys (self->priv->controls);
 }
 
+/**
+ * graviton_control_add_stream:
+ * @self: The #GravitonControl
+ * @name: String name of the stream to add
+ * @func: A #GravitonControlStreamGenerator callback to use
+ * @user_data: Data that is passed to @func
+ *
+ * Registers a new stream on this control using the given name
+ */
 void
 graviton_control_add_stream (GravitonControl *self,
                              const gchar *name,
@@ -284,12 +373,27 @@ graviton_control_add_stream (GravitonControl *self,
   g_hash_table_replace (self->priv->stream_data, g_strdup (name), user_data);
 }
 
+/**
+ * graviton_control_list_streams:
+ *
+ * Get a list of the streams that are available from this control
+ *
+ * Returns: (element-type gchar*) (transfer full): the names of the available
+ * streams
+ */
 GList *
 graviton_control_list_streams (GravitonControl *self)
 {
   return g_hash_table_get_keys (self->priv->streams);
 }
 
+/**
+ * graviton_control_get_stream:
+ * @self: The #GravitonStream
+ * @name: String name of the stream requested
+ * @args: (element-type gchar* GValue): Mapping of arguments to values
+ * @error: Return location for a #GError, or NULL
+ */
 GravitonStream *
 graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTable *args, GError **error)
 {
@@ -300,6 +404,14 @@ graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTabl
   return NULL;
 }
 
+/**
+ * graviton_control_new:
+ * @serviceName: Name of the service to use
+ *
+ * Creates a new #GravitonControl with a service name
+ *
+ * Returns: A new #GravitonControl that exposes the given @serviceName
+ */
 GravitonControl *
 graviton_control_new (const gchar *serviceName)
 {
