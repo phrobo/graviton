@@ -25,6 +25,7 @@ if (NOT LIB_SUFFIX)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(docs)
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/GravitonConfig.cmake.in
