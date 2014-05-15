@@ -5,9 +5,9 @@
 #include "file-stream.h"
 #include <json-glib/json-glib.h>
 
-#define GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_INTERNAL_PLUGIN, GravitonInternalPluginPrivate))
+#define GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_INTERNAL_PLUGIN_TYPE, GravitonInternalPluginPrivate))
 
-//GRAVITON_DEFINE_PLUGIN(GRAVITON_TYPE_INTERNAL_PLUGIN, "graviton")
+//GRAVITON_DEFINE_PLUGIN(GRAVITON_INTERNAL_PLUGIN_TYPE, "graviton")
 
 GQuark
 graviton_introspection_error_quark()
@@ -15,7 +15,7 @@ graviton_introspection_error_quark()
   return g_quark_from_static_string ("graviton-introspection-error-quark");
 }
 
-G_DEFINE_TYPE (GravitonInternalPlugin, graviton_internal_plugin, GRAVITON_TYPE_CONTROL);
+G_DEFINE_TYPE (GravitonInternalPlugin, graviton_internal_plugin, GRAVITON_CONTROL_TYPE);
 
 enum
 {
@@ -134,7 +134,7 @@ graviton_internal_plugin_class_init (GravitonInternalPluginClass *klass)
     g_param_spec_object ("server",
                          "Server",
                          "GravitonServer object",
-                         GRAVITON_TYPE_SERVER,
+                         GRAVITON_SERVER_TYPE,
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
   obj_properties[PROP_HOSTNAME] =
     g_param_spec_string ("hostname",
@@ -333,7 +333,7 @@ graviton_internal_plugin_init (GravitonInternalPlugin *self)
   self->priv = priv = GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE (self);
   self->priv->hostname = g_strdup (g_get_host_name ());
 
-  GravitonControl *introspection = g_object_new (GRAVITON_TYPE_CONTROL, "name", "introspection", NULL);
+  GravitonControl *introspection = g_object_new (GRAVITON_CONTROL_TYPE, "name", "introspection", NULL);
   graviton_control_add_method (introspection,
                                "listControls",
                                cb_controls,

@@ -4,12 +4,12 @@
 #include <glib-object.h>
 #include <graviton/control.h>
 
-#define GRAVITON_TYPE_ROOT_CONTROL            (graviton_root_control_get_type ())
-#define GRAVITON_ROOT_CONTROL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_ROOT_CONTROL, GravitonRootControl))
-#define GRAVITON_IS_ROOT_CONTROL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_TYPE_ROOT_CONTROL))
-#define GRAVITON_ROOT_CONTROL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_TYPE_ROOT_CONTROL, GravitonRootControlClass))
-#define GRAVITON_IS_ROOT_CONTROL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_TYPE_ROOT_CONTROL))
-#define GRAVITON_PLUGIN_GET_MANAGER_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_TYPE_ROOT_CONTROL, GravitonRootControlClass))
+#define GRAVITON_ROOT_CONTROL_TYPE            (graviton_root_control_get_type ())
+#define GRAVITON_ROOT_CONTROL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_ROOT_CONTROL_TYPE, GravitonRootControl))
+#define GRAVITON_IS_ROOT_CONTROL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_ROOT_CONTROL_TYPE))
+#define GRAVITON_ROOT_CONTROL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_ROOT_CONTROL_TYPE, GravitonRootControlClass))
+#define GRAVITON_IS_ROOT_CONTROL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_ROOT_CONTROL_TYPE))
+#define GRAVITON_PLUGIN_GET_MANAGER_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_ROOT_CONTROL_TYPE, GravitonRootControlClass))
 
 typedef struct _GravitonRootControl GravitonRootControl;
 typedef struct _GravitonRootControlClass GravitonRootControlClass;

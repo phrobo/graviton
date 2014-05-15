@@ -4,12 +4,12 @@
 #include <glib-object.h>
 #include <graviton/root-control.h>
 
-#define GRAVITON_TYPE_SERVER            (graviton_server_get_type ())
-#define GRAVITON_SERVER(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_SERVER, GravitonServer))
-#define GRAVITON_IS_SERVER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_TYPE_SERVER))
-#define GRAVITON_SERVER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_TYPE_SERVER, GravitonServerClass))
-#define GRAVITON_IS_SERVER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_TYPE_SERVER))
-#define GRAVITON_SERVER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_TYPE_SERVER, GravitonServerClass))
+#define GRAVITON_SERVER_TYPE            (graviton_server_get_type ())
+#define GRAVITON_SERVER(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_SERVER_TYPE, GravitonServer))
+#define GRAVITON_IS_SERVER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_SERVER_TYPE))
+#define GRAVITON_SERVER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_SERVER_TYPE, GravitonServerClass))
+#define GRAVITON_IS_SERVER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_SERVER_TYPE))
+#define GRAVITON_SERVER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_SERVER_TYPE, GravitonServerClass))
 
 #define GRAVITON_SERVER_ERROR (graviton_server_error_quark ())
 

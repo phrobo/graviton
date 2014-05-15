@@ -1,7 +1,7 @@
 #include "control.h"
 #include <string.h>
 
-#define GRAVITON_CONTROL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_CONTROL, GravitonControlPrivate))
+#define GRAVITON_CONTROL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_CONTROL_TYPE, GravitonControlPrivate))
 
 GQuark
 graviton_control_error_quark ()
@@ -415,5 +415,5 @@ graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTabl
 GravitonControl *
 graviton_control_new (const gchar *serviceName)
 {
-  return g_object_new (GRAVITON_TYPE_CONTROL, "name", serviceName, NULL);
+  return g_object_new (GRAVITON_CONTROL_TYPE, "name", serviceName, NULL);
 }

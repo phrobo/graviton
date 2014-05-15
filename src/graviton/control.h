@@ -4,12 +4,12 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-#define GRAVITON_TYPE_CONTROL            (graviton_control_get_type ())
-#define GRAVITON_CONTROL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_TYPE_CONTROL, GravitonControl))
-#define GRAVITON_IS_CONTROL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_TYPE_CONTROL))
-#define GRAVITON_CONTROL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_TYPE_CONTROL, GravitonControlClass))
-#define GRAVITON_IS_CONTROL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_TYPE_CONTROL))
-#define GRAVITON_CONTROL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_TYPE_CONTROL, GravitonControlClass))
+#define GRAVITON_CONTROL_TYPE            (graviton_control_get_type ())
+#define GRAVITON_CONTROL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_CONTROL_TYPE, GravitonControl))
+#define GRAVITON_IS_CONTROL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_CONTROL_TYPE))
+#define GRAVITON_CONTROL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_CONTROL_TYPE, GravitonControlClass))
+#define GRAVITON_IS_CONTROL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_CONTROL_TYPE))
+#define GRAVITON_CONTROL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_CONTROL_TYPE, GravitonControlClass))
 
 #define GRAVITON_CONTROL_ERROR (graviton_control_error_quark ())
 

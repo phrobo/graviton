@@ -4,9 +4,9 @@
 
 #include "config.h"
 
-#define GRAVITON_ROOT_CONTROL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_ROOT_CONTROL, GravitonRootControlPrivate))
+#define GRAVITON_ROOT_CONTROL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_ROOT_CONTROL_TYPE, GravitonRootControlPrivate))
 
-G_DEFINE_TYPE (GravitonRootControl, graviton_root_control, GRAVITON_TYPE_CONTROL);
+G_DEFINE_TYPE (GravitonRootControl, graviton_root_control, GRAVITON_CONTROL_TYPE);
 
 struct _GravitonRootControlPrivate
 {
@@ -36,7 +36,7 @@ graviton_root_control_class_init (GravitonRootControlClass *klass)
                   g_cclosure_marshal_VOID__OBJECT,
                   G_TYPE_NONE,
                   1,
-                  GRAVITON_TYPE_CONTROL);
+                  GRAVITON_CONTROL_TYPE);
 }
 
 static void
@@ -62,5 +62,5 @@ graviton_root_control_finalize (GObject *gobject)
 GravitonRootControl *
 graviton_root_control_new ()
 {
-  return g_object_new (GRAVITON_TYPE_ROOT_CONTROL, NULL);
+  return g_object_new (GRAVITON_ROOT_CONTROL_TYPE, NULL);
 }

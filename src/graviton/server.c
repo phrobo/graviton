@@ -15,7 +15,7 @@
 
 #include "config.h"
 
-#define GRAVITON_SERVER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_SERVER, GravitonServerPrivate))
+#define GRAVITON_SERVER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_SERVER_TYPE, GravitonServerPrivate))
 
 GQuark
 graviton_server_error_quark ()
@@ -761,7 +761,7 @@ graviton_server_init (GravitonServer *self)
                     self);
 
   graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
-                                   g_object_new (GRAVITON_TYPE_INTERNAL_PLUGIN, 
+                                   g_object_new (GRAVITON_INTERNAL_PLUGIN_TYPE, 
                                                  "server", self,
                                                  "name", "net:phrobo:graviton",
                                                  NULL));
@@ -785,7 +785,7 @@ graviton_server_init (GravitonServer *self)
  */
 GravitonServer *graviton_server_new ()
 {
-  return g_object_new (GRAVITON_TYPE_SERVER, NULL);
+  return g_object_new (GRAVITON_SERVER_TYPE, NULL);
 }
 
 /**
