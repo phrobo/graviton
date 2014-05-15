@@ -8,6 +8,8 @@
 #include <avahi-client/lookup.h>
 #include <avahi-glib/glib-watch.h>
 
+#include <graviton/cloud.h>
+
 typedef struct _GravitonAvahiDiscoveryMethodPrivate GravitonAvahiDiscoveryMethodPrivate;
 
 struct _GravitonAvahiDiscoveryMethodPrivate
@@ -138,7 +140,7 @@ cb_resolve (AvahiServiceResolver *resolver,
       g_object_unref (addr);
       const gchar *cloud_id = graviton_node_get_cloud_id (node, NULL);
       const gchar *target_cloud_id;
-      GravitonCloud *cloud = graviton_discovery_method_get_cloud (self);
+      GravitonCloud *cloud = graviton_discovery_method_get_cloud (GRAVITON_DISCOVERY_METHOD (self));
       target_cloud_id = graviton_cloud_get_cloud_id (cloud);
       //TODO: Use public key checking here
       if (strcmp (cloud_id, target_cloud_id) == 0) {
