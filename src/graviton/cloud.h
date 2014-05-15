@@ -15,7 +15,6 @@ G_BEGIN_DECLS
 #define IS_GRAVITON_CLOUD_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_CLOUD_TYPE))
 #define GRAVITON_CLOUD_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_CLOUD_TYPE, GravitonCloudClass))
 
-//TODO: Rename to GravitonCloud
 typedef struct _GravitonCloud      GravitonCloud;
 typedef struct _GravitonCloudClass GravitonCloudClass;
 typedef struct _GravitonCloudPrivate GravitonCloudPrivate;
