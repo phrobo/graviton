@@ -1,14 +1,14 @@
 #include <graviton/cloud.h>
 #include <graviton/node.h>
 #include <graviton/service.h>
-#include <graviton/introspection-control.h>
+#include <graviton/introspection-service.h>
 
 void
 print_streams (GravitonService *control)
 {
   GError *error = NULL;
-  GravitonIntrospectionControl *inspect = graviton_introspection_control_new_from_control (control);
-  GList *streams = graviton_introspection_control_list_streams (inspect, &error);
+  GravitonIntrospectionControl *inspect = graviton_introspection_service_new_from_control (control);
+  GList *streams = graviton_introspection_service_list_streams (inspect, &error);
   GList *cur = streams;
 
   if (error) {
@@ -29,8 +29,8 @@ void
 print_properties (GravitonService *control)
 {
   GError *error = NULL;
-  GravitonIntrospectionControl *inspect = graviton_introspection_control_new_from_control (control);
-  GList *properties = graviton_introspection_control_list_properties (inspect, &error);
+  GravitonIntrospectionControl *inspect = graviton_introspection_service_new_from_control (control);
+  GList *properties = graviton_introspection_service_list_properties (inspect, &error);
   GList *cur = properties;
 
   if (error) {
@@ -67,8 +67,8 @@ print_controls (GravitonService *control)
     g_print ("\tStreams:\n");
     print_streams (control);
   }
-  GravitonIntrospectionControl *inspect = graviton_introspection_control_new_from_control (control);
-  GList *controls = graviton_introspection_control_list_controls (inspect, &error);
+  GravitonIntrospectionControl *inspect = graviton_introspection_service_new_from_control (control);
+  GList *controls = graviton_introspection_service_list_controls (inspect, &error);
   GList *cur = controls;
   while (cur) {
     GravitonService *subcontrol = graviton_service_get_subcontrol (control, cur->data);

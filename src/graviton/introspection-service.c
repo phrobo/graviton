@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include "introspection-control.h"
+#include "introspection-service.h"
 #include "service.h"
 #include "node.h"
 
@@ -13,15 +13,15 @@ struct _GravitonIntrospectionControlPrivate
   gchar *target;
 };
 
-#define GRAVITON_INTROSPECTION_CONTROL_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_INTROSPECTION_CONTROL_TYPE, GravitonIntrospectionControlPrivate))
+#define GRAVITON_INTROSPECTION_SERVICE_GET_PRIVATE(o) \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_INTROSPECTION_SERVICE_TYPE, GravitonIntrospectionControlPrivate))
 
-static void graviton_introspection_control_class_init (GravitonIntrospectionControlClass *klass);
-static void graviton_introspection_control_init       (GravitonIntrospectionControl *self);
-static void graviton_introspection_control_dispose    (GObject *object);
-static void graviton_introspection_control_finalize   (GObject *object);
+static void graviton_introspection_service_class_init (GravitonIntrospectionControlClass *klass);
+static void graviton_introspection_service_init       (GravitonIntrospectionControl *self);
+static void graviton_introspection_service_dispose    (GObject *object);
+static void graviton_introspection_service_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonIntrospectionControl, graviton_introspection_control, GRAVITON_SERVICE_TYPE);
+G_DEFINE_TYPE (GravitonIntrospectionControl, graviton_introspection_service, GRAVITON_SERVICE_TYPE);
 
 enum {
   PROP_0,
@@ -37,7 +37,7 @@ set_property (GObject *object,
                      const GValue *value,
                      GParamSpec *pspec)
 {
-  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (object);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_SERVICE (object);
   switch (property_id) {
     case PROP_TARGET:
       if (self->priv->target)
@@ -56,7 +56,7 @@ get_property (GObject *object,
                      GValue *value,
                      GParamSpec *pspec)
 {
-  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (object);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_SERVICE (object);
   switch (property_id) {
     case PROP_TARGET:
       g_value_set_string (value, self->priv->target);
@@ -68,14 +68,14 @@ get_property (GObject *object,
 }
 
 static void
-graviton_introspection_control_class_init (GravitonIntrospectionControlClass *klass)
+graviton_introspection_service_class_init (GravitonIntrospectionControlClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (GravitonIntrospectionControlPrivate));
 
-  object_class->dispose = graviton_introspection_control_dispose;
-  object_class->finalize = graviton_introspection_control_finalize;
+  object_class->dispose = graviton_introspection_service_dispose;
+  object_class->finalize = graviton_introspection_service_finalize;
 
   object_class->set_property = set_property;
   object_class->get_property = get_property;
@@ -93,34 +93,34 @@ graviton_introspection_control_class_init (GravitonIntrospectionControlClass *kl
 }
 
 static void
-graviton_introspection_control_init (GravitonIntrospectionControl *self)
+graviton_introspection_service_init (GravitonIntrospectionControl *self)
 {
   GravitonIntrospectionControlPrivate *priv;
-  priv = self->priv = GRAVITON_INTROSPECTION_CONTROL_GET_PRIVATE (self);
+  priv = self->priv = GRAVITON_INTROSPECTION_SERVICE_GET_PRIVATE (self);
 }
 
 static void
-graviton_introspection_control_dispose (GObject *object)
+graviton_introspection_service_dispose (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_introspection_control_parent_class)->dispose (object);
+  G_OBJECT_CLASS (graviton_introspection_service_parent_class)->dispose (object);
 }
 
 static void
-graviton_introspection_control_finalize (GObject *object)
+graviton_introspection_service_finalize (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_introspection_control_parent_class)->finalize (object);
+  G_OBJECT_CLASS (graviton_introspection_service_parent_class)->finalize (object);
 }
 
 GravitonIntrospectionControl *
-graviton_introspection_control_new_from_control (GravitonService *control)
+graviton_introspection_service_new_from_control (GravitonService *control)
 {
-  return graviton_introspection_control_new (graviton_service_get_node (control), graviton_service_get_name (control));
+  return graviton_introspection_service_new (graviton_service_get_node (control), graviton_service_get_name (control));
 }
 
 GravitonIntrospectionControl *
-graviton_introspection_control_new (GravitonNode *node, const gchar *name)
+graviton_introspection_service_new (GravitonNode *node, const gchar *name)
 {
-  return g_object_new (GRAVITON_INTROSPECTION_CONTROL_TYPE, "node", node, "name", "net:phrobo:graviton/introspection", "target", name, NULL);
+  return g_object_new (GRAVITON_INTROSPECTION_SERVICE_TYPE, "node", node, "name", "net:phrobo:graviton/introspection", "target", name, NULL);
 }
 
 static GList *
@@ -146,7 +146,7 @@ call_string_list_method (GravitonIntrospectionControl *self, const gchar *method
   return ret;
 }
 
-GList *graviton_introspection_control_list_controls (GravitonIntrospectionControl *self, GError **err)
+GList *graviton_introspection_service_list_controls (GravitonIntrospectionControl *self, GError **err)
 {
   GError *error = NULL;
   GList *ret = NULL;
@@ -161,7 +161,7 @@ GList *graviton_introspection_control_list_controls (GravitonIntrospectionContro
                                   NULL);
 }
 
-GList *graviton_introspection_control_list_properties (GravitonIntrospectionControl *self, GError **err)
+GList *graviton_introspection_service_list_properties (GravitonIntrospectionControl *self, GError **err)
 {
   GError *error = NULL;
   GList *ret = NULL;
@@ -176,7 +176,7 @@ GList *graviton_introspection_control_list_properties (GravitonIntrospectionCont
                                   NULL);
 }
 
-GList *graviton_introspection_control_list_streams (GravitonIntrospectionControl *self, GError **err)
+GList *graviton_introspection_service_list_streams (GravitonIntrospectionControl *self, GError **err)
 {
   GError *error = NULL;
   GList *ret = NULL;
