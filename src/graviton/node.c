@@ -430,7 +430,7 @@ graviton_node_call_args (GravitonNode *self,
 }
 
 GravitonServiceInterface *
-graviton_node_get_control (GravitonNode *node, const gchar *name, GError **error)
+graviton_node_get_service_interface (GravitonNode *node, const gchar *name, GError **error)
 {
   return NULL;
 }

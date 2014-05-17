@@ -86,7 +86,7 @@ graviton_service_interface_class_init (GravitonServiceInterfaceClass *klass)
   obj_properties[PROP_NAME] =
     g_param_spec_string ("name",
                          "Name",
-                         "Name of this control",
+                         "Name of this service",
                          NULL,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
   obj_properties [PROP_NODE] = 
@@ -157,7 +157,7 @@ graviton_service_interface_get_property (GravitonServiceInterface *self, const g
   GVariant *ret = graviton_node_call (graviton_service_interface_get_node (self),
                                       "net:phrobo:graviton/introspection.getProperty",
                                       &error,
-                                      "control",
+                                      "service",
                                       g_variant_new_string (graviton_service_interface_get_name (self)),
                                       "property",
                                       g_variant_new_string (property),
@@ -170,27 +170,27 @@ graviton_service_interface_get_property (GravitonServiceInterface *self, const g
   return ret;
 }
 
-gchar *make_method_name (GravitonServiceInterface *control, const gchar *method)
+gchar *make_method_name (GravitonServiceInterface *service, const gchar *method)
 {
-  return g_strdup_printf ("%s.%s", graviton_service_interface_get_name (control), method);
+  return g_strdup_printf ("%s.%s", graviton_service_interface_get_name (service), method);
 }
 
 GVariant *
-graviton_service_interface_call (GravitonServiceInterface *control,
+graviton_service_interface_call (GravitonServiceInterface *service,
     const gchar *method,
     GError **error, ...)
 {
   va_list args;
   va_start (args, error);
-  gchar *full_method = make_method_name (control, method);
-  GVariant *ret = graviton_node_call_va (graviton_service_interface_get_node (control), full_method, error, args);
+  gchar *full_method = make_method_name (service, method);
+  GVariant *ret = graviton_node_call_va (graviton_service_interface_get_node (service), full_method, error, args);
   va_end (args);
   return ret;
 }
 
 GravitonNodeStream *
-graviton_service_interface_get_stream (GravitonServiceInterface *control, const gchar *name, GHashTable *args)
+graviton_service_interface_get_stream (GravitonServiceInterface *service, const gchar *name, GHashTable *args)
 {
-  GravitonNodeStream *stream = graviton_node_stream_new (control, name, args);
+  GravitonNodeStream *stream = graviton_node_stream_new (service, name, args);
   return stream;
 }

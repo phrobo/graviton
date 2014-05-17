@@ -82,8 +82,8 @@ graviton_introspection_interface_class_init (GravitonIntrospectionControlClass *
 
   obj_properties[PROP_TARGET] =
     g_param_spec_string ("target",
-                         "Target control",
-                         "Target control",
+                         "Target service",
+                         "Target service",
                          NULL,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
@@ -112,9 +112,9 @@ graviton_introspection_interface_finalize (GObject *object)
 }
 
 GravitonIntrospectionControl *
-graviton_introspection_interface_new_from_interface (GravitonServiceInterface *control)
+graviton_introspection_interface_new_from_interface (GravitonServiceInterface *service)
 {
-  return graviton_introspection_interface_new (graviton_service_interface_get_node (control), graviton_service_interface_get_name (control));
+  return graviton_introspection_interface_new (graviton_service_interface_get_node (service), graviton_service_interface_get_name (service));
 }
 
 GravitonIntrospectionControl *
@@ -156,7 +156,7 @@ GList *graviton_introspection_interface_list_interfaces (GravitonIntrospectionCo
   return call_string_list_method (self,
                                   "net:phrobo:graviton/introspection.listControls",
                                   err,
-                                  "control",
+                                  "service",
                                   name,
                                   NULL);
 }
@@ -171,7 +171,7 @@ GList *graviton_introspection_interface_list_properties (GravitonIntrospectionCo
   return call_string_list_method (self,
                                   "net:phrobo:graviton/introspection.listProperties",
                                   err,
-                                  "control",
+                                  "service",
                                   name,
                                   NULL);
 }
@@ -186,7 +186,7 @@ GList *graviton_introspection_interface_list_streams (GravitonIntrospectionContr
   return call_string_list_method (self,
                                   "net:phrobo:graviton/introspection.listStreams",
                                   err,
-                                  "control",
+                                  "service",
                                   name,
                                   NULL);
 }

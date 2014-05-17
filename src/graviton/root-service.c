@@ -27,7 +27,7 @@ graviton_root_service_class_init (GravitonRootServiceClass *klass)
   g_type_class_add_private (klass, sizeof (GravitonRootServicePrivate));
 
   obj_signals[SIGNAL_CONTROL_ADDED] =
-    g_signal_new ("control-added",
+    g_signal_new ("service-added",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
                   0,

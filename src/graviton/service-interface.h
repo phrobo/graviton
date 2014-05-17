@@ -37,14 +37,14 @@ GType graviton_service_interface_get_type (void);
 const gchar *graviton_service_interface_get_name (GravitonServiceInterface *self);
 GList *graviton_service_interface_list_subservices (GravitonServiceInterface *self, GError **error);
 GravitonServiceInterface *graviton_service_interface_get_subservice (GravitonServiceInterface *self, const gchar *name);
-GList *graviton_service_interface_list_properties (GravitonServiceInterface *control, GError **error);
-GVariant *graviton_service_interface_get_property (GravitonServiceInterface *control, const gchar *prop, GError **error);
-GravitonNode *graviton_service_interface_get_node (GravitonServiceInterface *control);
-GVariant *graviton_service_interface_call (GravitonServiceInterface *control, const gchar *method, GError **error, ...);
-GVariant *graviton_service_interface_call_args (GravitonServiceInterface *control, const gchar *method, GHashTable *args, GError **error);
-GVariant *graviton_service_interface_call_va (GravitonServiceInterface *control, const gchar *method, GError **error, va_list args);
+GList *graviton_service_interface_list_properties (GravitonServiceInterface *service, GError **error);
+GVariant *graviton_service_interface_get_property (GravitonServiceInterface *service, const gchar *prop, GError **error);
+GravitonNode *graviton_service_interface_get_node (GravitonServiceInterface *service);
+GVariant *graviton_service_interface_call (GravitonServiceInterface *service, const gchar *method, GError **error, ...);
+GVariant *graviton_service_interface_call_args (GravitonServiceInterface *service, const gchar *method, GHashTable *args, GError **error);
+GVariant *graviton_service_interface_call_va (GravitonServiceInterface *service, const gchar *method, GError **error, va_list args);
 
-GravitonNodeStream *graviton_service_interface_get_stream (GravitonServiceInterface *control, const gchar *name, GHashTable *args);
+GravitonNodeStream *graviton_service_interface_get_stream (GravitonServiceInterface *service, const gchar *name, GHashTable *args);
 
 G_END_DECLS
 

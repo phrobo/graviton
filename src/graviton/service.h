@@ -55,7 +55,7 @@ GList *graviton_service_list_methods (GravitonService *self);
 gboolean graviton_service_has_method (GravitonService *self, const gchar *name);
 
 void graviton_service_add_subservice (GravitonService *self,
-                                       GravitonService *control);
+                                       GravitonService *service);
 
 GravitonService *graviton_service_get_subservice (GravitonService *self,
                                   const gchar *name);

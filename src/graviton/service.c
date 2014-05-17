@@ -6,17 +6,17 @@
 GQuark
 graviton_service_error_quark ()
 {
-  return g_quark_from_static_string ("graviton-control-error-quark");
+  return g_quark_from_static_string ("graviton-service-error-quark");
 }
 
 /**
  * GravitonService:
  *
  * Controls provide services to the graviton network by way of exposing a set of
- * properties, methods, IO channels, and child controls. Controls have names
- * which are browseable via the net:phrobo:graviton introspection control.
+ * properties, methods, IO channels, and child services. Controls have names
+ * which are browseable via the net:phrobo:graviton introspection service.
  *
- * After a #GravitonServer is created, you can attach controls to it by fetching
+ * After a #GravitonServer is created, you can attach services to it by fetching
  * its #GravitonRootService via graviton_server_get_root_service() and calling
  * graviton_service_add_subservice().
  *
@@ -55,7 +55,7 @@ static int obj_signals[N_SIGNALS] = {0, };
 struct _GravitonServicePrivate
 {
   gchar *name;
-  GHashTable *controls;
+  GHashTable *services;
   GHashTable *methods;
   GHashTable *method_data;
   GHashTable *method_destroys;
@@ -144,7 +144,7 @@ graviton_service_init (GravitonService *self)
                                          g_str_equal,
                                          g_free,
                                          NULL);
-  priv->controls = g_hash_table_new_full (g_str_hash,
+  priv->services = g_hash_table_new_full (g_str_hash,
                                           g_str_equal,
                                           g_free,
                                           g_object_unref);
@@ -234,7 +234,7 @@ graviton_service_call_method (GravitonService *self,
 /**
  * graviton_service_list_methods:
  *
- * Get a list of methods on this control
+ * Get a list of methods on this service
  *
  * Returns: (element-type *gchar) (transfer none): List of method names
  */
@@ -249,7 +249,7 @@ graviton_service_list_methods (GravitonService *self)
  * @self: The #GravitonService
  * @name: String name of the method
  *
- * Returns: TRUE if the method exists on this control, FALSE otherwise.
+ * Returns: TRUE if the method exists on this service, FALSE otherwise.
  */
 gboolean
 graviton_service_has_method (GravitonService *self, const gchar *name)
@@ -262,31 +262,31 @@ graviton_service_has_method (GravitonService *self, const gchar *name)
  * @self: The #GravitonService
  * @path: String path to the subservice
  *
- * Gets the named control.
+ * Gets the named service.
  *
- * Returns: The control
+ * Returns: The service
  */
 GravitonService *
 graviton_service_get_subservice (GravitonService *self,
                                  const gchar *path)
 {
-  GravitonService *control = NULL;
+  GravitonService *service = NULL;
   gchar **tokens;
   g_return_val_if_fail (path != NULL, NULL);
   g_return_val_if_fail (strlen(path) > 0, NULL);
   tokens = g_strsplit (path, "/", 0);
-  control = g_hash_table_lookup (self->priv->controls, tokens[0]);
-  if (control) {
+  service = g_hash_table_lookup (self->priv->services, tokens[0]);
+  if (service) {
     if (g_strv_length (tokens) > 1) {
       gchar *subname = g_strjoinv ("/", &tokens[1]);
-      control = graviton_service_get_subservice (control, subname);
+      service = graviton_service_get_subservice (service, subname);
       g_free (subname);
     } else {
-      g_object_ref (control);
+      g_object_ref (service);
     }
   }
   g_strfreev (tokens);
-  return control;
+  return service;
 }
 
 static void
@@ -317,25 +317,25 @@ cb_propigate_property_update (GravitonService *subservice, const gchar *name, gp
 /**
  * graviton_service_add_subservice:
  * @self: The #GravitonService
- * @control: The #GravitonService to add as a sub-control
+ * @service: The #GravitonService to add as a sub-service
  *
- * Adds a control to this one as a sub-control
+ * Adds a service to this one as a sub-service
  *
  */
 void
 graviton_service_add_subservice (GravitonService *self,
-                                      GravitonService *control)
+                                      GravitonService *service)
 {
-  g_object_ref (control);
+  g_object_ref (service);
   gchar *name;
-  g_object_get (control, "name", &name, NULL);
-  g_hash_table_replace (self->priv->controls, name, control);
+  g_object_get (service, "name", &name, NULL);
+  g_hash_table_replace (self->priv->services, name, service);
 
-  g_signal_connect (control,
+  g_signal_connect (service,
                     "notify",
                     G_CALLBACK(cb_subservice_notify),
                     self);
-  g_signal_connect (control,
+  g_signal_connect (service,
                     "property-update",
                     G_CALLBACK(cb_propigate_property_update),
                     self);
@@ -351,7 +351,7 @@ graviton_service_add_subservice (GravitonService *self,
 GList *
 graviton_service_list_subservices (GravitonService *self)
 {
-  return g_hash_table_get_keys (self->priv->controls);
+  return g_hash_table_get_keys (self->priv->services);
 }
 
 /**
@@ -361,7 +361,7 @@ graviton_service_list_subservices (GravitonService *self)
  * @func: A #GravitonServiceStreamGenerator callback to use
  * @user_data: Data that is passed to @func
  *
- * Registers a new stream on this control using the given name
+ * Registers a new stream on this service using the given name
  */
 void
 graviton_service_add_stream (GravitonService *self,
@@ -376,7 +376,7 @@ graviton_service_add_stream (GravitonService *self,
 /**
  * graviton_service_list_streams:
  *
- * Get a list of the streams that are available from this control
+ * Get a list of the streams that are available from this service
  *
  * Returns: (element-type gchar*) (transfer full): the names of the available
  * streams

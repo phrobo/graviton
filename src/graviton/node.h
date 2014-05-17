@@ -53,7 +53,7 @@ GInetSocketAddress *graviton_node_get_address (GravitonNode *node);
 
 GList *graviton_node_get_services (GravitonNode *node, GError **err);
 gboolean graviton_node_has_service (GravitonNode *node, const gchar *name, GError **err);
-GravitonServiceInterface *graviton_node_get_service (GravitonNode *node, const gchar *name);
+GravitonServiceInterface *graviton_node_get_service_interface (GravitonNode *node, const gchar *name, GError **err);
 GVariant *graviton_node_call (GravitonNode *node, const gchar *method, GError **error, ...);
 GVariant *graviton_node_call_args (GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
 GVariant *graviton_node_call_va (GravitonNode *node, const gchar *method, GError **error, va_list args);
