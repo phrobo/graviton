@@ -1,13 +1,13 @@
 #include "config.h"
-#include "internal-plugin.h"
+#include "introspection-control.h"
 #include "server.h"
 #include "control.h"
 #include "file-stream.h"
 #include <json-glib/json-glib.h>
 
-#define GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_INTERNAL_PLUGIN_TYPE, GravitonInternalPluginPrivate))
+#define GRAVITON_INTROSPECTION_CONTROL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_INTROSPECTION_CONTROL_TYPE, GravitonIntrospectionControlPrivate))
 
-//GRAVITON_DEFINE_PLUGIN(GRAVITON_INTERNAL_PLUGIN_TYPE, "graviton")
+//GRAVITON_DEFINE_PLUGIN(GRAVITON_INTROSPECTION_CONTROL_TYPE, "graviton")
 
 GQuark
 graviton_introspection_error_quark()
@@ -15,7 +15,7 @@ graviton_introspection_error_quark()
   return g_quark_from_static_string ("graviton-introspection-error-quark");
 }
 
-G_DEFINE_TYPE (GravitonInternalPlugin, graviton_internal_plugin, GRAVITON_CONTROL_TYPE);
+G_DEFINE_TYPE (GravitonIntrospectionControl, graviton_internal_plugin, GRAVITON_CONTROL_TYPE);
 
 enum
 {
@@ -27,7 +27,7 @@ enum
   N_PROPERTIES
 };
 
-struct _GravitonInternalPluginPrivate
+struct _GravitonIntrospectionControlPrivate
 {
   GravitonServer *server;
   gchar *hostname;
@@ -36,7 +36,7 @@ struct _GravitonInternalPluginPrivate
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
 static GravitonControl *
-grab_control_arg (GravitonInternalPlugin *self, GHashTable *args, GError **error)
+grab_control_arg (GravitonIntrospectionControl *self, GHashTable *args, GError **error)
 {
   GravitonControl *subcontrol;
   const gchar *control_name = NULL;
@@ -74,7 +74,7 @@ set_property (GObject *object,
               const GValue *value,
               GParamSpec *pspec)
 {
-  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (object);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (object);
 
   switch (property_id) {
     case PROP_SERVER:
@@ -99,7 +99,7 @@ get_property (GObject *object,
               GValue *value,
               GParamSpec *pspec)
 {
-  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (object);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (object);
   
   switch (property_id) {
     case PROP_SERVER:
@@ -121,9 +121,9 @@ get_property (GObject *object,
 }
 
 static void
-graviton_internal_plugin_class_init (GravitonInternalPluginClass *klass)
+graviton_internal_plugin_class_init (GravitonIntrospectionControlClass *klass)
 {
-  g_type_class_add_private (klass, sizeof (GravitonInternalPluginPrivate));
+  g_type_class_add_private (klass, sizeof (GravitonIntrospectionControlPrivate));
 
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
@@ -173,7 +173,7 @@ cb_streams(GravitonControl *control, GHashTable *args, GError **error, gpointer 
 {
   GVariantBuilder ret;
   GravitonControl *subcontrol;
-  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
   subcontrol = grab_control_arg (self, args, error);
   
@@ -198,7 +198,7 @@ cb_properties(GravitonControl *control, GHashTable *args, GError **error, gpoint
 {
   GVariantBuilder ret;
   GravitonControl *subcontrol;
-  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
   subcontrol = grab_control_arg (self, args, error);
   
@@ -226,7 +226,7 @@ cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpo
 {
   GVariantBuilder ret;
   GravitonControl *subcontrol;
-  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
   subcontrol = grab_control_arg (self, args, error);
 
@@ -277,7 +277,7 @@ cb_controls(GravitonControl *control, GHashTable *args, GError **error, gpointer
 {
   GVariantBuilder ret;
   GravitonControl *subcontrol;
-  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
   GravitonRootControl *plugins = graviton_server_get_root_control (self->priv->server);
 
   subcontrol = grab_control_arg (self, args, error);
@@ -305,7 +305,7 @@ cb_methods(GravitonControl *control, GHashTable *args, GError **error, gpointer 
 {
   GVariantBuilder ret;
   GravitonControl *subcontrol;
-  GravitonInternalPlugin *self = GRAVITON_INTERNAL_PLUGIN (user_data);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
   subcontrol = grab_control_arg (self, args, error);
 
@@ -327,10 +327,10 @@ cb_methods(GravitonControl *control, GHashTable *args, GError **error, gpointer 
 }
 
 static void
-graviton_internal_plugin_init (GravitonInternalPlugin *self)
+graviton_internal_plugin_init (GravitonIntrospectionControl *self)
 {
-  GravitonInternalPluginPrivate *priv;
-  self->priv = priv = GRAVITON_INTERNAL_PLUGIN_GET_PRIVATE (self);
+  GravitonIntrospectionControlPrivate *priv;
+  self->priv = priv = GRAVITON_INTROSPECTION_CONTROL_GET_PRIVATE (self);
   self->priv->hostname = g_strdup (g_get_host_name ());
 
   GravitonControl *introspection = g_object_new (GRAVITON_CONTROL_TYPE, "name", "introspection", NULL);

@@ -12,7 +12,7 @@ set(libgraviton_SRCS
   node-stream.c
   server.c
   stream.c
-  internal-plugin.c
+  introspection-control.c
   ${CMAKE_CURRENT_BINARY_DIR}/server-interface.c
 )
 

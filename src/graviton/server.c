@@ -1,5 +1,5 @@
 #include "server.h"
-#include "internal-plugin.h"
+#include "introspection-control.h"
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 #include <graviton/root-control.h>
@@ -761,7 +761,7 @@ graviton_server_init (GravitonServer *self)
                     self);
 
   graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
-                                   g_object_new (GRAVITON_INTERNAL_PLUGIN_TYPE, 
+                                   g_object_new (GRAVITON_INTROSPECTION_CONTROL_TYPE, 
                                                  "server", self,
                                                  "name", "net:phrobo:graviton",
                                                  NULL));
