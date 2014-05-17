@@ -265,7 +265,7 @@ graviton_cloud_find_service_sync (GravitonCloud *self, const gchar *serviceName,
         if (TRUE) {
           if (graviton_node_has_service (cur->data, serviceName, &error)) {
             g_debug ("Hit!");
-            GravitonService *service = graviton_service_get_subcontrol (GRAVITON_SERVICE (cur->data), serviceName);
+            GravitonServiceInterface *service = graviton_service_interface_get_subcontrol (GRAVITON_SERVICE_INTERFACE (cur->data), serviceName);
             ret = g_list_append (ret, service);
           } else {
             if (error) {

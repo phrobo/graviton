@@ -6,7 +6,7 @@
 #include <glib-object.h>
 #include <libsoup/soup.h>
 
-#include "service.h"
+#include "service-interface.h"
 
 G_BEGIN_DECLS
 
@@ -32,12 +32,12 @@ typedef struct _GravitonCloud GravitonCloud;
 
 struct _GravitonNodeClass
 {
-  GravitonServiceClass parent_class;
+  GravitonServiceInterfaceClass parent_class;
 };
 
 struct _GravitonNode
 {
-  GravitonService parent;
+  GravitonServiceInterface parent;
   GravitonNodePrivate *priv;
 };
 
@@ -53,7 +53,7 @@ GInetSocketAddress *graviton_node_get_address (GravitonNode *node);
 
 GList *graviton_node_get_services (GravitonNode *node, GError **err);
 gboolean graviton_node_has_service (GravitonNode *node, const gchar *name, GError **err);
-GravitonService *graviton_node_get_service (GravitonNode *node, const gchar *name);
+GravitonServiceInterface *graviton_node_get_service (GravitonNode *node, const gchar *name);
 GVariant *graviton_node_call (GravitonNode *node, const gchar *method, GError **error, ...);
 GVariant *graviton_node_call_args (GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
 GVariant *graviton_node_call_va (GravitonNode *node, const gchar *method, GError **error, va_list args);

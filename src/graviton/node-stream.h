@@ -13,7 +13,7 @@ G_BEGIN_DECLS
 #define IS_GRAVITON_NODE_STREAM_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_NODE_STREAM_TYPE))
 #define GRAVITON_NODE_STREAM_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_NODE_STREAM_TYPE, GravitonNodeStreamClass))
 
-typedef struct _GravitonService GravitonService;
+typedef struct _GravitonServiceInterface GravitonServiceInterface;
 
 typedef struct _GIOStream GIOStream;
 
@@ -34,7 +34,7 @@ struct _GravitonNodeStream
 
 GType graviton_node_stream_get_type (void);
 
-GravitonNodeStream *graviton_node_stream_new (GravitonService *node, const gchar *name, GHashTable *args);
+GravitonNodeStream *graviton_node_stream_new (GravitonServiceInterface *node, const gchar *name, GHashTable *args);
 const gchar *graviton_node_stream_get_name (GravitonNodeStream *stream);
 GIOStream *graviton_node_stream_open (GravitonNodeStream *stream);
 

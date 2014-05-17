@@ -4,9 +4,9 @@ set(libgraviton_SRCS
   root-control.c
   discovery-method.c
   file-stream.c
-  introspection-service.c
+  introspection-interface.c
   node.c
-  service.c
+  service-interface.c
   node-io-stream.c
   node-input-stream.c
   node-stream.c
@@ -21,9 +21,9 @@ set(libgraviton_HEADERS
   control.h
   discovery-method.h
   file-stream.h
-  introspection-service.h
+  introspection-interface.h
   node.h
-  service.h
+  service-interface.h
   node-input-stream.h
   node-io-stream.h
   node-stream.h

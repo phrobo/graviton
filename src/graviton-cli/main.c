@@ -1,18 +1,18 @@
 #include <graviton/cloud.h>
 #include <graviton/node.h>
-#include <graviton/service.h>
-#include <graviton/introspection-service.h>
+#include <graviton/service-interface.h>
+#include <graviton/introspection-interface.h>
 
 void
-print_streams (GravitonService *control)
+print_streams (GravitonServiceInterface *control)
 {
   GError *error = NULL;
-  GravitonIntrospectionControl *inspect = graviton_introspection_service_new_from_control (control);
-  GList *streams = graviton_introspection_service_list_streams (inspect, &error);
+  GravitonIntrospectionControl *inspect = graviton_introspection_interface_new_from_control (control);
+  GList *streams = graviton_introspection_interface_list_streams (inspect, &error);
   GList *cur = streams;
 
   if (error) {
-    g_print ("Error listing streams for %s: %s", graviton_service_get_name (control), error->message);
+    g_print ("Error listing streams for %s: %s", graviton_service_interface_get_name (control), error->message);
     g_object_unref (inspect);
     return;
   }
@@ -26,20 +26,20 @@ print_streams (GravitonService *control)
 }
 
 void
-print_properties (GravitonService *control)
+print_properties (GravitonServiceInterface *control)
 {
   GError *error = NULL;
-  GravitonIntrospectionControl *inspect = graviton_introspection_service_new_from_control (control);
-  GList *properties = graviton_introspection_service_list_properties (inspect, &error);
+  GravitonIntrospectionControl *inspect = graviton_introspection_interface_new_from_control (control);
+  GList *properties = graviton_introspection_interface_list_properties (inspect, &error);
   GList *cur = properties;
 
   if (error) {
-    g_print ("Error listing properties for %s: %s", graviton_service_get_name (control), error->message);
+    g_print ("Error listing properties for %s: %s", graviton_service_interface_get_name (control), error->message);
     return;
   }
 
   while (cur) {
-    GVariant *prop = graviton_service_get_property (control, (gchar*)cur->data, &error);
+    GVariant *prop = graviton_service_interface_get_property (control, (gchar*)cur->data, &error);
     if (error ){
       g_print ("Error getting property %s: %s", cur->data, error->message);
     } else {
@@ -57,21 +57,21 @@ print_properties (GravitonService *control)
 }
 
 void
-print_controls (GravitonService *control)
+print_controls (GravitonServiceInterface *control)
 {
   GError *error = NULL;
-  if (graviton_service_get_name (control) != NULL) {
-    g_printf("%s:\n", graviton_service_get_name (control));
+  if (graviton_service_interface_get_name (control) != NULL) {
+    g_printf("%s:\n", graviton_service_interface_get_name (control));
     g_printf ("\tProperties: \n");
     print_properties (control);
     g_print ("\tStreams:\n");
     print_streams (control);
   }
-  GravitonIntrospectionControl *inspect = graviton_introspection_service_new_from_control (control);
-  GList *controls = graviton_introspection_service_list_controls (inspect, &error);
+  GravitonIntrospectionControl *inspect = graviton_introspection_interface_new_from_control (control);
+  GList *controls = graviton_introspection_interface_list_controls (inspect, &error);
   GList *cur = controls;
   while (cur) {
-    GravitonService *subcontrol = graviton_service_get_subcontrol (control, cur->data);
+    GravitonServiceInterface *subcontrol = graviton_service_interface_get_subcontrol (control, cur->data);
     print_controls (subcontrol);
     cur = cur->next;
     g_object_unref (subcontrol);
@@ -79,7 +79,7 @@ print_controls (GravitonService *control)
   g_object_unref (inspect);
 
   if (error) {
-    g_print("Error listing controls for %s: %s", graviton_service_get_name (control), error->message);
+    g_print("Error listing controls for %s: %s", graviton_service_interface_get_name (control), error->message);
   }
 }
 
@@ -95,7 +95,7 @@ print_node (GravitonNode *node)
     g_print ("Found node: %s\n", id);
   }
   g_print ("Services:\n");
-  print_controls (GRAVITON_SERVICE (node));
+  print_controls (GRAVITON_SERVICE_INTERFACE (node));
 }
 
 void

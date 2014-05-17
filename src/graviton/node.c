@@ -16,7 +16,7 @@ struct _GravitonNodePrivate
   SoupURI *rpc_uri;
   SoupURI *event_uri;
   SoupURI *stream_uri;
-  GravitonService *gobj;
+  GravitonServiceInterface *gobj;
 };
 
 #define GRAVITON_NODE_GET_PRIVATE(o) \
@@ -33,7 +33,7 @@ static void graviton_node_init       (GravitonNode *self);
 static void graviton_node_dispose    (GObject *object);
 static void graviton_node_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonNode, graviton_node, GRAVITON_SERVICE_TYPE);
+G_DEFINE_TYPE (GravitonNode, graviton_node, GRAVITON_SERVICE_INTERFACE_TYPE);
 
 enum {
   PROP_0,
@@ -158,7 +158,7 @@ graviton_node_init (GravitonNode *self)
   self->priv->address = NULL;
   self->priv->soup = soup_session_sync_new ();
   g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
-  self->priv->gobj = graviton_service_get_subcontrol (GRAVITON_SERVICE (self), "net:phrobo:graviton");
+  self->priv->gobj = graviton_service_interface_get_subcontrol (GRAVITON_SERVICE_INTERFACE (self), "net:phrobo:graviton");
 }
 
 static void
@@ -212,7 +212,7 @@ graviton_node_new_from_address (GInetSocketAddress *address)
 const gchar *
 graviton_node_get_id (GravitonNode *self, GError **err)
 {
-  GVariant *ret = graviton_service_get_property (self->priv->gobj, "node-id", err);
+  GVariant *ret = graviton_service_interface_get_property (self->priv->gobj, "node-id", err);
   if (ret) {
     gchar *r = g_variant_dup_string (ret, NULL);
     g_variant_unref (ret);
@@ -224,7 +224,7 @@ graviton_node_get_id (GravitonNode *self, GError **err)
 const gchar *
 graviton_node_get_cloud_id (GravitonNode *self, GError **err)
 {
-  GVariant *ret = graviton_service_get_property (self->priv->gobj, "cloud-id", err);
+  GVariant *ret = graviton_service_interface_get_property (self->priv->gobj, "cloud-id", err);
   if (ret) {
     gchar *r = g_variant_dup_string (ret, NULL);
     g_variant_unref (ret);
@@ -429,7 +429,7 @@ graviton_node_call_args (GravitonNode *self,
   return ret;
 }
 
-GravitonService *
+GravitonServiceInterface *
 graviton_node_get_control (GravitonNode *node, const gchar *name, GError **error)
 {
   return NULL;

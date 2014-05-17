@@ -10,7 +10,7 @@ typedef struct _GravitonNodeStreamPrivate GravitonNodeStreamPrivate;
 struct _GravitonNodeStreamPrivate
 {
   gchar *name;
-  GravitonService *control;
+  GravitonServiceInterface *control;
   GHashTable *args;
 };
 
@@ -46,7 +46,7 @@ set_property (GObject *object,
       self->priv->name = g_value_dup_string (value);
       break;
     case PROP_CONTROL:
-      self->priv->control = GRAVITON_SERVICE (g_value_dup_object (value));
+      self->priv->control = GRAVITON_SERVICE_INTERFACE (g_value_dup_object (value));
       break;
     case PROP_ARGS:
       self->priv->args = g_value_get_pointer (value);
@@ -95,9 +95,9 @@ graviton_node_stream_class_init (GravitonNodeStreamClass *klass)
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
   obj_properties [PROP_CONTROL] = 
     g_param_spec_object ("control",
-                         "GravitonService",
-                         "The underlying GravitonService",
-                         GRAVITON_SERVICE_TYPE,
+                         "GravitonServiceInterface",
+                         "The underlying GravitonServiceInterface",
+                         GRAVITON_SERVICE_INTERFACE_TYPE,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
   obj_properties [PROP_ARGS] = 
     g_param_spec_pointer ("args",
@@ -129,7 +129,7 @@ graviton_node_stream_finalize (GObject *object)
 }
 
 GravitonNodeStream *
-graviton_node_stream_new (GravitonService *control, const gchar *name, GHashTable *args)
+graviton_node_stream_new (GravitonServiceInterface *control, const gchar *name, GHashTable *args)
 {
   return g_object_new (GRAVITON_NODE_STREAM_TYPE, "control", control, "name", name, "args", args, NULL);
 }
@@ -137,8 +137,8 @@ graviton_node_stream_new (GravitonService *control, const gchar *name, GHashTabl
 GIOStream *
 graviton_node_stream_open (GravitonNodeStream *self)
 {
-  gchar *full_name = g_strdup_printf ("%s.%s", graviton_service_get_name (self->priv->control), self->priv->name);
-  GIOStream *ret = graviton_node_open_stream (graviton_service_get_node (self->priv->control), full_name, self->priv->args);
+  gchar *full_name = g_strdup_printf ("%s.%s", graviton_service_interface_get_name (self->priv->control), self->priv->name);
+  GIOStream *ret = graviton_node_open_stream (graviton_service_interface_get_node (self->priv->control), full_name, self->priv->args);
   g_free (full_name);
   return ret;
 }
