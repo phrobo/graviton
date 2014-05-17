@@ -1,7 +1,7 @@
 set(libgraviton_SRCS
   cloud.c
-  control.c
-  root-control.c
+  service.c
+  root-service.c
   discovery-method.c
   file-stream.c
   introspection-interface.c
@@ -12,13 +12,13 @@ set(libgraviton_SRCS
   node-stream.c
   server.c
   stream.c
-  introspection-control.c
+  introspection-service.c
   ${CMAKE_CURRENT_BINARY_DIR}/server-interface.c
 )
 
 set(libgraviton_HEADERS
   cloud.h
-  control.h
+  service.h
   discovery-method.h
   file-stream.h
   introspection-interface.h
@@ -27,7 +27,7 @@ set(libgraviton_HEADERS
   node-input-stream.h
   node-io-stream.h
   node-stream.h
-  root-control.h
+  root-service.h
   server.h
   stream.h
 )
@@ -96,8 +96,8 @@ if (BUILD_G_BINDINGS)
         -L${CMAKE_CURRENT_BINARY_DIR}
         plugin.c
         plugin.h
-        control.h
-        control.h
+        service.h
+        service.h
         -I${CMAKE_CURRENT_SOURCE_DIR}/../
         --no-libtool
         --nsversion=${GRAVITON_VERSION_PLATFORM}

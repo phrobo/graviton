@@ -112,7 +112,7 @@ graviton_introspection_interface_finalize (GObject *object)
 }
 
 GravitonIntrospectionControl *
-graviton_introspection_interface_new_from_control (GravitonServiceInterface *control)
+graviton_introspection_interface_new_from_interface (GravitonServiceInterface *control)
 {
   return graviton_introspection_interface_new (graviton_service_interface_get_node (control), graviton_service_interface_get_name (control));
 }
@@ -146,7 +146,7 @@ call_string_list_method (GravitonIntrospectionControl *self, const gchar *method
   return ret;
 }
 
-GList *graviton_introspection_interface_list_controls (GravitonIntrospectionControl *self, GError **err)
+GList *graviton_introspection_interface_list_interfaces (GravitonIntrospectionControl *self, GError **err)
 {
   GError *error = NULL;
   GList *ret = NULL;

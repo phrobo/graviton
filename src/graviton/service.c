@@ -1,40 +1,40 @@
-#include "control.h"
+#include "service.h"
 #include <string.h>
 
-#define GRAVITON_CONTROL_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_CONTROL_TYPE, GravitonControlPrivate))
+#define GRAVITON_SERVICE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_SERVICE_TYPE, GravitonServicePrivate))
 
 GQuark
-graviton_control_error_quark ()
+graviton_service_error_quark ()
 {
   return g_quark_from_static_string ("graviton-control-error-quark");
 }
 
 /**
- * GravitonControl:
+ * GravitonService:
  *
  * Controls provide services to the graviton network by way of exposing a set of
  * properties, methods, IO channels, and child controls. Controls have names
  * which are browseable via the net:phrobo:graviton introspection control.
  *
  * After a #GravitonServer is created, you can attach controls to it by fetching
- * its #GravitonRootControl via graviton_server_get_root_control() and calling
- * graviton_control_add_subcontrol().
+ * its #GravitonRootService via graviton_server_get_root_service() and calling
+ * graviton_service_add_subservice().
  *
- * Properties are exposed on a #GravitonControl through the normal #GObject API
+ * Properties are exposed on a #GravitonService through the normal #GObject API
  * that is used by g_object_set()/g_object_get()
  *
  * FIXME: Example of properties
  *
- * Methods are exposed by calling graviton_control_add_method() and supplying a
+ * Methods are exposed by calling graviton_service_add_method() and supplying a
  * callback.
  *
  * FIXME: Example of adding a method
  *
- * IO channels use graviton_control_add_stream() with a supplied
- * #GravitonControlStreamGenerator callback for later activation.
+ * IO channels use graviton_service_add_stream() with a supplied
+ * #GravitonServiceStreamGenerator callback for later activation.
  *
  */
-G_DEFINE_TYPE (GravitonControl, graviton_control, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GravitonService, graviton_service, G_TYPE_OBJECT);
 
 enum {
   PROP_0,
@@ -52,7 +52,7 @@ enum {
 
 static int obj_signals[N_SIGNALS] = {0, };
 
-struct _GravitonControlPrivate
+struct _GravitonServicePrivate
 {
   gchar *name;
   GHashTable *controls;
@@ -69,7 +69,7 @@ set_property (GObject *object,
                      const GValue *value,
                      GParamSpec *pspec)
 {
-  GravitonControl *self = GRAVITON_CONTROL (object);
+  GravitonService *self = GRAVITON_SERVICE (object);
   switch (property_id) {
     case PROP_NAME:
       self->priv->name = g_value_dup_string (value);
@@ -86,7 +86,7 @@ get_property (GObject *object,
                      GValue *value,
                      GParamSpec *pspec)
 {
-  GravitonControl *self = GRAVITON_CONTROL (object);
+  GravitonService *self = GRAVITON_SERVICE (object);
   switch (property_id) {
     case PROP_NAME:
       g_value_set_string (value, self->priv->name);
@@ -98,10 +98,10 @@ get_property (GObject *object,
 }
 
 static void
-graviton_control_class_init (GravitonControlClass *klass)
+graviton_service_class_init (GravitonServiceClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-  g_type_class_add_private (klass, sizeof (GravitonControlPrivate));
+  g_type_class_add_private (klass, sizeof (GravitonServicePrivate));
 
   gobject_class->set_property = set_property;
   gobject_class->get_property = get_property;
@@ -131,10 +131,10 @@ graviton_control_class_init (GravitonControlClass *klass)
 }
 
 static void
-graviton_control_init (GravitonControl *self)
+graviton_service_init (GravitonService *self)
 {
-  GravitonControlPrivate *priv;
-  self->priv = priv = GRAVITON_CONTROL_GET_PRIVATE (self);
+  GravitonServicePrivate *priv;
+  self->priv = priv = GRAVITON_SERVICE_GET_PRIVATE (self);
   priv->name = 0;
   priv->streams = g_hash_table_new_full (g_str_hash,
                                          g_str_equal,
@@ -163,32 +163,32 @@ graviton_control_init (GravitonControl *self)
 }
 
 static void
-graviton_control_dispose (GravitonControl *self)
+graviton_service_dispose (GravitonService *self)
 {
   g_hash_table_unref (self->priv->methods);
   g_hash_table_unref (self->priv->method_data);
 }
 
 static void
-graviton_control_finalize (GravitonControl *self)
+graviton_service_finalize (GravitonService *self)
 {
   g_free (self->priv->name);
 }
 
 /**
- * graviton_control_add_method:
- * @self: The #GravitonControl
+ * graviton_service_add_method:
+ * @self: The #GravitonService
  * @name: String name of the method
- * @func: Callback with a #GravitonControlMethod signature
+ * @func: Callback with a #GravitonServiceMethod signature
  * @user_data: (closure): Data for @func
  * @destroy_func: (destroy): Destroy notifier to free @user_data
  *
- * Adds a method to the #GravitonControl @self.
+ * Adds a method to the #GravitonService @self.
  */
 void
-graviton_control_add_method (GravitonControl *self,
+graviton_service_add_method (GravitonService *self,
                              const gchar *name,
-                             GravitonControlMethod func,
+                             GravitonServiceMethod func,
                              gpointer user_data,
                              GDestroyNotify destroy_func)
 {
@@ -199,19 +199,19 @@ graviton_control_add_method (GravitonControl *self,
 }
 
 /**
- * graviton_control_call_method:
- * @self: The #GravitonControl
+ * graviton_service_call_method:
+ * @self: The #GravitonService
  * @name: String name of the method
  * @args: (element-type gchar* GValue): A mapping of argument names to values
  * @error: return location for a #GError or NULL
  */
 GVariant *
-graviton_control_call_method (GravitonControl *self,
+graviton_service_call_method (GravitonService *self,
                               const gchar *name,
                               GHashTable *args,
                               GError **error)
 {
-  GravitonControlMethod func;
+  GravitonServiceMethod func;
   gpointer data;
   func = g_hash_table_lookup (self->priv->methods, name);
   data = g_hash_table_lookup (self->priv->method_data, name);
@@ -223,8 +223,8 @@ graviton_control_call_method (GravitonControl *self,
     return ret;
   } else {
     g_set_error (error,
-                 GRAVITON_CONTROL_ERROR,
-                 GRAVITON_CONTROL_ERROR_NO_SUCH_METHOD,
+                 GRAVITON_SERVICE_ERROR,
+                 GRAVITON_SERVICE_ERROR_NO_SUCH_METHOD,
                  "No such method: %s",
                  name);
     return NULL;
@@ -232,45 +232,45 @@ graviton_control_call_method (GravitonControl *self,
 }
 
 /**
- * graviton_control_list_methods:
+ * graviton_service_list_methods:
  *
  * Get a list of methods on this control
  *
  * Returns: (element-type *gchar) (transfer none): List of method names
  */
 GList *
-graviton_control_list_methods (GravitonControl *self)
+graviton_service_list_methods (GravitonService *self)
 {
   return g_hash_table_get_keys (self->priv->methods);
 }
 
 /**
- * graviton_control_has_method:
- * @self: The #GravitonControl
+ * graviton_service_has_method:
+ * @self: The #GravitonService
  * @name: String name of the method
  *
  * Returns: TRUE if the method exists on this control, FALSE otherwise.
  */
 gboolean
-graviton_control_has_method (GravitonControl *self, const gchar *name)
+graviton_service_has_method (GravitonService *self, const gchar *name)
 {
   return g_hash_table_contains (self->priv->methods, name);
 }
 
 /**
- * graviton_control_get_subcontrol:
- * @self: The #GravitonControl
- * @path: String path to the subcontrol
+ * graviton_service_get_subservice:
+ * @self: The #GravitonService
+ * @path: String path to the subservice
  *
  * Gets the named control.
  *
  * Returns: The control
  */
-GravitonControl *
-graviton_control_get_subcontrol (GravitonControl *self,
+GravitonService *
+graviton_service_get_subservice (GravitonService *self,
                                  const gchar *path)
 {
-  GravitonControl *control = NULL;
+  GravitonService *control = NULL;
   gchar **tokens;
   g_return_val_if_fail (path != NULL, NULL);
   g_return_val_if_fail (strlen(path) > 0, NULL);
@@ -279,7 +279,7 @@ graviton_control_get_subcontrol (GravitonControl *self,
   if (control) {
     if (g_strv_length (tokens) > 1) {
       gchar *subname = g_strjoinv ("/", &tokens[1]);
-      control = graviton_control_get_subcontrol (control, subname);
+      control = graviton_service_get_subservice (control, subname);
       g_free (subname);
     } else {
       g_object_ref (control);
@@ -290,11 +290,11 @@ graviton_control_get_subcontrol (GravitonControl *self,
 }
 
 static void
-cb_subcontrol_notify (GravitonControl *subcontrol, GParamSpec *pspec, gpointer user_data)
+cb_subservice_notify (GravitonService *subservice, GParamSpec *pspec, gpointer user_data)
 {
-  GravitonControl *self = GRAVITON_CONTROL(user_data);
+  GravitonService *self = GRAVITON_SERVICE(user_data);
   gchar *subname;
-  g_object_get (subcontrol, "name", &subname, NULL);
+  g_object_get (subservice, "name", &subname, NULL);
   gchar *full_name = g_strdup_printf ("%s/%s", subname, pspec->name);
 
   g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], 0, full_name);
@@ -303,9 +303,9 @@ cb_subcontrol_notify (GravitonControl *subcontrol, GParamSpec *pspec, gpointer u
 }
 
 static void
-cb_propigate_property_update (GravitonControl *subcontrol, const gchar *name, gpointer user_data)
+cb_propigate_property_update (GravitonService *subservice, const gchar *name, gpointer user_data)
 {
-  GravitonControl *self = GRAVITON_CONTROL(user_data);
+  GravitonService *self = GRAVITON_SERVICE(user_data);
   gchar *full_name = g_strdup_printf ("%s/%s", self->priv->name, name);
 
   g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], 0, full_name);
@@ -315,16 +315,16 @@ cb_propigate_property_update (GravitonControl *subcontrol, const gchar *name, gp
 }
 
 /**
- * graviton_control_add_subcontrol:
- * @self: The #GravitonControl
- * @control: The #GravitonControl to add as a sub-control
+ * graviton_service_add_subservice:
+ * @self: The #GravitonService
+ * @control: The #GravitonService to add as a sub-control
  *
  * Adds a control to this one as a sub-control
  *
  */
 void
-graviton_control_add_subcontrol (GravitonControl *self,
-                                      GravitonControl *control)
+graviton_service_add_subservice (GravitonService *self,
+                                      GravitonService *control)
 {
   g_object_ref (control);
   gchar *name;
@@ -333,7 +333,7 @@ graviton_control_add_subcontrol (GravitonControl *self,
 
   g_signal_connect (control,
                     "notify",
-                    G_CALLBACK(cb_subcontrol_notify),
+                    G_CALLBACK(cb_subservice_notify),
                     self);
   g_signal_connect (control,
                     "property-update",
@@ -342,31 +342,31 @@ graviton_control_add_subcontrol (GravitonControl *self,
 }
 
 /**
- * graviton_control_list_subcontrols:
+ * graviton_service_list_subservices:
  *
- * Get a list of the names of available subcontrols.
+ * Get a list of the names of available subservices.
  *
- * Returns: (element-type gchar*) (transfer full): the names of the available subcontrols
+ * Returns: (element-type gchar*) (transfer full): the names of the available subservices
  */
 GList *
-graviton_control_list_subcontrols (GravitonControl *self)
+graviton_service_list_subservices (GravitonService *self)
 {
   return g_hash_table_get_keys (self->priv->controls);
 }
 
 /**
- * graviton_control_add_stream:
- * @self: The #GravitonControl
+ * graviton_service_add_stream:
+ * @self: The #GravitonService
  * @name: String name of the stream to add
- * @func: A #GravitonControlStreamGenerator callback to use
+ * @func: A #GravitonServiceStreamGenerator callback to use
  * @user_data: Data that is passed to @func
  *
  * Registers a new stream on this control using the given name
  */
 void
-graviton_control_add_stream (GravitonControl *self,
+graviton_service_add_stream (GravitonService *self,
                              const gchar *name,
-                             GravitonControlStreamGenerator func,
+                             GravitonServiceStreamGenerator func,
                              gpointer user_data)
 {
   g_hash_table_replace (self->priv->streams, g_strdup (name), func);
@@ -374,7 +374,7 @@ graviton_control_add_stream (GravitonControl *self,
 }
 
 /**
- * graviton_control_list_streams:
+ * graviton_service_list_streams:
  *
  * Get a list of the streams that are available from this control
  *
@@ -382,22 +382,22 @@ graviton_control_add_stream (GravitonControl *self,
  * streams
  */
 GList *
-graviton_control_list_streams (GravitonControl *self)
+graviton_service_list_streams (GravitonService *self)
 {
   return g_hash_table_get_keys (self->priv->streams);
 }
 
 /**
- * graviton_control_get_stream:
+ * graviton_service_get_stream:
  * @self: The #GravitonStream
  * @name: String name of the stream requested
  * @args: (element-type gchar* GValue): Mapping of arguments to values
  * @error: Return location for a #GError, or NULL
  */
 GravitonStream *
-graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTable *args, GError **error)
+graviton_service_get_stream (GravitonService *self, const gchar *name, GHashTable *args, GError **error)
 {
-  GravitonControlStreamGenerator func = g_hash_table_lookup (self->priv->streams, name);
+  GravitonServiceStreamGenerator func = g_hash_table_lookup (self->priv->streams, name);
   gpointer func_data = g_hash_table_lookup (self->priv->stream_data, name);
   if (func)
     return func(self, name, args, error, func_data);
@@ -405,15 +405,15 @@ graviton_control_get_stream (GravitonControl *self, const gchar *name, GHashTabl
 }
 
 /**
- * graviton_control_new:
+ * graviton_service_new:
  * @serviceName: Name of the service to use
  *
- * Creates a new #GravitonControl with a service name
+ * Creates a new #GravitonService with a service name
  *
- * Returns: A new #GravitonControl that exposes the given @serviceName
+ * Returns: A new #GravitonService that exposes the given @serviceName
  */
-GravitonControl *
-graviton_control_new (const gchar *serviceName)
+GravitonService *
+graviton_service_new (const gchar *serviceName)
 {
-  return g_object_new (GRAVITON_CONTROL_TYPE, "name", serviceName, NULL);
+  return g_object_new (GRAVITON_SERVICE_TYPE, "name", serviceName, NULL);
 }

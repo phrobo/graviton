@@ -4,7 +4,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include "node.h"
-#include "control.h"
+#include "service.h"
 
 G_BEGIN_DECLS
 

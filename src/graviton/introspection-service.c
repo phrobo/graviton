@@ -1,7 +1,7 @@
 #include "config.h"
-#include "introspection-control.h"
+#include "introspection-service.h"
 #include "server.h"
-#include "control.h"
+#include "service.h"
 #include "file-stream.h"
 #include <json-glib/json-glib.h>
 
@@ -15,7 +15,7 @@ graviton_introspection_error_quark()
   return g_quark_from_static_string ("graviton-introspection-error-quark");
 }
 
-G_DEFINE_TYPE (GravitonIntrospectionControl, graviton_internal_plugin, GRAVITON_CONTROL_TYPE);
+G_DEFINE_TYPE (GravitonIntrospectionControl, graviton_internal_plugin, GRAVITON_SERVICE_TYPE);
 
 enum
 {
@@ -35,12 +35,12 @@ struct _GravitonIntrospectionControlPrivate
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
-static GravitonControl *
+static GravitonService *
 grab_control_arg (GravitonIntrospectionControl *self, GHashTable *args, GError **error)
 {
-  GravitonControl *subcontrol;
+  GravitonService *subservice;
   const gchar *control_name = NULL;
-  GravitonRootControl *plugins = graviton_server_get_root_control (self->priv->server);
+  GravitonRootService *plugins = graviton_server_get_root_service (self->priv->server);
 
   if (g_hash_table_lookup (args, "control")) {
     GVariant *controlArg = g_hash_table_lookup (args, "control");
@@ -50,21 +50,21 @@ grab_control_arg (GravitonIntrospectionControl *self, GHashTable *args, GError *
 
   if (control_name) {
     g_debug ("Querying control %s", control_name);
-    subcontrol = graviton_control_get_subcontrol (GRAVITON_CONTROL (plugins), control_name);
+    subservice = graviton_service_get_subservice (GRAVITON_SERVICE (plugins), control_name);
     g_object_unref (plugins);
   } else {
     g_debug ("Querying plugin manager");
-    subcontrol = GRAVITON_CONTROL (plugins);
+    subservice = GRAVITON_SERVICE (plugins);
   }
 
-  if (!subcontrol) {
+  if (!subservice) {
     g_set_error (error,
                  GRAVITON_INTROSPECTION_ERROR,
                  GRAVITON_INTROSPECTION_ERROR_NO_SUCH_CONTROL,
                  "No such control %s", control_name);
   }
 
-  return subcontrol;
+  return subservice;
 }
 
 
@@ -160,7 +160,7 @@ graviton_internal_plugin_class_init (GravitonIntrospectionControlClass *klass)
 }
 
 static GravitonStream *
-cb_stream_zero (GravitonControl *self, const gchar *name, GHashTable *args, GError **error, gpointer user_data)
+cb_stream_zero (GravitonService *self, const gchar *name, GHashTable *args, GError **error, gpointer user_data)
 {
   GFile *dev = g_file_new_for_path ("/dev/zero");
   GravitonStream *ret = GRAVITON_STREAM (graviton_file_stream_new (dev));
@@ -169,46 +169,46 @@ cb_stream_zero (GravitonControl *self, const gchar *name, GHashTable *args, GErr
 }
 
 static GVariant *
-cb_streams(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_streams(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   GVariantBuilder ret;
-  GravitonControl *subcontrol;
+  GravitonService *subservice;
   GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
-  subcontrol = grab_control_arg (self, args, error);
+  subservice = grab_control_arg (self, args, error);
   
-  if (!subcontrol)
+  if (!subservice)
     return NULL;
 
   g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
-  GList *streams = graviton_control_list_streams (subcontrol);
+  GList *streams = graviton_service_list_streams (subservice);
   GList *cur = streams;
   while (cur) {
     g_variant_builder_add (&ret, "s", cur->data);
     cur = cur->next;
   }
-  g_object_unref (subcontrol);
+  g_object_unref (subservice);
 
   return g_variant_builder_end (&ret);
 }
 
 
 static GVariant *
-cb_properties(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_properties(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   GVariantBuilder ret;
-  GravitonControl *subcontrol;
+  GravitonService *subservice;
   GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
-  subcontrol = grab_control_arg (self, args, error);
+  subservice = grab_control_arg (self, args, error);
   
-  if (!subcontrol)
+  if (!subservice)
     return NULL;
 
   GParamSpec **properties;
   int property_count;
   int i;
-  properties = g_object_class_list_properties (G_OBJECT_GET_CLASS (subcontrol), &property_count);
+  properties = g_object_class_list_properties (G_OBJECT_GET_CLASS (subservice), &property_count);
   g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
   for (i = 0; i<property_count; i++) {
     g_variant_builder_add (&ret, "s", properties[i]->name);
@@ -216,31 +216,31 @@ cb_properties(GravitonControl *control, GHashTable *args, GError **error, gpoint
 
   g_free (properties);
 
-  g_object_unref (subcontrol);
+  g_object_unref (subservice);
 
   return g_variant_builder_end (&ret);
 }
 
 static GVariant *
-cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_get_property (GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   GVariantBuilder ret;
-  GravitonControl *subcontrol;
+  GravitonService *subservice;
   GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
-  subcontrol = grab_control_arg (self, args, error);
+  subservice = grab_control_arg (self, args, error);
 
-  if (!subcontrol)
+  if (!subservice)
     return NULL;
 
   const gchar *property_name;
   property_name = g_variant_get_string (g_hash_table_lookup (args, "property"), NULL);
-  GParamSpec *property = g_object_class_find_property (G_OBJECT_GET_CLASS (subcontrol), property_name);
+  GParamSpec *property = g_object_class_find_property (G_OBJECT_GET_CLASS (subservice), property_name);
   if (property) {
     GValue property_value = G_VALUE_INIT;
     GVariant *converted_variant = NULL;
     g_value_init (&property_value, property->value_type);
-    g_object_get_property (G_OBJECT(subcontrol), property->name, &property_value);
+    g_object_get_property (G_OBJECT(subservice), property->name, &property_value);
     if (G_VALUE_HOLDS_STRING (&property_value)) {
       converted_variant = g_variant_new_string (g_value_get_string (&property_value));
     } else if (G_VALUE_HOLDS_VARIANT (&property_value)) {
@@ -261,32 +261,32 @@ cb_get_property (GravitonControl *control, GHashTable *args, GError **error, gpo
 }
 
 static GVariant *
-cb_nodes(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_nodes(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   return NULL;
 }
 
 static GVariant *
-cb_clouds(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_clouds(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   return NULL;
 }
 
 static GVariant *
-cb_controls(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_controls(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   GVariantBuilder ret;
-  GravitonControl *subcontrol;
+  GravitonService *subservice;
   GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
-  GravitonRootControl *plugins = graviton_server_get_root_control (self->priv->server);
+  GravitonRootService *plugins = graviton_server_get_root_service (self->priv->server);
 
-  subcontrol = grab_control_arg (self, args, error);
+  subservice = grab_control_arg (self, args, error);
 
-  if (!subcontrol) {
+  if (!subservice) {
     return NULL;
   }
 
-  GList *controls = graviton_control_list_subcontrols (subcontrol);
+  GList *controls = graviton_service_list_subservices (subservice);
   g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
   GList *cur = controls;
   while (cur) { 
@@ -295,24 +295,24 @@ cb_controls(GravitonControl *control, GHashTable *args, GError **error, gpointer
     cur = g_list_next (cur);
   }
 
-  g_object_unref (subcontrol);
+  g_object_unref (subservice);
 
   return g_variant_builder_end (&ret);
 }
 
 static GVariant *
-cb_methods(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_methods(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   GVariantBuilder ret;
-  GravitonControl *subcontrol;
+  GravitonService *subservice;
   GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
-  subcontrol = grab_control_arg (self, args, error);
+  subservice = grab_control_arg (self, args, error);
 
-  if (!subcontrol)
+  if (!subservice)
     return NULL;
 
-  GList *methods = graviton_control_list_methods (subcontrol);
+  GList *methods = graviton_service_list_methods (subservice);
   g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
 
   GList *cur = methods;
@@ -321,7 +321,7 @@ cb_methods(GravitonControl *control, GHashTable *args, GError **error, gpointer 
     cur = g_list_next (cur);
   }
 
-  g_object_unref (subcontrol);
+  g_object_unref (subservice);
 
   return g_variant_builder_end (&ret);
 }
@@ -333,46 +333,46 @@ graviton_internal_plugin_init (GravitonIntrospectionControl *self)
   self->priv = priv = GRAVITON_INTROSPECTION_CONTROL_GET_PRIVATE (self);
   self->priv->hostname = g_strdup (g_get_host_name ());
 
-  GravitonControl *introspection = g_object_new (GRAVITON_CONTROL_TYPE, "name", "introspection", NULL);
-  graviton_control_add_method (introspection,
+  GravitonService *introspection = g_object_new (GRAVITON_SERVICE_TYPE, "name", "introspection", NULL);
+  graviton_service_add_method (introspection,
                                "listControls",
                                cb_controls,
                                self,
                                NULL);
-  graviton_control_add_method (introspection,
+  graviton_service_add_method (introspection,
                                "listMethods",
                                cb_methods,
                                self,
                                NULL);
-  graviton_control_add_method (introspection,
+  graviton_service_add_method (introspection,
                                "listProperties",
                                cb_properties,
                                self,
                                NULL);
-  graviton_control_add_method (introspection,
+  graviton_service_add_method (introspection,
                                "listStreams",
                                cb_streams,
                                self,
                                NULL);
-  graviton_control_add_method (introspection,
+  graviton_service_add_method (introspection,
                                "listNodes",
                                cb_nodes,
                                self,
                                NULL);
-  graviton_control_add_method (introspection,
+  graviton_service_add_method (introspection,
                                "listClouds",
                                cb_clouds,
                                self,
                                NULL);
-  graviton_control_add_method (introspection,
+  graviton_service_add_method (introspection,
                                "getProperty",
                                cb_get_property,
                                self,
                                NULL);
-  graviton_control_add_stream (introspection,
+  graviton_service_add_stream (introspection,
                                "zero",
                                cb_stream_zero,
                                self);
 
-  graviton_control_add_subcontrol (GRAVITON_CONTROL (self), introspection);
+  graviton_service_add_subservice (GRAVITON_SERVICE (self), introspection);
 }

@@ -1,9 +1,9 @@
 #include "server.h"
-#include "introspection-control.h"
+#include "introspection-service.h"
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
-#include <graviton/root-control.h>
-#include <graviton/control.h>
+#include <graviton/root-service.h>
+#include <graviton/service.h>
 #include <string.h>
 #include <avahi-client/client.h>
 #include <avahi-client/publish.h>
@@ -29,7 +29,7 @@ graviton_server_error_quark ()
  * A core concept of Graviton is nodes that provide services to a cloud of other
  * servers and clients.
  *
- * The #GravitonServer exposes a list #GravitonControl objects to a cloud. It
+ * The #GravitonServer exposes a list #GravitonService objects to a cloud. It
  * may be addressed by a tuple of cloud-id and node-id.
  *
  * #GravitonServer supports routing of messages to other nodes in the network
@@ -39,7 +39,7 @@ graviton_server_error_quark ()
  *
  * To begin, create a server using graviton_server_new(). You can add a control
  * that implements a given interface by attaching it to the
- * #GravitonRootControl exposed via graviton_server_get_root_control().
+ * #GravitonRootService exposed via graviton_server_get_root_service().
  *
  * Servers have two unique properties: #GravitonServer:node-id and
  * #GravitonServer:cloud-id. The cloud ID is shared by all members of the cloud
@@ -67,7 +67,7 @@ struct _GravitonServerPrivate
 {
   SoupServer *server;
   SoupServer *server6;
-  GravitonRootControl *plugins;
+  GravitonRootService *plugins;
   GList *event_listeners;
   GHashTable *plugin_names;
   GList *streams;
@@ -288,7 +288,7 @@ handle_rpc (GravitonServer *self, JsonObject *request)
   JsonNode *result = NULL;
   GError *error = NULL;
   const gchar *request_id;
-  GravitonControl *control;
+  GravitonService *control;
   gchar **rpc_method_name;
   gchar *method_name;
   gchar *control_name;
@@ -305,7 +305,7 @@ handle_rpc (GravitonServer *self, JsonObject *request)
 
   g_debug ("Looking for control %s", control_name);
 
-  control = graviton_control_get_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
+  control = graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
                                              control_name);
   if (!control) {
     g_set_error (&error,
@@ -318,7 +318,7 @@ handle_rpc (GravitonServer *self, JsonObject *request)
 
   g_debug ("Looking for method %s", method_name);
 
-  if (graviton_control_has_method (control, method_name)) {
+  if (graviton_service_has_method (control, method_name)) {
     GHashTable *args = g_hash_table_new_full (g_str_hash,
                                               g_str_equal,
                                               g_free,
@@ -341,7 +341,7 @@ handle_rpc (GravitonServer *self, JsonObject *request)
         g_list_free (param_names);
       }
     }
-    method_result = graviton_control_call_method (control, method_name, args, &error);
+    method_result = graviton_service_call_method (control, method_name, args, &error);
     g_hash_table_unref (args);
     if (method_result)
       g_variant_take_ref (method_result);
@@ -406,7 +406,7 @@ cb_handle_stream (SoupServer *server,
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
   GravitonStream *stream = NULL;
-  GravitonControl *control = NULL;
+  GravitonService *control = NULL;
   GError *error = NULL;
   gchar **stream_path;
   gchar *control_name;
@@ -420,7 +420,7 @@ cb_handle_stream (SoupServer *server,
   stream_name = g_strdup (stream_path[1]);
   g_strfreev (stream_path);
 
-  control = graviton_control_get_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
+  control = graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
                                              control_name);
 
   if (!control) {
@@ -429,7 +429,7 @@ cb_handle_stream (SoupServer *server,
     return;
   }
 
-  stream = graviton_control_get_stream (control, stream_name, query, &error);
+  stream = graviton_service_get_stream (control, stream_name, query, &error);
 
   if (error) {
     g_debug ("Error getting stream: %s", error->message);
@@ -635,7 +635,7 @@ cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext 
 }
 
 static void
-cb_property_update (GravitonControl *control, const gchar *name, gpointer user_data)
+cb_property_update (GravitonService *control, const gchar *name, gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER(user_data);
 
@@ -656,11 +656,11 @@ cb_property_update (GravitonControl *control, const gchar *name, gpointer user_d
   control_name = g_strjoinv (".", split_property_name);
   g_strfreev (split_property_name);
 
-  GravitonControl *subcontrol = graviton_control_get_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
+  GravitonService *subservice = graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
                                                                  control_name);
-  GParamSpec *prop = g_object_class_find_property (G_OBJECT_GET_CLASS (subcontrol), property_name);
+  GParamSpec *prop = g_object_class_find_property (G_OBJECT_GET_CLASS (subservice), property_name);
   g_value_init (&property_value, prop->value_type);
-  g_object_get_property (G_OBJECT (subcontrol), prop->name, &property_value);
+  g_object_get_property (G_OBJECT (subservice), prop->name, &property_value);
   g_free (property_name);
   g_free (control_name);
 
@@ -746,7 +746,7 @@ graviton_server_init (GravitonServer *self)
 
   priv->avahi_group = NULL;
 
-  priv->plugins = graviton_root_control_new ();
+  priv->plugins = graviton_root_service_new ();
   priv->event_listeners = NULL;
   priv->streams = NULL;
   priv->server = new_server (self, SOUP_ADDRESS_FAMILY_IPV4);
@@ -760,7 +760,7 @@ graviton_server_init (GravitonServer *self)
                     G_CALLBACK (cb_property_update),
                     self);
 
-  graviton_control_add_subcontrol (GRAVITON_CONTROL (self->priv->plugins),
+  graviton_service_add_subservice (GRAVITON_SERVICE (self->priv->plugins),
                                    g_object_new (GRAVITON_INTROSPECTION_CONTROL_TYPE, 
                                                  "server", self,
                                                  "name", "net:phrobo:graviton",
@@ -803,15 +803,15 @@ void graviton_server_run_async (GravitonServer *self)
 }
 
 /**
- * graviton_server_get_root_control:
+ * graviton_server_get_root_service:
  *
- * Gets the #GravitonRootControl for this server. Required for attaching
+ * Gets the #GravitonRootService for this server. Required for attaching
  * sub-controls and exposing them to the cloud this server is a member of.
  *
- * Returns: The #GravitonRootControl for this server
+ * Returns: The #GravitonRootService for this server
  */
-GravitonRootControl *
-graviton_server_get_root_control (GravitonServer *self)
+GravitonRootService *
+graviton_server_get_root_service (GravitonServer *self)
 {
   g_object_ref (self->priv->plugins);
   return self->priv->plugins;

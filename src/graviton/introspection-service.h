@@ -2,7 +2,7 @@
 #define GRAVITON_INTROSPECTION_CONTROL_H
 
 #include <glib-object.h>
-#include <graviton/control.h>
+#include <graviton/service.h>
 
 #define GRAVITON_INTROSPECTION_CONTROL_TYPE     (graviton_internal_plugin_get_type ())
 #define GRAVITON_INTROSPECTION_CONTROL(obj)          (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_INTROSPECTION_CONTROL_TYPE, GravitonIntrospectionControl))
@@ -26,13 +26,13 @@ typedef struct _GravitonIntrospectionControlPrivate GravitonIntrospectionControl
 
 struct _GravitonIntrospectionControl
 {
-  GravitonControl parent_instance;
+  GravitonService parent_instance;
   GravitonIntrospectionControlPrivate *priv;
 };
 
 struct _GravitonIntrospectionControlClass
 {
-  GravitonControlClass parent_class;
+  GravitonServiceClass parent_class;
 };
 
 GType graviton_internal_plugin_get_type ();

@@ -127,7 +127,7 @@ graviton_service_interface_get_name (GravitonServiceInterface *self)
 }
 
 GravitonServiceInterface *
-graviton_service_interface_get_subcontrol (GravitonServiceInterface *self, const gchar *name)
+graviton_service_interface_get_subservice (GravitonServiceInterface *self, const gchar *name)
 {
   gchar *full_name;
   GravitonServiceInterface *node = self;

@@ -2,7 +2,7 @@
 #define GRAVITON_SERVER_H
 
 #include <glib-object.h>
-#include <graviton/root-control.h>
+#include <graviton/root-service.h>
 
 #define GRAVITON_SERVER_TYPE            (graviton_server_get_type ())
 #define GRAVITON_SERVER(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_SERVER_TYPE, GravitonServer))
@@ -44,7 +44,7 @@ void graviton_server_run_async (GravitonServer *server);
 
 void graviton_server_load_plugins (GravitonServer *server);
 
-GravitonRootControl *graviton_server_get_root_control (GravitonServer *server);
+GravitonRootService *graviton_server_get_root_service (GravitonServer *server);
 
 const gchar *graviton_server_get_cloud_id (GravitonServer *server);
 const gchar *graviton_server_get_node_id (GravitonServer *server);

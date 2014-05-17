@@ -35,8 +35,8 @@ struct _GravitonServiceInterface
 GType graviton_service_interface_get_type (void);
 
 const gchar *graviton_service_interface_get_name (GravitonServiceInterface *self);
-GList *graviton_service_interface_list_subcontrols (GravitonServiceInterface *self, GError **error);
-GravitonServiceInterface *graviton_service_interface_get_subcontrol (GravitonServiceInterface *self, const gchar *name);
+GList *graviton_service_interface_list_subservices (GravitonServiceInterface *self, GError **error);
+GravitonServiceInterface *graviton_service_interface_get_subservice (GravitonServiceInterface *self, const gchar *name);
 GList *graviton_service_interface_list_properties (GravitonServiceInterface *control, GError **error);
 GVariant *graviton_service_interface_get_property (GravitonServiceInterface *control, const gchar *prop, GError **error);
 GravitonNode *graviton_service_interface_get_node (GravitonServiceInterface *control);

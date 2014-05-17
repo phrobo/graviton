@@ -1,10 +1,10 @@
 #include <graviton/server.h>
-#include <graviton/control.h>
+#include <graviton/service.h>
 
 #include <glib.h>
 
 static GVariant *
-cb_ping(GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_ping(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   g_printf ("Responding to ping request\n");
   return g_variant_new_string ("pong");
@@ -22,11 +22,11 @@ int main(int argc, char** argv)
   loop = g_main_loop_new (NULL, FALSE);
 
   server = graviton_server_new ();
-  GravitonRootControl *root = graviton_server_get_root_control (server);
-  GravitonControl *pingService = graviton_control_new ("net:phrobo:graviton:ping");
-  graviton_control_add_subcontrol (GRAVITON_CONTROL (root), pingService);
+  GravitonRootService *root = graviton_server_get_root_service (server);
+  GravitonService *pingService = graviton_service_new ("net:phrobo:graviton:ping");
+  graviton_service_add_subservice (GRAVITON_SERVICE (root), pingService);
 
-  graviton_control_add_method (pingService, "ping", cb_ping, NULL, NULL);
+  graviton_service_add_method (pingService, "ping", cb_ping, NULL, NULL);
 
   const gchar *cloud_id = graviton_server_get_cloud_id (server);
   const gchar *node_id = graviton_server_get_node_id (server);

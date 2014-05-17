@@ -158,7 +158,7 @@ graviton_node_init (GravitonNode *self)
   self->priv->address = NULL;
   self->priv->soup = soup_session_sync_new ();
   g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
-  self->priv->gobj = graviton_service_interface_get_subcontrol (GRAVITON_SERVICE_INTERFACE (self), "net:phrobo:graviton");
+  self->priv->gobj = graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (self), "net:phrobo:graviton");
 }
 
 static void
