@@ -3,7 +3,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include <graviton/node.h>
+#include "node.h"
 
 G_BEGIN_DECLS
 

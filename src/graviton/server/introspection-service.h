@@ -2,7 +2,7 @@
 #define GRAVITON_INTROSPECTION_CONTROL_H
 
 #include <glib-object.h>
-#include <graviton/service.h>
+#include "service.h"
 
 #define GRAVITON_INTROSPECTION_CONTROL_TYPE     (graviton_internal_plugin_get_type ())
 #define GRAVITON_INTROSPECTION_CONTROL(obj)          (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_INTROSPECTION_CONTROL_TYPE, GravitonIntrospectionControl))

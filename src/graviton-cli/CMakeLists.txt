@@ -5,7 +5,7 @@ set(graviton-cli_SRCS
 add_executable(graviton-cli ${graviton-cli_SRCS})
 
 target_link_libraries(graviton-cli
-  graviton
+  graviton-client
 )
 
 install(TARGETS graviton-cli DESTINATION bin)

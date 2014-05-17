@@ -1,5 +1,5 @@
-#include <graviton/server.h>
-#include <graviton/service.h>
+#include <graviton/server/server.h>
+#include <graviton/server/service.h>
 
 #include <glib.h>
 

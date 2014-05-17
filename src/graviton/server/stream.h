@@ -3,7 +3,6 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include "node.h"
 #include "service.h"
 
 G_BEGIN_DECLS

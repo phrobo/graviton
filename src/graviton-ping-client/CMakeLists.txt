@@ -5,7 +5,7 @@ set(graviton-ping-client_SRCS
 add_executable(graviton-ping-client ${graviton-ping-client_SRCS})
 
 target_link_libraries(graviton-ping-client
-  graviton
+  graviton-client
 )
 
 install(TARGETS graviton-ping-client DESTINATION bin)

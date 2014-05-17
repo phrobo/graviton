@@ -8,7 +8,7 @@
 #include <avahi-client/lookup.h>
 #include <avahi-glib/glib-watch.h>
 
-#include <graviton/cloud.h>
+#include <graviton/client/cloud.h>
 
 typedef struct _GravitonAvahiDiscoveryMethodPrivate GravitonAvahiDiscoveryMethodPrivate;
 

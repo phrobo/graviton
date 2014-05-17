@@ -3,8 +3,8 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include <graviton/node.h>
-#include <graviton/discovery-method.h>
+#include "node.h"
+#include "discovery-method.h"
 
 G_BEGIN_DECLS
 

@@ -1,17 +1,18 @@
 #include "server.h"
+
+#include "server-interface.h"
 #include "introspection-service.h"
+#include "root-service.h"
+#include "service.h"
+#include "stream.h"
+
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
-#include <graviton/root-service.h>
-#include <graviton/service.h>
 #include <string.h>
 #include <avahi-client/client.h>
 #include <avahi-client/publish.h>
 #include <avahi-glib/glib-watch.h>
 #include <uuid/uuid.h>
-#include "stream.h"
-
-#include "server-interface.h"
 
 #include "config.h"
 

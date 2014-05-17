@@ -4,7 +4,7 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include <graviton/discovery-method.h>
+#include <graviton/client/discovery-method.h>
 
 G_BEGIN_DECLS
 

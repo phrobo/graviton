@@ -1,5 +1,5 @@
-#include <graviton/cloud.h>
-#include <graviton/service-interface.h>
+#include <graviton/client/cloud.h>
+#include <graviton/client/service-interface.h>
 
 int main(int argc, char **argv)
 {

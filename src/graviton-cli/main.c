@@ -1,7 +1,7 @@
-#include <graviton/cloud.h>
-#include <graviton/node.h>
-#include <graviton/service-interface.h>
-#include <graviton/introspection-interface.h>
+#include <graviton/client/cloud.h>
+#include <graviton/client/node.h>
+#include <graviton/client/service-interface.h>
+#include <graviton/client/introspection-interface.h>
 
 void
 print_streams (GravitonServiceInterface *service)
