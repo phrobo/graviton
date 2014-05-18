@@ -9,6 +9,7 @@
 #include <avahi-glib/glib-watch.h>
 
 #include <graviton/client/cloud.h>
+#include <graviton/client/jsonrpc-node.h>
 
 typedef struct _GravitonAvahiDiscoveryMethodPrivate GravitonAvahiDiscoveryMethodPrivate;
 
@@ -136,7 +137,7 @@ cb_resolve (AvahiServiceResolver *resolver,
 
       g_debug ("Found %s: %s:%d", type, ip_str, port);
       g_free (ip_str);
-      GravitonNode *node = graviton_node_new_from_address (addr);
+      GravitonNode *node = GRAVITON_NODE (graviton_jsonrpc_node_new_from_address (addr));
       g_object_unref (addr);
       const gchar *cloud_id = graviton_node_get_cloud_id (node, NULL);
       const gchar *target_cloud_id;

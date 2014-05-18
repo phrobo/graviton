@@ -2,6 +2,7 @@
 #include <graviton/client/node.h>
 #include <graviton/client/service-interface.h>
 #include <graviton/client/introspection-interface.h>
+#include <graviton/client/jsonrpc-node.h>
 
 void
 print_streams (GravitonServiceInterface *service)
@@ -134,7 +135,7 @@ int main (int argc, char** argv)
     if (addrName) {
       addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
     }
-    GravitonNode *node = graviton_node_new_from_address (addr);
+    GravitonNode *node = GRAVITON_NODE (graviton_jsonrpc_node_new_from_address (addr));
     print_node (node);
     g_object_unref (node);
   } else if (argc == 2) {

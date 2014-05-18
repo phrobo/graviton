@@ -2,9 +2,8 @@
 #define __GRAVITON_NODE_H__
 
 #include <glib.h>
-#include <gio/gio.h>
 #include <glib-object.h>
-#include <libsoup/soup.h>
+#include <gio/gio.h>
 
 #include "service-interface.h"
 
@@ -33,6 +32,8 @@ typedef struct _GravitonCloud GravitonCloud;
 struct _GravitonNodeClass
 {
   GravitonServiceInterfaceClass parent_class;
+  GVariant *(*call_args)(GravitonNode *self, const gchar* method, GHashTable *args, GError **err);
+  GIOStream *(*open_stream)(GravitonNode *self, const gchar *name, GHashTable *args, GError **err);
 };
 
 struct _GravitonNode
@@ -43,13 +44,11 @@ struct _GravitonNode
 
 GType graviton_node_get_type (void);
 
-GravitonNode *graviton_node_proxy_to_id (GravitonNode *node, const gchar *id, GError **error);
-GravitonNode *graviton_node_new_from_address (GInetSocketAddress *address);
 
 const gchar *graviton_node_get_id (GravitonNode *node, GError **err);
 const gchar *graviton_node_get_cloud_id (GravitonNode *node, GError **err);
-int graviton_node_get_port (GravitonNode *node);
-GInetSocketAddress *graviton_node_get_address (GravitonNode *node);
+
+GravitonNode *graviton_node_proxy_to_id (GravitonNode *node, const gchar *id, GError **error);
 
 GList *graviton_node_get_services (GravitonNode *node, GError **err);
 gboolean graviton_node_has_service (GravitonNode *node, const gchar *name, GError **err);
@@ -58,7 +57,7 @@ GVariant *graviton_node_call (GravitonNode *node, const gchar *method, GError **
 GVariant *graviton_node_call_args (GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
 GVariant *graviton_node_call_va (GravitonNode *node, const gchar *method, GError **error, va_list args);
 
-GIOStream *graviton_node_open_stream (GravitonNode *node, const gchar *name, GHashTable *args);
+GIOStream *graviton_node_open_stream (GravitonNode *node, const gchar *name, GHashTable *args); //FIXME: Needs a GError
 
 G_END_DECLS
 
