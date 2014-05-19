@@ -11,6 +11,7 @@ typedef struct _GravitonNodePrivate GravitonNodePrivate;
 struct _GravitonNodePrivate
 {
   GravitonServiceInterface *gobj;
+  GHashTable *transports;
 };
 
 #define GRAVITON_NODE_GET_PRIVATE(o) \
@@ -87,9 +88,6 @@ graviton_node_class_init (GravitonNodeClass *klass)
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
                                      obj_properties);
-
-  klass->call_args = 0;
-  klass->open_stream = 0;
 }
 
 static void
@@ -230,8 +228,8 @@ graviton_node_call_args (GravitonNode *self,
                          GHashTable *args,
                          GError **err)
 {
-  GravitonNodeClass *klass = GRAVITON_NODE_GET_CLASS (self);
-  return klass->call_args (self, method, args, err);
+  GravitonNodeTransport *transport = graviton_node_get_default_transport (self);
+  return graviton_node_transport_call_args (transport, self, method, args, err);
 }
 
 GIOStream *
@@ -239,6 +237,38 @@ graviton_node_open_stream (GravitonNode *self,
                            const gchar *name,
                            GHashTable *args)
 {
-  GravitonNodeClass *klass = GRAVITON_NODE_GET_CLASS (self);
-  return klass->open_stream (self, name, args, NULL);
+  GravitonNodeTransport *transport = graviton_node_get_default_transport (self);
+  return graviton_node_transport_open_stream (transport, self, name, args, NULL);
+}
+
+//FIXME: Check refcounts for node_*_transport functions
+void
+graviton_node_add_transport (GravitonNode *self,
+                             GravitonNodeTransport *transport,
+                            int priority)
+{
+  //FIXME: Switch to GPtrArray
+  GArray *transports = graviton_node_get_transports (self, priority);
+  if (transports == NULL) {
+    transports = g_array_new (FALSE, FALSE, sizeof (GravitonNodeTransport*));
+    g_hash_table_insert (self->priv->transports, GINT_TO_POINTER (priority), transports);
+  }
+  g_array_append_val (transports, transport);
+}
+
+GArray *
+graviton_node_get_transports (GravitonNode *node, int priority)
+{
+  return g_hash_table_lookup (node->priv->transports, GINT_TO_POINTER (priority));
+}
+
+GravitonNodeTransport *graviton_node_get_default_transport (GravitonNode *node)
+{
+  int priority;
+  GArray *transports;
+  GList *priorities = g_hash_table_get_keys (node->priv->transports);
+  priority = GPOINTER_TO_INT (priorities->data);
+  g_list_free (priorities);
+  transports = graviton_node_get_transports (node, priority);
+  return GRAVITON_NODE_TRANSPORT (transports->data);
 }

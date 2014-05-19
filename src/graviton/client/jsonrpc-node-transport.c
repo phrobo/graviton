@@ -2,13 +2,15 @@
 #include "config.h"
 #endif
 
-#include "jsonrpc-node.h"
+#include "jsonrpc-node-transport.h"
 #include "node-io-stream.h"
+#include "node.h"
+
 #include <json-glib/json-glib.h>
 
-typedef struct _GravitonJsonrpcNodePrivate GravitonJsonrpcNodePrivate;
+typedef struct _GravitonJsonrpcNodeTransportPrivate GravitonJsonrpcNodeTransportPrivate;
 
-struct _GravitonJsonrpcNodePrivate
+struct _GravitonJsonrpcNodeTransportPrivate
 {
   SoupSession *soup;
   GInetSocketAddress *address;
@@ -17,17 +19,27 @@ struct _GravitonJsonrpcNodePrivate
   SoupURI *stream_uri;
 };
 
-#define GRAVITON_JSONRPC_NODE_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_JSONRPC_NODE_TYPE, GravitonJsonrpcNodePrivate))
+#define GRAVITON_JSONRPC_NODE_TRANSPORT_GET_PRIVATE(o) \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_JSONRPC_NODE_TRANSPORT_TYPE, GravitonJsonrpcNodeTransportPrivate))
 
-static void graviton_jsonrpc_node_class_init (GravitonJsonrpcNodeClass *klass);
-static void graviton_jsonrpc_node_init       (GravitonJsonrpcNode *self);
-static void graviton_jsonrpc_node_dispose    (GObject *object);
-static void graviton_jsonrpc_node_finalize   (GObject *object);
-static void graviton_jsonrpc_node_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void graviton_jsonrpc_node_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
+static void graviton_jsonrpc_node_transport_class_init (GravitonJsonrpcNodeTransportClass *klass);
+static void graviton_jsonrpc_node_transport_init       (GravitonJsonrpcNodeTransport *self);
+static void graviton_jsonrpc_node_transport_dispose    (GObject *object);
+static void graviton_jsonrpc_node_transport_finalize   (GObject *object);
+static void graviton_jsonrpc_node_transport_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
+static void graviton_jsonrpc_node_transport_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
+static GIOStream * open_stream (GravitonNodeTransport *trans_self,
+                                GravitonNode *node,
+                                const gchar *name,
+                                GHashTable *args,
+                                GError **error);
+static GVariant* call_args (GravitonNodeTransport *trans_self,
+                            GravitonNode *node,
+                            const gchar *method,
+                            GHashTable *args,
+                            GError **err);
 
-G_DEFINE_TYPE (GravitonJsonrpcNode, graviton_jsonrpc_node, GRAVITON_NODE_TYPE);
+G_DEFINE_TYPE (GravitonJsonrpcNodeTransport, graviton_jsonrpc_node_transport, GRAVITON_NODE_TRANSPORT_TYPE);
 
 enum {
   PROP_ZERO,
@@ -45,7 +57,7 @@ static int obj_signals[N_SIGNALS] = { 0, };
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
 static void
-rebuild_uri (GravitonJsonrpcNode *self)
+rebuild_uri (GravitonJsonrpcNodeTransport *self)
 {
   if (self->priv->rpc_uri)
     soup_uri_free (self->priv->rpc_uri);
@@ -79,13 +91,119 @@ rebuild_uri (GravitonJsonrpcNode *self)
   g_free (ip_str);
 }
 
-static GVariant *
-jsonrpc_call_args (GravitonNode *node_self,
-                   const gchar *method,
-                   GHashTable *args,
-                   GError **err)
+
+static void
+graviton_jsonrpc_node_transport_class_init (GravitonJsonrpcNodeTransportClass *klass)
 {
-  GravitonJsonrpcNode *self = GRAVITON_JSONRPC_NODE (self);
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  g_type_class_add_private (klass, sizeof (GravitonJsonrpcNodeTransportPrivate));
+
+  object_class->dispose = graviton_jsonrpc_node_transport_dispose;
+  object_class->finalize = graviton_jsonrpc_node_transport_finalize;
+  object_class->set_property =  graviton_jsonrpc_node_transport_set_property;
+  object_class->get_property =  graviton_jsonrpc_node_transport_get_property;
+
+  obj_properties[PROP_ADDRESS] =
+    g_param_spec_object ("address",
+                         "Address to connect to",
+                         "A reachable address to connect to",
+                         G_TYPE_INET_SOCKET_ADDRESS,
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_properties (object_class,
+      N_PROPERTIES,
+      obj_properties);
+
+  GravitonNodeTransportClass *transport_class = GRAVITON_NODE_TRANSPORT_CLASS (klass);
+  transport_class->call_args = call_args;
+  transport_class->open_stream = open_stream;
+}
+
+static void
+graviton_jsonrpc_node_transport_set_property (GObject *object,
+    guint property_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (object);
+  switch (property_id) {
+    case PROP_ADDRESS:
+      if (self->priv->address)
+        g_object_unref (self->priv->address);
+      self->priv->address = g_value_dup_object (value);
+      rebuild_uri (self);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
+graviton_jsonrpc_node_transport_get_property (GObject *object,
+    guint property_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (object);
+  switch (property_id) {
+    case PROP_ADDRESS:
+      g_value_set_object (value, self->priv->address);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+static void
+graviton_jsonrpc_node_transport_init (GravitonJsonrpcNodeTransport *self)
+{
+  GravitonJsonrpcNodeTransportPrivate *priv;
+  priv = self->priv = GRAVITON_JSONRPC_NODE_TRANSPORT_GET_PRIVATE (self);
+  self->priv->rpc_uri = 0;
+  self->priv->event_uri = 0;
+  self->priv->stream_uri = 0;
+  self->priv->address = NULL;
+  self->priv->soup = soup_session_sync_new ();
+  g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
+}
+
+static void
+graviton_jsonrpc_node_transport_dispose (GObject *object)
+{
+  G_OBJECT_CLASS (graviton_jsonrpc_node_transport_parent_class)->dispose (object);
+}
+
+static void
+graviton_jsonrpc_node_transport_finalize (GObject *object)
+{
+  G_OBJECT_CLASS (graviton_jsonrpc_node_transport_parent_class)->finalize (object);
+}
+
+static GIOStream *
+open_stream (GravitonNodeTransport *trans_self,
+             GravitonNode *node,
+             const gchar *name,
+             GHashTable *args,
+             GError **error)
+{
+  GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (trans_self);
+  SoupURI *stream_uri = soup_uri_new_with_base (self->priv->stream_uri, name);
+  soup_uri_set_query_from_form (stream_uri, args);
+  GIOStream *ret = G_IO_STREAM (graviton_node_io_stream_new (stream_uri, self->priv->soup));
+  soup_uri_free (stream_uri);
+  return ret;
+}
+
+static GVariant*
+call_args (GravitonNodeTransport *trans_self,
+           GravitonNode *node,
+           const gchar *method,
+           GHashTable *args,
+           GError **err)
+{
+  GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (trans_self);
   g_assert (self->priv->rpc_uri);
   SoupMessage *request = soup_message_new_from_uri ("POST", self->priv->rpc_uri);
   g_assert (request);
@@ -228,123 +346,4 @@ jsonrpc_call_args (GravitonNode *node_self,
   soup_message_body_free (responseBody);
   g_object_unref (request);
   return ret;
-}
-
-GIOStream *
-jsonrpc_open_stream (GravitonNode *node_self, const gchar *name, GHashTable *args, GError **err)
-{
-  GravitonJsonrpcNode *self = GRAVITON_JSONRPC_NODE (node_self);
-  SoupURI *stream_uri = soup_uri_new_with_base (self->priv->stream_uri, name);
-  soup_uri_set_query_from_form (stream_uri, args);
-  GIOStream *ret = G_IO_STREAM (graviton_node_io_stream_new (stream_uri, self->priv->soup));
-  soup_uri_free (stream_uri);
-  return ret;
-}
-
-
-static void
-graviton_jsonrpc_node_class_init (GravitonJsonrpcNodeClass *klass)
-{
-  GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-  g_type_class_add_private (klass, sizeof (GravitonJsonrpcNodePrivate));
-
-  object_class->dispose = graviton_jsonrpc_node_dispose;
-  object_class->finalize = graviton_jsonrpc_node_finalize;
-  object_class->set_property =  graviton_jsonrpc_node_set_property;
-  object_class->get_property =  graviton_jsonrpc_node_get_property;
-
-  obj_properties[PROP_ADDRESS] =
-    g_param_spec_object ("address",
-                         "Address to connect to",
-                         "A reachable address to connect to",
-                         G_TYPE_INET_SOCKET_ADDRESS,
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-
-  g_object_class_install_properties (object_class,
-      N_PROPERTIES,
-      obj_properties);
-
-  GravitonNodeClass *node_class = GRAVITON_NODE_CLASS (klass);
-  node_class->call_args = jsonrpc_call_args;
-  node_class->open_stream = jsonrpc_open_stream;
-}
-
-static void
-graviton_jsonrpc_node_set_property (GObject *object,
-    guint property_id,
-    const GValue *value,
-    GParamSpec *pspec)
-{
-  GravitonJsonrpcNode *self = GRAVITON_JSONRPC_NODE (object);
-  switch (property_id) {
-    case PROP_ADDRESS:
-      if (self->priv->address)
-        g_object_unref (self->priv->address);
-      self->priv->address = g_value_dup_object (value);
-      rebuild_uri (self);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
-  }
-}
-
-static void
-graviton_jsonrpc_node_get_property (GObject *object,
-    guint property_id,
-    GValue *value,
-    GParamSpec *pspec)
-{
-  GravitonJsonrpcNode *self = GRAVITON_JSONRPC_NODE (object);
-  switch (property_id) {
-    case PROP_ADDRESS:
-      g_value_set_object (value, self->priv->address);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
-  }
-}
-static void
-graviton_jsonrpc_node_init (GravitonJsonrpcNode *self)
-{
-  GravitonJsonrpcNodePrivate *priv;
-  priv = self->priv = GRAVITON_JSONRPC_NODE_GET_PRIVATE (self);
-  self->priv->rpc_uri = 0;
-  self->priv->event_uri = 0;
-  self->priv->stream_uri = 0;
-  self->priv->address = NULL;
-  self->priv->soup = soup_session_sync_new ();
-  g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
-}
-
-static void
-graviton_jsonrpc_node_dispose (GObject *object)
-{
-  G_OBJECT_CLASS (graviton_jsonrpc_node_parent_class)->dispose (object);
-}
-
-static void
-graviton_jsonrpc_node_finalize (GObject *object)
-{
-  G_OBJECT_CLASS (graviton_jsonrpc_node_parent_class)->finalize (object);
-}
-
-GravitonJsonrpcNode *
-graviton_jsonrpc_node_new_from_address (GInetSocketAddress *address)
-{
-  return g_object_new(GRAVITON_JSONRPC_NODE_TYPE, "address", address, NULL);
-}
-
-int
-graviton_jsonrpc_node_get_port (GravitonJsonrpcNode *self)
-{
-  return g_inet_socket_address_get_port (self->priv->address);
-}
-
-GInetSocketAddress *
-graviton_jsonrpc_node_get_address (GravitonJsonrpcNode *node)
-{
-  return g_object_ref (node->priv->address);
 }

@@ -5,6 +5,7 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+#include "node-transport.h"
 #include "service-interface.h"
 
 G_BEGIN_DECLS
@@ -32,8 +33,6 @@ typedef struct _GravitonCloud GravitonCloud;
 struct _GravitonNodeClass
 {
   GravitonServiceInterfaceClass parent_class;
-  GVariant *(*call_args)(GravitonNode *self, const gchar* method, GHashTable *args, GError **err);
-  GIOStream *(*open_stream)(GravitonNode *self, const gchar *name, GHashTable *args, GError **err);
 };
 
 struct _GravitonNode
@@ -58,6 +57,10 @@ GVariant *graviton_node_call_args (GravitonNode *node, const gchar *method, GHas
 GVariant *graviton_node_call_va (GravitonNode *node, const gchar *method, GError **error, va_list args);
 
 GIOStream *graviton_node_open_stream (GravitonNode *node, const gchar *name, GHashTable *args); //FIXME: Needs a GError
+
+void graviton_node_add_transport (GravitonNode *node, GravitonNodeTransport *transport, int priority);
+GArray *graviton_node_get_transports (GravitonNode *node, int priority);
+GravitonNodeTransport *graviton_node_get_default_transport (GravitonNode *node);
 
 G_END_DECLS
 
