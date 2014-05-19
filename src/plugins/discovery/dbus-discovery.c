@@ -3,6 +3,7 @@
 #endif
 
 #include "dbus-discovery.h"
+#include <graviton/client/jsonrpc-node.h>
 
 typedef struct _GravitonDbusDiscoveryMethodPrivate GravitonDbusDiscoveryMethodPrivate;
 
@@ -90,7 +91,7 @@ start_browse (GravitonDiscoveryMethod *method)
       addrName = g_inet_address_new_from_string ("127.0.0.1");
       addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
 
-      GravitonNode *node = graviton_node_new_from_address (addr);
+      GravitonNode *node = GRAVITON_NODE (graviton_jsonrpc_node_new_from_address (addr));
       g_object_unref (addr);
       graviton_discovery_method_node_found (GRAVITON_DISCOVERY_METHOD (self), node);
     }
