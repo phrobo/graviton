@@ -136,7 +136,7 @@ call_string_list_method (GravitonIntrospectionControl *self, const gchar *method
   GList *ret = NULL;
   int i;
   if (result) {
-    for(i = 0;i < g_variant_n_children (result);i++) {
+    for (i = 0;i < g_variant_n_children (result);i++) {
       GVariant *idx = g_variant_get_child_value (result, i);
       GVariant *strIdx = g_variant_get_variant (idx);
       ret = g_list_prepend (ret, g_variant_dup_string (strIdx, NULL));
