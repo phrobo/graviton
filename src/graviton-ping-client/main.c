@@ -1,5 +1,6 @@
 #include <graviton/client/cloud.h>
 #include <graviton/client/service-interface.h>
+#include <unistd.h>
 
 int main(int argc, char **argv)
 {
@@ -13,13 +14,15 @@ int main(int argc, char **argv)
   GList *providers = NULL;
   GError *error = NULL;
 
-  providers = graviton_cloud_find_service_sync (cloud, "net:phrobo:graviton:ping", &error);
+  sleep(2);
+
+  providers = graviton_cloud_find_service (cloud, "net:phrobo:graviton:ping", &error);
 
   GList *cur = providers;
   while (cur) {
     GravitonServiceInterface *service = GRAVITON_SERVICE_INTERFACE (cur->data);
     GravitonNode *node = graviton_service_interface_get_node (service);
-    g_printf ("Calling ping on %s\n", graviton_node_get_id (node, &error));
+    g_print ("Calling ping on %s\n", graviton_node_get_id (node, &error));
     graviton_service_interface_call (service, "ping", &error, NULL);
     cur = cur->next;
   }

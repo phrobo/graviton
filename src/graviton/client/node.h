@@ -43,6 +43,7 @@ struct _GravitonNode
 
 GType graviton_node_get_type (void);
 
+GravitonNode *graviton_node_get_by_id (const gchar *id);
 
 const gchar *graviton_node_get_id (GravitonNode *node, GError **err);
 const gchar *graviton_node_get_cloud_id (GravitonNode *node, GError **err);
@@ -59,7 +60,7 @@ GVariant *graviton_node_call_va (GravitonNode *node, const gchar *method, GError
 GIOStream *graviton_node_open_stream (GravitonNode *node, const gchar *name, GHashTable *args); //FIXME: Needs a GError
 
 void graviton_node_add_transport (GravitonNode *node, GravitonNodeTransport *transport, int priority);
-GArray *graviton_node_get_transports (GravitonNode *node, int priority);
+GPtrArray *graviton_node_get_transports (GravitonNode *node, int priority);
 GravitonNodeTransport *graviton_node_get_default_transport (GravitonNode *node);
 
 G_END_DECLS

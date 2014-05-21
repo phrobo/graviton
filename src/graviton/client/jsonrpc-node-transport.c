@@ -238,6 +238,8 @@ call_args (GravitonNodeTransport *trans_self,
       json_builder_add_null_value (builder);
     cur = cur->next;
   }
+
+  g_list_free (argList);
   
   json_builder_end_object (builder);
   json_builder_end_object (builder);
@@ -326,6 +328,7 @@ call_args (GravitonNodeTransport *trans_self,
         } else {
           JsonNode *resultNode = json_object_get_member (responseObj, "result");
           ret = json_gvariant_deserialize (resultNode, NULL, &error);
+          //g_object_unref (resultNode);
         }
       } else {
         g_critical ("JSON-RPC reply from %s wasn't JSON-RPC: %s", self->priv->rpc_uri, responseBody->data);
@@ -346,4 +349,36 @@ call_args (GravitonNodeTransport *trans_self,
   soup_message_body_free (responseBody);
   g_object_unref (request);
   return ret;
+}
+
+GravitonJsonrpcNodeTransport *
+graviton_jsonrpc_node_transport_new (GInetSocketAddress *address)
+{
+  return g_object_new (GRAVITON_JSONRPC_NODE_TRANSPORT_TYPE,
+                       "address", address,
+                       NULL);
+}
+
+gchar *
+graviton_jsonrpc_node_transport_get_node_id (GravitonJsonrpcNodeTransport *transport)
+{
+  GHashTable *args = g_hash_table_new_full (g_str_hash,
+                                            g_str_equal,
+                                            NULL,
+                                            g_variant_unref);
+  g_hash_table_insert (args, "service", g_variant_new_string ("net:phrobo:graviton"));
+  g_hash_table_insert (args, "property", g_variant_new_string ("node-id"));
+
+  GVariant *ret = call_args (transport,
+                             NULL,
+                             "net:phrobo:graviton/introspection.getProperty",
+                             args,
+                             NULL);
+  g_hash_table_unref (args);
+  if (ret) {
+    gchar *r = g_variant_dup_string (ret, NULL);
+    g_variant_unref (ret);
+    return r;
+  }
+  return NULL;
 }

@@ -18,6 +18,8 @@ typedef struct _GravitonDiscoveryMethod      GravitonDiscoveryMethod;
 typedef struct _GravitonDiscoveryMethodClass GravitonDiscoveryMethodClass;
 typedef struct _GravitonDiscoveryMethodPrivate GravitonDiscoveryMethodPrivate;
 
+typedef struct _GravitonNodeBrowser GravitonNodeBrowser;
+
 struct _GravitonDiscoveryMethodClass
 {
   GObjectClass parent_class;
@@ -33,10 +35,10 @@ struct _GravitonDiscoveryMethod
 
 GType graviton_discovery_method_get_type (void);
 
-typedef GravitonDiscoveryMethod *(*GravitonDiscoveryPluginLoaderFunc)(GravitonCloud *client);
+typedef GravitonDiscoveryMethod *(*GravitonDiscoveryPluginLoaderFunc)(GravitonNodeBrowser *browser);
 
 #define GRAVITON_DEFINE_DISCOVERY_PLUGIN(type) \
-  GravitonDiscoveryMethod *make_graviton_discovery_plugin(GravitonCloud *client) { return g_object_new ((type), "client", client, NULL); }
+  GravitonDiscoveryMethod *make_graviton_discovery_plugin(GravitonNodeBrowser *browser) { return g_object_new ((type), "node-browser", browser, NULL); }
 
 void graviton_discovery_method_start (GravitonDiscoveryMethod *method);
 void graviton_discovery_method_stop (GravitonDiscoveryMethod *method);

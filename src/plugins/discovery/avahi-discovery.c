@@ -9,7 +9,7 @@
 #include <avahi-glib/glib-watch.h>
 
 #include <graviton/client/cloud.h>
-#include <graviton/client/jsonrpc-node.h>
+#include <graviton/client/jsonrpc-node-transport.h>
 
 typedef struct _GravitonAvahiDiscoveryMethodPrivate GravitonAvahiDiscoveryMethodPrivate;
 
@@ -137,17 +137,13 @@ cb_resolve (AvahiServiceResolver *resolver,
 
       g_debug ("Found %s: %s:%d", type, ip_str, port);
       g_free (ip_str);
-      GravitonNode *node = GRAVITON_NODE (graviton_jsonrpc_node_new_from_address (addr));
+      GravitonJsonrpcNodeTransport *transport = graviton_jsonrpc_node_transport_new (addr);
       g_object_unref (addr);
-      const gchar *cloud_id = graviton_node_get_cloud_id (node, NULL);
-      const gchar *target_cloud_id;
-      GravitonCloud *cloud = graviton_discovery_method_get_cloud (GRAVITON_DISCOVERY_METHOD (self));
-      target_cloud_id = graviton_cloud_get_cloud_id (cloud);
-      //TODO: Use public key checking here
-      if (strcmp (cloud_id, target_cloud_id) == 0) {
+      const gchar *node_id = graviton_jsonrpc_node_transport_get_node_id (transport);
+      GravitonNode *node = graviton_node_get_by_id (node_id);
+      graviton_node_add_transport (node, GRAVITON_NODE_TRANSPORT (transport), 0);
 
-        graviton_discovery_method_node_found (GRAVITON_DISCOVERY_METHOD (self), node);
-      }
+      graviton_discovery_method_node_found (GRAVITON_DISCOVERY_METHOD (self), node);
       self->priv->unresolved_count--;
       break;
   }

@@ -3,7 +3,7 @@
 #endif
 
 #include "dbus-discovery.h"
-#include <graviton/client/jsonrpc-node.h>
+#include <graviton/client/jsonrpc-node-transport.h>
 
 typedef struct _GravitonDbusDiscoveryMethodPrivate GravitonDbusDiscoveryMethodPrivate;
 
@@ -84,19 +84,23 @@ start_browse (GravitonDiscoveryMethod *method)
       GVariant *portResultVariant = g_variant_get_child_value (portResultReply, 0);
       GVariant *portResult = g_variant_get_variant (portResultVariant);
       port = g_variant_get_int32 (portResult);
-      g_debug ("Type: %s", g_variant_print (portResult, TRUE));
+      //g_debug ("Type: %s", g_variant_print (portResult, TRUE));
       g_variant_unref (portResult);
       g_variant_unref (portResultVariant);
       g_variant_unref (portResultReply);
       addrName = g_inet_address_new_from_string ("127.0.0.1");
       addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
 
-      GravitonNode *node = GRAVITON_NODE (graviton_jsonrpc_node_new_from_address (addr));
+      GravitonJsonrpcNodeTransport *transport = graviton_jsonrpc_node_transport_new (addr);
+      const gchar *node_id = graviton_jsonrpc_node_transport_get_node_id (transport);
+      GravitonNode *node = graviton_node_get_by_id (node_id);
+      graviton_node_add_transport (node, GRAVITON_NODE_TRANSPORT (transport), 0);
       g_object_unref (addr);
       graviton_discovery_method_node_found (GRAVITON_DISCOVERY_METHOD (self), node);
     }
     i++;
   }
+  g_free (busNames);
   g_variant_unref (busNameList);
   g_variant_unref (busNameListReply);
 

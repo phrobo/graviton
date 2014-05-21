@@ -11,7 +11,9 @@ typedef struct _GravitonNodePrivate GravitonNodePrivate;
 struct _GravitonNodePrivate
 {
   GravitonServiceInterface *gobj;
-  GHashTable *transports;
+  //FIXME: Replace with a hash table
+  GPtrArray *transports;
+  gchar *node_id;
 };
 
 #define GRAVITON_NODE_GET_PRIVATE(o) \
@@ -32,6 +34,7 @@ G_DEFINE_TYPE (GravitonNode, graviton_node, GRAVITON_SERVICE_INTERFACE_TYPE);
 
 enum {
   PROP_0,
+  PROP_NODE_ID,
   N_PROPERTIES
 };
 
@@ -52,6 +55,9 @@ set_property (GObject *object,
 {
   GravitonNode *self = GRAVITON_NODE (object);
   switch (property_id) {
+    case PROP_NODE_ID:
+      self->priv->node_id = g_value_dup_string (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -66,6 +72,9 @@ get_property (GObject *object,
 {
   GravitonNode *self = GRAVITON_NODE (object);
   switch (property_id) {
+    case PROP_NODE_ID:
+      g_value_set_string (value, self->priv->node_id);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -85,6 +94,13 @@ graviton_node_class_init (GravitonNodeClass *klass)
   object_class->set_property = set_property;
   object_class->get_property = get_property;
 
+  obj_properties[PROP_NODE_ID] = 
+    g_param_spec_string ("node-id",
+                         "Node UUID",
+                         "Universally Unique Node ID",
+                         "",
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
                                      obj_properties);
@@ -95,6 +111,7 @@ graviton_node_init (GravitonNode *self)
 {
   GravitonNodePrivate *priv;
   self->priv = priv = GRAVITON_NODE_GET_PRIVATE (self);
+  self->priv->transports = g_ptr_array_new_with_free_func (g_object_unref);
   self->priv->gobj = graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (self), "net:phrobo:graviton");
 }
 
@@ -128,15 +145,13 @@ cb_resolve_id (GravitonCloud *client, GravitonNode **result)
   }
 }
 
-GravitonNode *graviton_node_new_from_id (const gchar *node_id, GError **error)
+//FIXME: This needs to be a proper singleton
+GravitonNode *graviton_node_get_by_id (const gchar *node_id)
 {
   GravitonNode *result = NULL;
-  GravitonCloud *client = graviton_cloud_new_default_cloud ();
-  g_signal_connect (client,
-                    "all-nodes-found",
-                    G_CALLBACK (cb_resolve_id),
-                    &result);
-  g_object_unref (client);
+  result = g_object_new (GRAVITON_NODE_TYPE,
+                         "node-id", node_id,
+                         NULL);
   return result;
 }
 
@@ -238,7 +253,9 @@ graviton_node_open_stream (GravitonNode *self,
                            GHashTable *args)
 {
   GravitonNodeTransport *transport = graviton_node_get_default_transport (self);
-  return graviton_node_transport_open_stream (transport, self, name, args, NULL);
+  GIOStream *ret = graviton_node_transport_open_stream (transport, self, name, args, NULL);
+  g_object_unref (transport);
+  return ret;
 }
 
 //FIXME: Check refcounts for node_*_transport functions
@@ -247,28 +264,29 @@ graviton_node_add_transport (GravitonNode *self,
                              GravitonNodeTransport *transport,
                             int priority)
 {
-  //FIXME: Switch to GPtrArray
-  GArray *transports = graviton_node_get_transports (self, priority);
-  if (transports == NULL) {
-    transports = g_array_new (FALSE, FALSE, sizeof (GravitonNodeTransport*));
-    g_hash_table_insert (self->priv->transports, GINT_TO_POINTER (priority), transports);
-  }
-  g_array_append_val (transports, transport);
+  g_object_ref (transport);
+  g_ptr_array_add (self->priv->transports, transport);
 }
 
-GArray *
+GPtrArray *
 graviton_node_get_transports (GravitonNode *node, int priority)
 {
-  return g_hash_table_lookup (node->priv->transports, GINT_TO_POINTER (priority));
+  return node->priv->transports;
 }
 
 GravitonNodeTransport *graviton_node_get_default_transport (GravitonNode *node)
 {
   int priority;
-  GArray *transports;
-  GList *priorities = g_hash_table_get_keys (node->priv->transports);
-  priority = GPOINTER_TO_INT (priorities->data);
-  g_list_free (priorities);
-  transports = graviton_node_get_transports (node, priority);
-  return GRAVITON_NODE_TRANSPORT (transports->data);
+  GPtrArray *transports;
+  GList *priorities;
+  GravitonNodeTransport *transport;
+
+  g_debug ("Fetching default transport");
+  transports = graviton_node_get_transports (node, 0);
+  transport = GRAVITON_NODE_TRANSPORT (g_ptr_array_index (transports, 0));
+  g_object_ref (G_OBJECT (transport));
+
+  g_assert (transport);
+
+  return transport;
 }

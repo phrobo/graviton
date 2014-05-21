@@ -8,6 +8,7 @@ typedef struct _GravitonNodeTransportPrivate GravitonNodeTransportPrivate;
 
 struct _GravitonNodeTransportPrivate
 {
+  int foo;
 };
 
 #define GRAVITON_NODE_TRANSPORT_GET_PRIVATE(o) \
@@ -47,9 +48,9 @@ graviton_node_transport_class_init (GravitonNodeTransportClass *klass)
   object_class->finalize = graviton_node_transport_finalize;
   object_class->set_property =  graviton_node_transport_set_property;
   object_class->get_property =  graviton_node_transport_get_property;
-  g_object_class_install_properties (object_class,
+  /*g_object_class_install_properties (object_class,
       N_PROPERTIES,
-      obj_properties);
+      obj_properties);*/
 }
 
 static void

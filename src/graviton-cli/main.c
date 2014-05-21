@@ -2,7 +2,7 @@
 #include <graviton/client/node.h>
 #include <graviton/client/service-interface.h>
 #include <graviton/client/introspection-interface.h>
-#include <graviton/client/jsonrpc-node.h>
+#include <graviton/client/jsonrpc-node-transport.h>
 
 void
 print_streams (GravitonServiceInterface *service)
@@ -100,10 +100,10 @@ print_node (GravitonNode *node)
 }
 
 void
-cb_nodes (GravitonCloud *cloud, gpointer data)
+cb_nodes (GravitonNodeBrowser *browser, gpointer data)
 {
   GMainLoop *loop = (GMainLoop*)(data);
-  GList *nodes = graviton_cloud_get_found_nodes (cloud);
+  GList *nodes = graviton_node_browser_get_found_nodes (browser);
   GList *cur = nodes;
 
   g_print ("Discovered nodes:\n");
@@ -128,7 +128,7 @@ int main (int argc, char** argv)
   GMainLoop *loop = g_main_loop_new (NULL, 0);
 
   if (argc == 3) {
-    GInetSocketAddress *addr = NULL;
+    /*GInetSocketAddress *addr = NULL;
     GInetAddress *addrName = NULL;
     guint port = atoi (argv[2]);
     addrName = g_inet_address_new_from_string (argv[1]);
@@ -137,22 +137,23 @@ int main (int argc, char** argv)
     }
     GravitonNode *node = GRAVITON_NODE (graviton_jsonrpc_node_new_from_address (addr));
     print_node (node);
-    g_object_unref (node);
+    g_object_unref (node);*/
   } else if (argc == 2) {
-    const gchar *cloud_id;
+    /*const gchar *cloud_id;
     const gchar *node_id;
-    GravitonCloud *cloud = graviton_cloud_new (cloud_id);
-    GravitonNode *node = graviton_cloud_find_node_sync (cloud, node_id, NULL);
+    GravitonNodeBrowser *browser = graviton_node_browser_new ();
+    GravitonCloud *cloud = graviton_cloud_new (cloud_id, browser);
+    GravitonNode *node = graviton_cloud_find_node (cloud, node_id, NULL);
     print_node (node);
     g_object_unref (node);
-    g_object_unref (cloud);
+    g_object_unref (cloud);*/
   } else {
-    GravitonCloud *cloud = graviton_cloud_new_default_cloud ();
-    g_signal_connect (cloud,
+    GravitonNodeBrowser *browser = graviton_node_browser_new ();
+    g_signal_connect (browser,
                       "all-nodes-found",
                       G_CALLBACK (cb_nodes),
                       loop);
-    graviton_cloud_load_discovery_plugins (cloud);
+    graviton_node_browser_load_discovery_plugins (browser);
     g_main_loop_run (loop);
   }
 

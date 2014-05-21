@@ -11,7 +11,7 @@ typedef struct _GravitonDiscoveryMethodPrivate GravitonDiscoveryMethodPrivate;
 
 struct _GravitonDiscoveryMethodPrivate
 {
-  GravitonCloud *client;
+  GravitonNodeBrowser *browser;
   GList *discovered_nodes;
 };
 
@@ -29,7 +29,7 @@ G_DEFINE_TYPE (GravitonDiscoveryMethod, graviton_discovery_method, G_TYPE_OBJECT
 
 enum {
   PROP_ZERO,
-  PROP_CLIENT,
+  PROP_NODE_BROWSER,
   N_PROPERTIES
 };
 
@@ -57,11 +57,11 @@ graviton_discovery_method_class_init (GravitonDiscoveryMethodClass *klass)
   object_class->set_property =  graviton_discovery_method_set_property;
   object_class->get_property =  graviton_discovery_method_get_property;
 
-  obj_properties[PROP_CLIENT] =
-    g_param_spec_object ("client",
-                         "client",
-                         "GravitonCloud object",
-                         GRAVITON_CLOUD_TYPE,
+  obj_properties[PROP_NODE_BROWSER] =
+    g_param_spec_object ("node-browser",
+                         "node browser",
+                         "GravitonNodeBrowser object",
+                         GRAVITON_NODE_BROWSER_TYPE,
                          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
 
   g_object_class_install_properties (object_class,
@@ -111,10 +111,10 @@ graviton_discovery_method_set_property (GObject *object,
 {
   GravitonDiscoveryMethod *self = GRAVITON_DISCOVERY_METHOD (object);
   switch (property_id) {
-    case PROP_CLIENT:
-      if (self->priv->client)
-        g_object_unref (self->priv->client);
-      self->priv->client = g_value_get_object (value);
+    case PROP_NODE_BROWSER:
+      if (self->priv->browser)
+        g_object_unref (self->priv->browser);
+      self->priv->browser = g_value_get_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -130,8 +130,8 @@ graviton_discovery_method_get_property (GObject *object,
 {
   GravitonDiscoveryMethod *self = GRAVITON_DISCOVERY_METHOD (object);
   switch (property_id) {
-    case PROP_CLIENT:
-      g_value_set_object (value, self->priv->client);
+    case PROP_NODE_BROWSER:
+      g_value_set_object (value, self->priv->browser);
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -199,8 +199,8 @@ graviton_discovery_method_stop (GravitonDiscoveryMethod *method)
   GRAVITON_DISCOVERY_METHOD_GET_CLASS (method)->stop (method);
 }
 
-GravitonCloud *
-graviton_discovery_method_get_cloud (GravitonDiscoveryMethod *self)
+GravitonNodeBrowser *
+graviton_discovery_method_get_browser (GravitonDiscoveryMethod *self)
 {
-  return g_object_ref (self->priv->client);
+  return g_object_ref (self->priv->browser);
 }

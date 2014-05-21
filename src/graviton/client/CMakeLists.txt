@@ -9,6 +9,7 @@ set(libgraviton-client_SRCS
   node-stream.c
   node-transport.c
   jsonrpc-node-transport.c
+  node-browser.c
 )
 
 set(libgraviton-client_HEADERS
@@ -22,6 +23,7 @@ set(libgraviton-client_HEADERS
   node-stream.h
   node-transport.h
   jsonrpc-node-transport.h
+  node-browser.h
 )
 
 include_directories(
