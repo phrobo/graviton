@@ -105,7 +105,7 @@ graviton_node_transport_open_stream (GravitonNodeTransport *self,
                                      GHashTable *args,
                                      GError **error)
 {
-  GravitonNodeTransportClass *klass = GRAVITON_NODE_TRANSPORT_CLASS (self);
+  GravitonNodeTransportClass *klass = GRAVITON_NODE_TRANSPORT_GET_CLASS (self);
   return klass->open_stream (self, node, name, args, error);
 }
 
@@ -116,6 +116,6 @@ graviton_node_transport_call_args (GravitonNodeTransport *self,
                                    GHashTable *args,
                                    GError **error)
 {
-  GravitonNodeTransportClass *klass = GRAVITON_NODE_TRANSPORT_CLASS (self);
+  GravitonNodeTransportClass *klass = GRAVITON_NODE_TRANSPORT_GET_CLASS (self);
   return klass->call_args (self, node, method, args, error);
 }
