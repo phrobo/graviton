@@ -37,6 +37,10 @@ include_directories(
 
 add_definitions (-DHAVE_CONFIG_H)
 
+set(CMAKE_C_FLAGS
+  "${CMAKE_C_FLAGS} -Wall"
+)
+
 add_subdirectory(graviton)
 add_subdirectory(graviton-ping-server)
 add_subdirectory(graviton-ping-client)
