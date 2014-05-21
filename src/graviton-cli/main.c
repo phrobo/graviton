@@ -19,7 +19,7 @@ print_streams (GravitonServiceInterface *service)
   }
 
   while (cur) {
-    g_print ("\t\t%s\n", cur->data);
+    g_print ("\t\t%s\n", (gchar*)cur->data);
     cur = cur->next;
   }
 
@@ -42,13 +42,13 @@ print_properties (GravitonServiceInterface *service)
   while (cur) {
     GVariant *prop = graviton_service_interface_get_property (service, (gchar*)cur->data, &error);
     if (error ){
-      g_print ("Error getting property %s: %s", cur->data, error->message);
+      g_print ("Error getting property %s: %s", (gchar*)cur->data, error->message);
     } else {
       if (prop) {
-        g_printf ("\t\t%s = %s\n", cur->data, g_variant_print (prop, TRUE));
+        g_print ("\t\t%s = %s\n", (gchar*)cur->data, g_variant_print (prop, TRUE));
         g_variant_unref (prop);
       } else {
-        g_printf ("\t\t%s = (null)\n", cur->data);
+        g_print ("\t\t%s = (null)\n", (gchar*)cur->data);
       }
     }
     cur = cur->next;
@@ -62,8 +62,8 @@ print_services (GravitonServiceInterface *service)
 {
   GError *error = NULL;
   if (graviton_service_interface_get_name (service) != NULL) {
-    g_printf("%s:\n", graviton_service_interface_get_name (service));
-    g_printf ("\tProperties: \n");
+    g_print ("%s:\n", graviton_service_interface_get_name (service));
+    g_print ("\tProperties: \n");
     print_properties (service);
     g_print ("\tStreams:\n");
     print_streams (service);
@@ -106,7 +106,7 @@ cb_nodes (GravitonCloud *cloud, gpointer data)
   GList *nodes = graviton_cloud_get_found_nodes (cloud);
   GList *cur = nodes;
 
-  g_print ("Discovered nodes:\n", nodes);
+  g_print ("Discovered nodes:\n");
 
   while(cur) {
     GravitonNode *node = GRAVITON_NODE (cur->data);
