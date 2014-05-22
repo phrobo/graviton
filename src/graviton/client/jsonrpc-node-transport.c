@@ -17,6 +17,8 @@ struct _GravitonJsonrpcNodeTransportPrivate
   SoupURI *rpc_uri;
   SoupURI *event_uri;
   SoupURI *stream_uri;
+
+  gchar* endpoint_node_id;
 };
 
 #define GRAVITON_JSONRPC_NODE_TRANSPORT_GET_PRIVATE(o) \
@@ -167,18 +169,30 @@ graviton_jsonrpc_node_transport_init (GravitonJsonrpcNodeTransport *self)
   self->priv->address = NULL;
   self->priv->soup = soup_session_sync_new ();
   g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
+
+  self->priv->endpoint_node_id = NULL;
 }
 
 static void
 graviton_jsonrpc_node_transport_dispose (GObject *object)
 {
   G_OBJECT_CLASS (graviton_jsonrpc_node_transport_parent_class)->dispose (object);
+  GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (object);
+  g_object_unref (self->priv->address);
+  g_object_unref (self->priv->soup);
 }
 
 static void
 graviton_jsonrpc_node_transport_finalize (GObject *object)
 {
   G_OBJECT_CLASS (graviton_jsonrpc_node_transport_parent_class)->finalize (object);
+  GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (object);
+  if (self->priv->endpoint_node_id)
+    g_free (self->priv->endpoint_node_id);
+  if (self->priv->rpc_uri)
+    g_free (self->priv->rpc_uri);
+  if (self->priv->event_uri)
+    g_free (self->priv->event_uri);
 }
 
 static GIOStream *
@@ -324,6 +338,7 @@ call_args (GravitonNodeTransport *trans_self,
                        json_object_get_int_member (errObj, "data"),
                        json_object_get_int_member (errObj, "code"),
                        json_object_get_string_member (errObj, "message"));
+          g_object_unref (request);
           return NULL;
         } else {
           JsonNode *resultNode = json_object_get_member (responseObj, "result");
@@ -359,26 +374,27 @@ graviton_jsonrpc_node_transport_new (GInetSocketAddress *address)
                        NULL);
 }
 
-gchar *
+const gchar *
 graviton_jsonrpc_node_transport_get_node_id (GravitonJsonrpcNodeTransport *transport)
 {
-  GHashTable *args = g_hash_table_new_full (g_str_hash,
-                                            g_str_equal,
-                                            NULL,
-                                            g_variant_unref);
-  g_hash_table_insert (args, "service", g_variant_new_string ("net:phrobo:graviton"));
-  g_hash_table_insert (args, "property", g_variant_new_string ("node-id"));
+  if (transport->priv->endpoint_node_id == NULL) {
+    GHashTable *args = g_hash_table_new_full (g_str_hash,
+                                              g_str_equal,
+                                              NULL,
+                                              g_variant_unref);
+    g_hash_table_insert (args, "service", g_variant_new_string ("net:phrobo:graviton"));
+    g_hash_table_insert (args, "property", g_variant_new_string ("node-id"));
 
-  GVariant *ret = call_args (transport,
-                             NULL,
-                             "net:phrobo:graviton/introspection.getProperty",
-                             args,
-                             NULL);
-  g_hash_table_unref (args);
-  if (ret) {
-    gchar *r = g_variant_dup_string (ret, NULL);
-    g_variant_unref (ret);
-    return r;
+    GVariant *ret = call_args (transport,
+                               NULL,
+                               "net:phrobo:graviton/introspection.getProperty",
+                               args,
+                               NULL);
+    g_hash_table_unref (args);
+    if (ret) {
+      transport->priv->endpoint_node_id = g_variant_dup_string (ret, NULL);
+      g_variant_unref (ret);
+    }
   }
-  return NULL;
+  return transport->priv->endpoint_node_id;
 }

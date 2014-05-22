@@ -10,7 +10,7 @@ typedef struct _GravitonCloudPrivate GravitonCloudPrivate;
 
 struct _GravitonCloudPrivate
 {
-  const gchar *cloud_id;
+  gchar *cloud_id;
   GravitonNodeBrowser *browser;
 };
 
@@ -59,7 +59,7 @@ set_property (GObject *object,
       g_debug ("Got new cloud id: %s", self->priv->cloud_id);
       break;
     case PROP_NODE_BROWSER:
-      setup_browser (self, g_value_get_object (value));
+      setup_browser (self, g_value_dup_object (value));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -104,14 +104,14 @@ graviton_cloud_class_init (GravitonCloudClass *klass)
                          "Cloud UUID",
                          "Universally Unique Cloud ID",
                          "",
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
   obj_properties [PROP_NODE_BROWSER] = 
     g_param_spec_object ("browser",
                          "GravitonNodeBrowser",
                          "The underlying GravitonNodeBrowser",
                          GRAVITON_NODE_BROWSER_TYPE,
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
@@ -184,18 +184,28 @@ graviton_cloud_init (GravitonCloud *self)
 {
   GravitonCloudPrivate *priv;
   self->priv = priv = GRAVITON_CLOUD_GET_PRIVATE (self);
+  priv->cloud_id = NULL;
+  priv->browser = NULL;
 }
 
 static void
 graviton_cloud_dispose (GObject *object)
 {
   G_OBJECT_CLASS (graviton_cloud_parent_class)->dispose (object);
+  GravitonCloud *self = GRAVITON_CLOUD (object);
+  g_object_unref (self->priv->browser);
+  self->priv->browser = NULL;
 }
 
 static void
 graviton_cloud_finalize (GObject *object)
 {
   G_OBJECT_CLASS (graviton_cloud_parent_class)->finalize (object);
+  GravitonCloud *self = GRAVITON_CLOUD (object);
+  if (self->priv->cloud_id) {
+    g_free (self->priv->cloud_id);
+    self->priv->cloud_id = NULL;
+  }
 }
 
 GravitonNode *
@@ -276,6 +286,7 @@ graviton_cloud_new_default_cloud ()
   graviton_node_browser_load_discovery_plugins (browser);
   cloud = graviton_cloud_new (cloud_id, browser);
   g_free (cloud_id);
+  g_object_unref (browser);
   return cloud;
 }
 
@@ -306,7 +317,6 @@ cb_nodes_found (GravitonNodeBrowser *browser, gpointer data)
   g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
 }
 
-//FIXME: refcounting
 void
 setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser)
 {

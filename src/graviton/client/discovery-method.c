@@ -114,7 +114,7 @@ graviton_discovery_method_set_property (GObject *object,
     case PROP_NODE_BROWSER:
       if (self->priv->browser)
         g_object_unref (self->priv->browser);
-      self->priv->browser = g_value_get_object (value);
+      self->priv->browser = g_value_dup_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -148,6 +148,9 @@ static void
 graviton_discovery_method_dispose (GObject *object)
 {
   G_OBJECT_CLASS (graviton_discovery_method_parent_class)->dispose (object);
+  GravitonDiscoveryMethod *self = GRAVITON_DISCOVERY_METHOD (object);
+  g_object_unref (self->priv->browser);
+  self->priv->browser = NULL;
 }
 
 static void

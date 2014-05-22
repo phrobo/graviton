@@ -23,12 +23,17 @@ int main(int argc, char **argv)
     GravitonServiceInterface *service = GRAVITON_SERVICE_INTERFACE (cur->data);
     GravitonNode *node = graviton_service_interface_get_node (service);
     g_print ("Calling ping on %s\n", graviton_node_get_id (node, &error));
-    graviton_service_interface_call (service, "ping", &error, NULL);
+    graviton_service_interface_call_noref (service, "ping", &error, NULL);
     cur = cur->next;
   }
 
+  g_list_free_full (providers, g_object_unref);
+
   g_object_unref (cloud);
   g_main_loop_unref (loop);
+
+  cloud = NULL;
+  loop = NULL;
 
   return 0;
 }

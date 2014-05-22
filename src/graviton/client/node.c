@@ -99,7 +99,7 @@ graviton_node_class_init (GravitonNodeClass *klass)
                          "Node UUID",
                          "Universally Unique Node ID",
                          "",
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
@@ -119,12 +119,22 @@ static void
 graviton_node_dispose (GObject *object)
 {
   G_OBJECT_CLASS (graviton_node_parent_class)->dispose (object);
+  GravitonNode *self = GRAVITON_NODE (object);
+  g_object_unref (self->priv->gobj);
+  g_ptr_array_free (self->priv->transports, TRUE);
+
+  self->priv->gobj = NULL;
+  self->priv->transports = NULL;
 }
 
 static void
 graviton_node_finalize (GObject *object)
 {
   G_OBJECT_CLASS (graviton_node_parent_class)->finalize (object);
+  GravitonNode *self = GRAVITON_NODE (object);
+  if (self->priv->node_id)
+    g_free (self->priv->node_id);
+  self->priv->node_id = NULL;
 }
 
 GravitonNode *
@@ -133,16 +143,6 @@ graviton_node_proxy_to_id (GravitonNode *node,
                            GError **error)
 {
   return NULL;
-}
-
-static void
-cb_resolve_id (GravitonCloud *client, GravitonNode **result)
-{
-  GList *nodes = graviton_cloud_get_found_nodes (client);
-  GList *cur = nodes;
-  while (cur) {
-    cur = cur->next;
-  }
 }
 
 //FIXME: This needs to be a proper singleton
@@ -158,13 +158,14 @@ GravitonNode *graviton_node_get_by_id (const gchar *node_id)
 const gchar *
 graviton_node_get_id (GravitonNode *self, GError **err)
 {
-  GVariant *ret = graviton_service_interface_get_property (self->priv->gobj, "node-id", err);
-  if (ret) {
-    gchar *r = g_variant_dup_string (ret, NULL);
-    g_variant_unref (ret);
-    return r;
+  if (self->priv->node_id == NULL) {
+    GVariant *ret = graviton_service_interface_get_property (self->priv->gobj, "node-id", err);
+    if (ret) {
+      self->priv->node_id = g_variant_dup_string (ret, NULL);
+      g_variant_unref (ret);
+    }
   }
-  return NULL;
+  return self->priv->node_id;
 }
 
 const gchar *
@@ -209,10 +210,13 @@ graviton_node_call_va (GravitonNode *self,
   while (propName != NULL) {
     propValue = va_arg (argList, GVariant*);
     g_hash_table_replace (args, propName, propValue);
-    if (propValue)
-      g_debug ("%s = %s", propName, g_variant_print (propValue, TRUE));
-    else
+    if (propValue) {
+      gchar *v = g_variant_print (propValue, TRUE);
+      g_debug ("%s = %s", propName, v);
+      g_free (v);
+    } else {
       g_debug ("%s = NULL", propName);
+    }
     propName = va_arg (argList, gchar*);
   }
   va_end (argList);
@@ -264,7 +268,7 @@ graviton_node_add_transport (GravitonNode *self,
                              GravitonNodeTransport *transport,
                             int priority)
 {
-  g_object_ref (transport);
+  g_object_ref_sink (transport);
   g_ptr_array_add (self->priv->transports, transport);
 }
 

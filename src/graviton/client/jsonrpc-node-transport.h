@@ -32,7 +32,7 @@ struct _GravitonJsonrpcNodeTransport
 GType graviton_jsonrpc_node_transport_get_type (void);
 
 GravitonJsonrpcNodeTransport *graviton_jsonrpc_node_transport_new (GInetSocketAddress *address);
-gchar *graviton_jsonrpc_node_transport_get_node_id (GravitonJsonrpcNodeTransport *transport);
+const gchar *graviton_jsonrpc_node_transport_get_node_id (GravitonJsonrpcNodeTransport *transport);
 
 G_END_DECLS
 

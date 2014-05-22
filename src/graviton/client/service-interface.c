@@ -59,7 +59,7 @@ get_property (GObject *object,
                      GValue *value,
                      GParamSpec *pspec)
 {
-  GravitonServiceInterface *self = GRAVITON_SERVICE_INTERFACE (self);
+  GravitonServiceInterface *self = GRAVITON_SERVICE_INTERFACE (object);
   switch (property_id) {
     case PROP_NAME:
       g_value_set_string (value, self->priv->name);
@@ -112,12 +112,18 @@ static void
 graviton_service_interface_dispose (GObject *object)
 {
   G_OBJECT_CLASS (graviton_service_interface_parent_class)->dispose (object);
+  GravitonServiceInterface *self = GRAVITON_SERVICE_INTERFACE (object);
+  g_object_unref (self->priv->node);
+  self->priv->node = NULL;
 }
 
 static void
 graviton_service_interface_finalize (GObject *object)
 {
   G_OBJECT_CLASS (graviton_service_interface_parent_class)->finalize (object);
+  GravitonServiceInterface *self = GRAVITON_SERVICE_INTERFACE (object);
+  g_free (self->priv->name);
+  self->priv->name = NULL;
 }
 
 const gchar*
@@ -132,7 +138,6 @@ graviton_service_interface_get_subservice (GravitonServiceInterface *self, const
   gchar *full_name;
   GravitonServiceInterface *node = self;
   if (self->priv->node) {
-    node = g_object_ref (self->priv->node);
     full_name = g_strdup_printf ("%s/%s", self->priv->name, name);
   } else {
     full_name = g_strdup (name);
@@ -175,6 +180,20 @@ gchar *make_method_name (GravitonServiceInterface *service, const gchar *method)
   return g_strdup_printf ("%s.%s", graviton_service_interface_get_name (service), method);
 }
 
+void
+graviton_service_interface_call_noref (GravitonServiceInterface *service,
+    const gchar *method,
+    GError **error, ...)
+{
+  va_list args;
+  va_start (args, error);
+  gchar *full_method = make_method_name (service, method);
+  GVariant *ret = graviton_node_call_va (graviton_service_interface_get_node (service), full_method, error, args);
+  va_end (args);
+  g_free (full_method);
+  g_variant_unref (ret);
+}
+
 GVariant *
 graviton_service_interface_call (GravitonServiceInterface *service,
     const gchar *method,
@@ -185,6 +204,7 @@ graviton_service_interface_call (GravitonServiceInterface *service,
   gchar *full_method = make_method_name (service, method);
   GVariant *ret = graviton_node_call_va (graviton_service_interface_get_node (service), full_method, error, args);
   va_end (args);
+  g_free (full_method);
   return ret;
 }
 

@@ -40,6 +40,7 @@ GravitonServiceInterface *graviton_service_interface_get_subservice (GravitonSer
 GList *graviton_service_interface_list_properties (GravitonServiceInterface *service, GError **error);
 GVariant *graviton_service_interface_get_property (GravitonServiceInterface *service, const gchar *prop, GError **error);
 GravitonNode *graviton_service_interface_get_node (GravitonServiceInterface *service);
+void graviton_service_interface_call_noref (GravitonServiceInterface *service, const gchar *method, GError **error, ...);
 GVariant *graviton_service_interface_call (GravitonServiceInterface *service, const gchar *method, GError **error, ...);
 GVariant *graviton_service_interface_call_args (GravitonServiceInterface *service, const gchar *method, GHashTable *args, GError **error);
 GVariant *graviton_service_interface_call_va (GravitonServiceInterface *service, const gchar *method, GError **error, va_list args);

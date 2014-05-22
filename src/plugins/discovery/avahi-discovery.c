@@ -246,6 +246,9 @@ static void
 graviton_avahi_discovery_method_dispose (GObject *object)
 {
   G_OBJECT_CLASS (graviton_avahi_discovery_method_parent_class)->dispose (object);
+  GravitonAvahiDiscoveryMethod *self = GRAVITON_AVAHI_DISCOVERY_METHOD (object);
+  g_object_unref (self->priv->avahi);
+  g_object_unref (self->priv->avahi_poll_api);
 }
 
 static void

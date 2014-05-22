@@ -154,13 +154,16 @@ graviton_node_browser_get_property (GObject *object,
 static gpointer
 probe_thread_loop (gpointer data)
 {
+  GAsyncQueue *queue;
   GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (data);
+  g_object_ref (self);
   while (TRUE) {
     g_debug ("Waiting for new nodes to probe");
     GravitonNode *cur = GRAVITON_NODE (g_async_queue_pop (self->priv->unprobed_nodes));
     g_debug ("Probing new node");
     if (cur == NULL) {
       g_debug ("Exiting probe loop");
+      g_object_unref (self);
       return 0;
     } else {
       GList *nodes = NULL;
@@ -197,7 +200,19 @@ graviton_node_browser_dispose (GObject *object)
 {
   G_OBJECT_CLASS (graviton_node_browser_parent_class)->dispose (object);
   GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (object);
+
   g_async_queue_unref (self->priv->unprobed_nodes);
+  g_async_queue_push (self->priv->unprobed_nodes, NULL);
+  self->priv->unprobed_nodes = NULL;
+
+  g_thread_unref (self->priv->probe_thread);
+  self->priv->probe_thread = NULL;
+
+  g_hash_table_unref (self->priv->discovered_nodes);
+  self->priv->discovered_nodes = NULL;
+
+  g_list_free_full (self->priv->discovery_methods, g_object_unref);
+  self->priv->discovery_methods = NULL;
 }
 
 static void
@@ -235,6 +250,7 @@ cb_discovery_finished (GravitonDiscoveryMethod *method, gpointer data)
 void
 graviton_node_browser_add_discovery_method (GravitonNodeBrowser *self, GravitonDiscoveryMethod *method)
 {
+  g_object_ref_sink (method);
   self->priv->discovery_methods = g_list_append (self->priv->discovery_methods, method);
   g_signal_connect (method,
                     "finished",
@@ -262,8 +278,10 @@ graviton_node_browser_load_discovery_plugins (GravitonNodeBrowser *self)
     GravitonDiscoveryPluginLoaderFunc factory = g_array_index (plugins, GravitonDiscoveryPluginLoaderFunc, i);
     GravitonDiscoveryMethod *method = factory(self);
     graviton_node_browser_add_discovery_method (self, method);
+    g_object_unref (method);
     graviton_discovery_method_start (method);
   }
+  g_array_unref (plugins);
   g_debug ("loaded %i plugins", i);
 }
 
@@ -295,15 +313,21 @@ graviton_node_browser_find_discovery_plugins (GravitonNodeBrowser *self)
 
     if (!g_module_symbol (module, "make_graviton_discovery_plugin", (gpointer *)&loader)) {
       g_warning ("Can't find graviton_plugin symbol in %s: %s", entryPath, g_module_error ());
-      goto nextPlugin;
+      goto badPlugin;
     }
 
     if (loader == NULL) {
       g_warning ("graviton_plugin symbol is NULL in %s: %s", entryPath, g_module_error ());
-      goto nextPlugin;
+      goto badPlugin;
     }
 
+    g_module_make_resident (module);
     g_array_append_val (pluginList, loader);
+
+    goto nextPlugin;
+
+badPlugin:
+    g_module_close (module);
 
 nextPlugin:
     g_free (entryPath);
