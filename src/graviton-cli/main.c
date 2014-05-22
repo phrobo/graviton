@@ -103,15 +103,20 @@ void
 cb_nodes (GravitonNodeBrowser *browser, gpointer data)
 {
   GMainLoop *loop = (GMainLoop*)(data);
-  GList *nodes = graviton_node_browser_get_found_nodes (browser);
-  GList *cur = nodes;
+  GList *cloud_ids = graviton_node_browser_get_found_cloud_ids (browser);
+  GList *cur_cloud = cloud_ids;
 
-  g_print ("Discovered nodes:\n");
+  while (cur_cloud) {
+    GList *nodes = graviton_node_browser_get_found_nodes (browser, cur_cloud->data);
+    GList *cur = nodes;
 
-  while(cur) {
-    GravitonNode *node = GRAVITON_NODE (cur->data);
-    print_node (node);
-    cur = cur->next;
+    g_print ("Discovered nodes in cloud %s:\n", (gchar*)cur_cloud->data);
+
+    while(cur) {
+      GravitonNode *node = GRAVITON_NODE (cur->data);
+      print_node (node);
+      cur = cur->next;
+    }
   }
 
   g_main_loop_quit (loop);

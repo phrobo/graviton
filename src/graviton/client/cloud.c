@@ -12,7 +12,6 @@ struct _GravitonCloudPrivate
 {
   const gchar *cloud_id;
   GravitonNodeBrowser *browser;
-  GList *discovered_nodes;
 };
 
 #define GRAVITON_CLOUD_GET_PRIVATE(o) \
@@ -208,8 +207,7 @@ graviton_cloud_find_node (GravitonCloud *self, const gchar *guid, GError **error
 GList *
 graviton_cloud_find_service (GravitonCloud *self, const gchar *serviceName, GError **error)
 {
-  //GList *cur = self->priv->discovered_nodes;
-  GList *cur = graviton_node_browser_get_found_nodes (self->priv->browser);
+  GList *cur = graviton_node_browser_get_found_nodes (self->priv->browser, self->priv->cloud_id);
   GList *ret = NULL;
   g_debug ("Browsing %s for %s", self->priv->cloud_id, serviceName);
   while (cur) {
@@ -251,8 +249,7 @@ graviton_cloud_new (const gchar *cloud_id, GravitonNodeBrowser *browser)
 GList *
 graviton_cloud_get_found_nodes (GravitonCloud *self)
 {
-  //return self->priv->discovered_nodes;
-  return graviton_node_browser_get_found_nodes (self->priv->browser);
+  return graviton_node_browser_get_found_nodes (self->priv->browser, self->priv->cloud_id);
 }
 
 GravitonCloud *
@@ -263,6 +260,7 @@ graviton_cloud_new_default_cloud ()
   GKeyFile *keyfile = g_key_file_new ();
   g_key_file_load_from_data_dirs (keyfile, "gravitonrc", NULL, G_KEY_FILE_KEEP_COMMENTS, NULL);
   gchar *cloud_id = g_key_file_get_string (keyfile, "graviton", "default-cloud-id", NULL);
+  //FIXME: Need to store/load cloud ids
   cloud_id = g_strdup ("3857E91C-BA9F-4CB9-B667-4BBB42C06FC3");
   if (cloud_id == NULL) {
     cloud_id = g_new0 (gchar, 37);
@@ -292,7 +290,6 @@ cb_node_found (GravitonNodeBrowser *browser, GravitonNode *node, gpointer data)
 {
   GravitonCloud *self = GRAVITON_CLOUD (data);
   g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, node);
-  self->priv->discovered_nodes = g_list_append (self->priv->discovered_nodes, node);
 }
 
 static void

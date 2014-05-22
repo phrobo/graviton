@@ -11,8 +11,7 @@ struct _GravitonNodeBrowserPrivate
 {
   GList *discovery_methods;
   int pending_discovery_methods;
-  GList *discovered_nodes;
-  GList *discovered_clouds;
+  GHashTable *discovered_nodes;
   GAsyncQueue *unprobed_nodes;
   GThread *probe_thread;
 };
@@ -164,9 +163,17 @@ probe_thread_loop (gpointer data)
       g_debug ("Exiting probe loop");
       return 0;
     } else {
+      GList *nodes = NULL;
       GError *error = NULL;
-      const gchar *cloud_id = graviton_node_get_cloud_id (cur, &error);
-      self->priv->discovered_nodes = g_list_append (self->priv->discovered_nodes, cur);
+      const gchar *cloud_id = NULL;
+      cloud_id = graviton_node_get_cloud_id (cur, &error);
+      g_debug ("Node belongs to cloud %s", cloud_id);
+      nodes = g_hash_table_lookup (self->priv->discovered_nodes,
+                                   cloud_id);
+      nodes = g_list_prepend (nodes, cur);
+      g_hash_table_replace (self->priv->discovered_nodes, cloud_id, nodes);
+      g_assert (g_hash_table_lookup (self->priv->discovered_nodes, cloud_id) == nodes);
+      g_assert (nodes->data == cur);
     }
   }
 }
@@ -177,6 +184,11 @@ graviton_node_browser_init (GravitonNodeBrowser *self)
   GravitonNodeBrowserPrivate *priv;
   priv = self->priv = GRAVITON_NODE_BROWSER_GET_PRIVATE (self);
   priv->unprobed_nodes = g_async_queue_new_full (g_object_unref);
+  priv->discovered_nodes = g_hash_table_new_full (g_str_hash,
+                                                  g_str_equal,
+                                                  g_free,
+                                                  g_ptr_array_unref);
+
   priv->probe_thread = g_thread_new (NULL, probe_thread_loop, self);
 }
 
@@ -309,14 +321,14 @@ graviton_node_browser_new ()
   return g_object_new (GRAVITON_NODE_BROWSER_TYPE, NULL);
 }
 
-GList *
-graviton_node_browser_get_found_nodes (GravitonNodeBrowser *client)
+GList*
+graviton_node_browser_get_found_nodes (GravitonNodeBrowser *self, const gchar* cloud_id)
 {
-  return client->priv->discovered_nodes;
+  return g_hash_table_lookup (self->priv->discovered_nodes, cloud_id);
 }
 
 GList *
-graviton_node_browser_get_found_clouds (GravitonNodeBrowser *client)
+graviton_node_browser_get_found_cloud_ids (GravitonNodeBrowser *client)
 {
-  return client->priv->discovered_clouds;
+  return g_hash_table_get_keys (client->priv->discovered_nodes);
 }

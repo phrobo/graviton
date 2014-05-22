@@ -37,8 +37,8 @@ void graviton_node_browser_add_discovery_method (GravitonNodeBrowser *client, Gr
 void graviton_node_browser_load_discovery_plugins (GravitonNodeBrowser *client);
 GArray *graviton_node_browser_find_discovery_plugins (GravitonNodeBrowser *client);
 
-GList *graviton_node_browser_get_found_nodes (GravitonNodeBrowser *client);
-GList *graviton_node_browser_get_found_clouds (GravitonNodeBrowser *client);
+GList *graviton_node_browser_get_found_nodes (GravitonNodeBrowser *client, const gchar *cloud_id);
+GList *graviton_node_browser_get_found_cloud_ids (GravitonNodeBrowser *client);
 
 G_END_DECLS
 
