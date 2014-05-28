@@ -16,6 +16,8 @@ struct _GravitonNodePrivate
   gchar *node_id;
 };
 
+static GHashTable *node_cache = NULL;
+
 #define GRAVITON_NODE_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_TYPE, GravitonNodePrivate))
 
@@ -124,6 +126,9 @@ graviton_node_dispose (GObject *object)
   g_object_unref (self->priv->gobj);
   g_ptr_array_free (self->priv->transports, TRUE);
 
+  g_hash_table_remove (node_cache, self->priv->node_id);
+  g_hash_table_unref (node_cache);
+
   self->priv->gobj = NULL;
   self->priv->transports = NULL;
 }
@@ -150,9 +155,26 @@ graviton_node_proxy_to_id (GravitonNode *node,
 GravitonNode *graviton_node_get_by_id (const gchar *node_id)
 {
   GravitonNode *result = NULL;
-  result = g_object_new (GRAVITON_NODE_TYPE,
-                         "node-id", node_id,
-                         NULL);
+  if (node_cache == NULL) {
+    node_cache = g_hash_table_new_full (g_str_hash,
+                                        g_str_equal,
+                                        g_free,
+                                        g_object_unref);
+  }
+  result = g_hash_table_lookup (node_cache, node_id);
+  if (result == NULL) {
+    result = g_object_new (GRAVITON_NODE_TYPE,
+                           "node-id", node_id,
+                           NULL);
+    g_hash_table_insert (node_cache, node_id, result);
+    g_debug ("Created new node for %s", node_id);
+  } else {
+    g_debug ("Returning existing node for %s", node_id);
+    g_object_ref (result);
+  }
+
+  g_hash_table_ref (node_cache);
+
   return result;
 }
 
