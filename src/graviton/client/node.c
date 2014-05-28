@@ -239,7 +239,23 @@ graviton_node_get_service_interface (GravitonNode *node, const gchar *name, GErr
 gboolean
 graviton_node_has_service (GravitonNode *node, const gchar *name, GError **err)
 {
-  return TRUE;
+  gboolean ret = FALSE;
+  GError *error = NULL;
+  GList *services;
+  GList *cur;
+
+  services = graviton_introspection_interface_list_interfaces (node->priv->gobj, &error);
+  cur = services;
+  while (cur) {
+    if (strcmp (cur->data, name) == 0) {
+      ret = TRUE;
+      break;
+    }
+    cur = cur->next;
+  }
+  g_list_free_full (services, g_free);
+
+  return ret;
 }
 
 GVariant *
