@@ -136,13 +136,12 @@ GravitonServiceInterface *
 graviton_service_interface_get_subservice (GravitonServiceInterface *self, const gchar *name)
 {
   gchar *full_name;
-  GravitonServiceInterface *node = self;
   if (self->priv->node) {
     full_name = g_strdup_printf ("%s/%s", self->priv->name, name);
   } else {
     full_name = g_strdup (name);
   }
-  GravitonServiceInterface *ret = g_object_new (GRAVITON_SERVICE_INTERFACE_TYPE, "node", node, "name", full_name, NULL);
+  GravitonServiceInterface *ret = g_object_new (GRAVITON_SERVICE_INTERFACE_TYPE, "node", graviton_service_interface_get_node (self), "name", full_name, NULL);
   g_free (full_name);
   return ret;
 }
