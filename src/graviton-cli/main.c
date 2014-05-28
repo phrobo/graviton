@@ -117,6 +117,8 @@ cb_nodes (GravitonNodeBrowser *browser, gpointer data)
       print_node (node);
       cur = cur->next;
     }
+
+    cur_cloud = cur_cloud->next;
   }
 
   g_main_loop_quit (loop);
