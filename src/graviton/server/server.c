@@ -183,7 +183,7 @@ create_avahi_services (AvahiClient *client, GravitonServer *server)
                                  AVAHI_IF_UNSPEC,
                                  AVAHI_PROTO_INET,
                                  0,
-                                 "Graviton",
+                                 server->priv->node_id,
                                  "_graviton._tcp",
                                  NULL,
                                  NULL,
