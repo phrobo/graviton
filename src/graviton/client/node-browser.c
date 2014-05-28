@@ -154,7 +154,6 @@ graviton_node_browser_get_property (GObject *object,
 static gpointer
 probe_thread_loop (gpointer data)
 {
-  GAsyncQueue *queue;
   GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (data);
   g_object_ref (self);
   while (TRUE) {
@@ -174,11 +173,18 @@ probe_thread_loop (gpointer data)
       nodes = g_hash_table_lookup (self->priv->discovered_nodes,
                                    cloud_id);
       nodes = g_list_prepend (nodes, cur);
-      g_hash_table_replace (self->priv->discovered_nodes, cloud_id, nodes);
-      g_assert (g_hash_table_lookup (self->priv->discovered_nodes, cloud_id) == nodes);
-      g_assert (nodes->data == cur);
+      g_hash_table_replace (self->priv->discovered_nodes, g_strdup (cloud_id), nodes);
+      //g_assert (g_hash_table_lookup (self->priv->discovered_nodes, cloud_id) == nodes);
+      //g_assert (nodes->data == cur);
     }
   }
+}
+
+static void
+free_node_list (gpointer key, gpointer value, gpointer data)
+{
+  GList *list = (GList*)value;
+  g_list_free_full (list, g_object_unref);
 }
 
 static void
@@ -190,7 +196,7 @@ graviton_node_browser_init (GravitonNodeBrowser *self)
   priv->discovered_nodes = g_hash_table_new_full (g_str_hash,
                                                   g_str_equal,
                                                   g_free,
-                                                  g_ptr_array_unref);
+                                                  NULL);
 
   priv->probe_thread = g_thread_new (NULL, probe_thread_loop, self);
 }
@@ -208,6 +214,9 @@ graviton_node_browser_dispose (GObject *object)
   g_thread_unref (self->priv->probe_thread);
   self->priv->probe_thread = NULL;
 
+  g_hash_table_foreach (self->priv->discovered_nodes,
+                       free_node_list,
+                       NULL);
   g_hash_table_unref (self->priv->discovered_nodes);
   self->priv->discovered_nodes = NULL;
 
