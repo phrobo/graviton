@@ -97,6 +97,7 @@ graviton_introspection_interface_init (GravitonIntrospectionControl *self)
 {
   GravitonIntrospectionControlPrivate *priv;
   priv = self->priv = GRAVITON_INTROSPECTION_INTERFACE_GET_PRIVATE (self);
+  priv->target = NULL;
 }
 
 static void
@@ -109,6 +110,9 @@ static void
 graviton_introspection_interface_finalize (GObject *object)
 {
   G_OBJECT_CLASS (graviton_introspection_interface_parent_class)->finalize (object);
+  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_INTERFACE (object);
+  self->priv->target = NULL;
+  self->priv = NULL;
 }
 
 GravitonIntrospectionControl *
@@ -133,6 +137,7 @@ call_string_list_method (GravitonIntrospectionControl *self, const gchar *method
                                             method,
                                             err,
                                             args);
+  g_debug ("Got: %s", g_variant_print (result, TRUE));
   GList *ret = NULL;
   int i;
   if (result) {
