@@ -113,6 +113,7 @@ graviton_node_init (GravitonNode *self)
   self->priv = priv = GRAVITON_NODE_GET_PRIVATE (self);
   self->priv->transports = g_ptr_array_new_with_free_func (g_object_unref);
   self->priv->gobj = graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (self), "net:phrobo:graviton");
+  g_assert (graviton_service_interface_get_node (self->priv->gobj) == self);
 }
 
 static void
