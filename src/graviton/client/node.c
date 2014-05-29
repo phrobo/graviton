@@ -5,6 +5,9 @@
 #include "node.h"
 #include "cloud.h"
 #include "node-io-stream.h"
+#include "introspection-interface.h"
+
+#include <string.h>
 
 typedef struct _GravitonNodePrivate GravitonNodePrivate;
 
@@ -166,7 +169,7 @@ GravitonNode *graviton_node_get_by_id (const gchar *node_id)
     result = g_object_new (GRAVITON_NODE_TYPE,
                            "node-id", node_id,
                            NULL);
-    g_hash_table_insert (node_cache, node_id, result);
+    g_hash_table_insert (node_cache, g_strdup (node_id), result);
     g_debug ("Created new node for %s", node_id);
   } else {
     g_debug ("Returning existing node for %s", node_id);
@@ -265,8 +268,11 @@ graviton_node_has_service (GravitonNode *node, const gchar *name, GError **err)
   GError *error = NULL;
   GList *services;
   GList *cur;
+  GravitonIntrospectionControl *introspection;
 
-  services = graviton_introspection_interface_list_interfaces (node->priv->gobj, &error);
+  introspection = graviton_introspection_interface_new_from_interface (GRAVITON_SERVICE_INTERFACE (node));
+  services = graviton_introspection_interface_list_interfaces (introspection, &error);
+  g_object_unref (introspection);
   cur = services;
   while (cur) {
     if (strcmp (cur->data, name) == 0) {
@@ -319,9 +325,7 @@ graviton_node_get_transports (GravitonNode *node, int priority)
 
 GravitonNodeTransport *graviton_node_get_default_transport (GravitonNode *node)
 {
-  int priority;
   GPtrArray *transports;
-  GList *priorities;
   GravitonNodeTransport *transport;
 
   g_debug ("Fetching default transport");

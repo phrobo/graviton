@@ -9,7 +9,6 @@ typedef struct _GravitonDbusDiscoveryMethodPrivate GravitonDbusDiscoveryMethodPr
 
 struct _GravitonDbusDiscoveryMethodPrivate
 {
-  int foo;
 };
 
 #define GRAVITON_DBUS_DISCOVERY_METHOD_GET_PRIVATE(o) \
@@ -25,20 +24,6 @@ static void graviton_dbus_discovery_method_get_property (GObject *object, guint 
 GRAVITON_DEFINE_DISCOVERY_PLUGIN (GRAVITON_DBUS_DISCOVERY_METHOD_TYPE)
 
 G_DEFINE_TYPE (GravitonDbusDiscoveryMethod, graviton_dbus_discovery_method, GRAVITON_DISCOVERY_METHOD_TYPE);
-
-enum {
-  PROP_ZERO,
-  N_PROPERTIES
-};
-
-enum {
-  SIGNAL_0,
-  N_SIGNALS
-};
-
-static int obj_signals[N_SIGNALS] = { 0, };
-
-static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
 static void
 start_browse (GravitonDiscoveryMethod *method)
@@ -92,9 +77,8 @@ start_browse (GravitonDiscoveryMethod *method)
       addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
 
       GravitonJsonrpcNodeTransport *transport = graviton_jsonrpc_node_transport_new (addr);
-      gchar *node_id = graviton_jsonrpc_node_transport_get_node_id (transport);
+      const gchar *node_id = graviton_jsonrpc_node_transport_get_node_id (transport);
       GravitonNode *node = graviton_node_get_by_id (node_id);
-      g_free (node_id);
       graviton_node_add_transport (node, GRAVITON_NODE_TRANSPORT (transport), 0);
       g_object_unref (addr);
       graviton_discovery_method_node_found (GRAVITON_DISCOVERY_METHOD (self), node);
@@ -113,8 +97,6 @@ start_browse (GravitonDiscoveryMethod *method)
 static void
 stop_browse (GravitonDiscoveryMethod *method)
 {
-  GravitonDbusDiscoveryMethod *self = GRAVITON_DBUS_DISCOVERY_METHOD (method);
-  //FIXME: Remove discovered nodes
 }
 
 static void
@@ -143,7 +125,6 @@ graviton_dbus_discovery_method_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  GravitonDbusDiscoveryMethod *self = GRAVITON_DBUS_DISCOVERY_METHOD (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -157,18 +138,16 @@ graviton_dbus_discovery_method_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  GravitonDbusDiscoveryMethod *self = GRAVITON_DBUS_DISCOVERY_METHOD (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
   }
 }
+
 static void
 graviton_dbus_discovery_method_init (GravitonDbusDiscoveryMethod *self)
 {
-  GravitonDbusDiscoveryMethodPrivate *priv;
-  priv = self->priv = GRAVITON_DBUS_DISCOVERY_METHOD_GET_PRIVATE (self);
 }
 
 static void

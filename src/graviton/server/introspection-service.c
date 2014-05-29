@@ -206,8 +206,8 @@ cb_properties(GravitonService *service, GHashTable *args, GError **error, gpoint
     return NULL;
 
   GParamSpec **properties;
-  int property_count;
-  int i;
+  guint property_count;
+  guint i;
   properties = g_object_class_list_properties (G_OBJECT_GET_CLASS (subservice), &property_count);
   g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
   for (i = 0; i<property_count; i++) {
@@ -224,7 +224,6 @@ cb_properties(GravitonService *service, GHashTable *args, GError **error, gpoint
 static GVariant *
 cb_get_property (GravitonService *service, GHashTable *args, GError **error, gpointer user_data)
 {
-  GVariantBuilder ret;
   GravitonService *subservice;
   GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
 
@@ -278,7 +277,6 @@ cb_services(GravitonService *service, GHashTable *args, GError **error, gpointer
   GVariantBuilder ret;
   GravitonService *subservice;
   GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_CONTROL (user_data);
-  GravitonRootService *plugins = graviton_server_get_root_service (self->priv->server);
 
   subservice = grab_service_arg (self, args, error);
 
@@ -290,7 +288,7 @@ cb_services(GravitonService *service, GHashTable *args, GError **error, gpointer
   g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
   GList *cur = services;
   while (cur) { 
-    g_debug ("Found service %s", cur->data);
+    g_debug ("Found service %s", (gchar*)cur->data);
     g_variant_builder_add (&ret, "s", cur->data);
     cur = g_list_next (cur);
   }

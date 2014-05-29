@@ -26,18 +26,18 @@ typedef struct _Buffer
 static gssize
 read_buffer (GQueue *queue, void *buffer, gsize count)
 {
-  g_debug ("Requesting to read %i bytes, we have %i buffers", count, g_queue_get_length (queue));
+  g_debug ("Requesting to read %" G_GSIZE_FORMAT " bytes, we have %u buffers", count, g_queue_get_length (queue));
   gssize read_size = 0;
   while (read_size < count && !g_queue_is_empty (queue)) {
     Buffer *curBuf = (Buffer*) g_queue_pop_head (queue);
-    g_debug ("Looking to read %i more out of %i, current buffer is %i", count-read_size, count, curBuf->size);
+    g_debug ("Looking to read %" G_GSSIZE_FORMAT " more out of %" G_GSIZE_FORMAT ", current buffer is %" G_GSIZE_FORMAT, count-read_size, count, curBuf->size);
     if (curBuf->size == 0 && curBuf->data == NULL) {
       g_debug ("Got empty buffer, must mean we are done.");
       return 0;
     }
     if (count-read_size > curBuf->size) {
       memcpy (buffer + read_size, curBuf->data, curBuf->size);
-      g_debug ("Consuming first buffer of size %i", curBuf->size);
+      g_debug ("Consuming first buffer of size %" G_GSIZE_FORMAT, curBuf->size);
       g_free (curBuf->data);
       g_free (curBuf);
       read_size += curBuf->size;
@@ -45,7 +45,7 @@ read_buffer (GQueue *queue, void *buffer, gsize count)
       memcpy (buffer + read_size, curBuf->data, count-read_size);
       char *newSegment = g_new (char, curBuf->size-count-read_size);
       memcpy (newSegment, curBuf->data + (count-read_size), curBuf->size-count-read_size);
-      g_debug ("Consuming first %i bytes of first buffer", count-read_size);
+      g_debug ("Consuming first %" G_GSSIZE_FORMAT " bytes of first buffer", count-read_size);
       g_free (curBuf->data);
       curBuf->data = newSegment;
       curBuf->size = curBuf->size-count-read_size;
@@ -62,7 +62,7 @@ add_buffer (GQueue *queue, const void *buffer, gsize size)
   Buffer *buf = g_new0 (Buffer, 1);
   buf->data = g_memdup (buffer, size);
   buf->size = size;
-  g_debug ("Added a buffer of size %i", size);
+  g_debug ("Added a buffer of size %" G_GSIZE_FORMAT, size);
   g_queue_push_tail (queue, buf);
 }
 
@@ -107,7 +107,7 @@ get_property (GObject *object,
                      GValue *value,
                      GParamSpec *pspec)
 {
-  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (self);
+  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (object);
   switch (property_id) {
     case PROP_IO_STREAM:
       g_value_set_object (value, self->priv->stream);
@@ -170,7 +170,7 @@ stream_read (GInputStream *stream,
   }
 
   read_size = read_buffer (self->priv->buffers, buffer, count);
-  g_debug ("Got a buffer of size %i after asking for %i", read_size, count);
+  g_debug ("Got a buffer of size %" G_GSSIZE_FORMAT " after asking for %" G_GSIZE_FORMAT, read_size, count);
 
   return read_size;
 }

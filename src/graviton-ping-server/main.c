@@ -6,7 +6,7 @@
 static GVariant *
 cb_ping(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
-  g_printf ("Responding to ping request\n");
+  g_print ("Responding to ping request\n");
   return g_variant_new_string ("pong");
 }
 
@@ -31,7 +31,7 @@ int main(int argc, char** argv)
   const gchar *cloud_id = graviton_server_get_cloud_id (server);
   const gchar *node_id = graviton_server_get_node_id (server);
   
-  g_printf ("Echo server running at %s:%s\n", cloud_id, node_id);
+  g_print ("Echo server running at %s:%s\n", cloud_id, node_id);
 
   graviton_server_run_async (server);
 

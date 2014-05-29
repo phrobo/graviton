@@ -140,8 +140,7 @@ graviton_discovery_method_get_property (GObject *object,
 static void
 graviton_discovery_method_init (GravitonDiscoveryMethod *self)
 {
-  GravitonDiscoveryMethodPrivate *priv;
-  priv = self->priv = GRAVITON_DISCOVERY_METHOD_GET_PRIVATE (self);
+  self->priv = GRAVITON_DISCOVERY_METHOD_GET_PRIVATE (self);
 }
 
 static void

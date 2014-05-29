@@ -37,6 +37,7 @@ graviton_stream_init (GravitonStream *self)
 {
   GravitonStreamPrivate *priv;
   priv = self->priv = GRAVITON_STREAM_GET_PRIVATE (self);
+  priv->name = NULL;
 }
 
 static void
@@ -48,12 +49,16 @@ graviton_stream_dispose (GObject *object)
 static void
 graviton_stream_finalize (GObject *object)
 {
+  GravitonStream *self = GRAVITON_STREAM (object);
+  g_free (self->priv->name);
+
   G_OBJECT_CLASS (graviton_stream_parent_class)->finalize (object);
 }
 
 GravitonStream *
 graviton_stream_new (const gchar *name)
 {
+  //FIXME: This is not actually ever set!
   return g_object_new (GRAVITON_STREAM_TYPE, "name", name, NULL);
 }
 

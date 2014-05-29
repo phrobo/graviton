@@ -43,7 +43,7 @@ enum {
 
 static int obj_signals[N_SIGNALS] = { 0, };
 
-static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
+//static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
 static void
 graviton_node_browser_class_init (GravitonNodeBrowserClass *klass)
@@ -129,7 +129,7 @@ graviton_node_browser_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (object);
+  //GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -143,7 +143,7 @@ graviton_node_browser_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (object);
+  //GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

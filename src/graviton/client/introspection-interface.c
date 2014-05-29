@@ -153,8 +153,6 @@ call_string_list_method (GravitonIntrospectionControl *self, const gchar *method
 
 GList *graviton_introspection_interface_list_interfaces (GravitonIntrospectionControl *self, GError **err)
 {
-  GError *error = NULL;
-  GList *ret = NULL;
   GVariant *name = NULL;
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
@@ -168,8 +166,6 @@ GList *graviton_introspection_interface_list_interfaces (GravitonIntrospectionCo
 
 GList *graviton_introspection_interface_list_properties (GravitonIntrospectionControl *self, GError **err)
 {
-  GError *error = NULL;
-  GList *ret = NULL;
   GVariant *name = NULL;
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);
@@ -183,8 +179,6 @@ GList *graviton_introspection_interface_list_properties (GravitonIntrospectionCo
 
 GList *graviton_introspection_interface_list_streams (GravitonIntrospectionControl *self, GError **err)
 {
-  GError *error = NULL;
-  GList *ret = NULL;
   GVariant *name = NULL;
   if (self->priv->target)
     name = g_variant_new_string (self->priv->target);

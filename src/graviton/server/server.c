@@ -105,6 +105,8 @@ new_stream (SoupMessage *message, GravitonStream *stream, GravitonServer *server
 
   connection->bufsize = 8192;
   connection->buf = g_new0 (gchar, connection->bufsize);
+
+  return connection;
 }
 
 static void
@@ -151,7 +153,7 @@ cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
   SoupMessageBody *body;
   g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
   soup_message_body_append (body, SOUP_MEMORY_COPY, connection->buf, read_size);
-  g_debug ("Read %d", read_size);
+  g_debug ("Read %li", read_size); //FIXME: Should use G_SSIZE_FORMAT
   soup_server_unpause_message (connection->server->priv->server, connection->message);
   g_input_stream_read_async (G_INPUT_STREAM (source),
                              connection->buf,
@@ -224,8 +226,6 @@ set_property (GObject *object,
               const GValue *value,
               GParamSpec *pspec)
 {
-  GravitonServer *self = GRAVITON_SERVER (object);
-
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -335,7 +335,7 @@ handle_rpc (GravitonServer *self, JsonObject *request)
           param_value = json_gvariant_deserialize (json_object_get_member (param_obj, param->data), NULL, &error);
           g_hash_table_replace (args, g_strdup (param->data), param_value);
           gchar *display = g_variant_print (param_value, TRUE);
-          g_debug ("Setting param %s to %s", param->data, display);
+          g_debug ("Setting param %s to %s", (gchar*)param->data, display);
           g_free (display);
           param = g_list_next (param);
         }
@@ -594,10 +594,11 @@ out:
   g_object_unref (generator);
 }
 
-static void
+//FIXME: What was this here for?
+/*static void
 broadcast_property_notify (GObject *object, GParamSpec *pspec, gpointer user_data)
 {
-  /*GravitonServer *self = GRAVITON_SERVER (user_data);
+  GravitonServer *self = GRAVITON_SERVER (user_data);
   JsonBuilder *builder;
   JsonNode *result = NULL;
   GList *client = self->priv->event_listeners;
@@ -610,8 +611,8 @@ broadcast_property_notify (GObject *object, GParamSpec *pspec, gpointer user_dat
     client = g_list_next (client);
     g_debug ("Sent ping");
   }
-  return TRUE;*/
-}
+  return TRUE;
+}*/
 
 static void
 cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext *client, gpointer user_data)

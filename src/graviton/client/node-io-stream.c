@@ -60,7 +60,7 @@ get_property (GObject *object,
                      GValue *value,
                      GParamSpec *pspec)
 {
-  GravitonNodeIOStream *self = GRAVITON_NODE_IO_STREAM (self);
+  GravitonNodeIOStream *self = GRAVITON_NODE_IO_STREAM (object);
   switch (property_id) {
     case PROP_URI:
       g_value_set_boxed (value, self->priv->uri);
@@ -128,7 +128,7 @@ graviton_node_io_stream_class_init (GravitonNodeIOStreamClass *klass)
 static void
 graviton_node_io_stream_init (GravitonNodeIOStream *self)
 {
-  GravitonNodeIOStreamPrivate *priv = self->priv = GRAVITON_NODE_IO_STREAM_GET_PRIVATE (self);
+  self->priv = GRAVITON_NODE_IO_STREAM_GET_PRIVATE (self);
 }
 
 static void

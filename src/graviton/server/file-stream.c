@@ -112,6 +112,7 @@ graviton_file_stream_init (GravitonFileStream *self)
 {
   GravitonFileStreamPrivate *priv;
   priv = self->priv = GRAVITON_FILE_STREAM_GET_PRIVATE (self);
+  priv->file = NULL;
 }
 
 static void
@@ -123,7 +124,9 @@ graviton_file_stream_dispose (GObject *object)
 static void
 graviton_file_stream_finalize (GObject *object)
 {
+  GravitonFileStream *self = GRAVITON_FILE_STREAM (object);
   G_OBJECT_CLASS (graviton_file_stream_parent_class)->finalize (object);
+  g_object_unref (self->priv->file);
 }
 
 GravitonFileStream *

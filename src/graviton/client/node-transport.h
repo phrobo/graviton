@@ -16,7 +16,6 @@ G_BEGIN_DECLS
 
 typedef struct _GravitonNodeTransport      GravitonNodeTransport;
 typedef struct _GravitonNodeTransportClass GravitonNodeTransportClass;
-typedef struct _GravitonNodeTransportPrivate GravitonNodeTransportPrivate;
 
 typedef struct _GravitonNode GravitonNode;
 
@@ -30,7 +29,6 @@ struct _GravitonNodeTransportClass
 struct _GravitonNodeTransport
 {
   GObject parent;
-  GravitonNodeTransportPrivate *priv;
 };
 
 GType graviton_node_transport_get_type (void);

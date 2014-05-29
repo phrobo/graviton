@@ -8,11 +8,6 @@
 
 G_DEFINE_TYPE (GravitonRootService, graviton_root_service, GRAVITON_SERVICE_TYPE);
 
-struct _GravitonRootServicePrivate
-{
-  int dummy;
-};
-
 enum {
   SIGNAL_0,
   SIGNAL_CONTROL_ADDED,
@@ -21,10 +16,16 @@ enum {
 
 static int obj_signals[N_SIGNALS] = {0, };
 
+static void graviton_root_service_finalize (GObject *object);
+static void graviton_root_service_dispose (GObject *object);
+
 static void
 graviton_root_service_class_init (GravitonRootServiceClass *klass)
 {
-  g_type_class_add_private (klass, sizeof (GravitonRootServicePrivate));
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->dispose = graviton_root_service_dispose;
+  object_class->finalize = graviton_root_service_finalize;
 
   obj_signals[SIGNAL_CONTROL_ADDED] =
     g_signal_new ("service-added",
@@ -42,21 +43,18 @@ graviton_root_service_class_init (GravitonRootServiceClass *klass)
 static void
 graviton_root_service_init (GravitonRootService *self)
 {
-  GravitonRootServicePrivate *priv;
-  self->priv = priv = GRAVITON_ROOT_SERVICE_GET_PRIVATE (self);
-
 }
 
 static void
-graviton_root_service_dispose (GObject *gobject)
+graviton_root_service_dispose (GObject *object)
 {
-  GravitonRootService *self = GRAVITON_ROOT_SERVICE (gobject);
+  G_OBJECT_CLASS (graviton_root_service_parent_class)->dispose (object);
 }
 
 static void
-graviton_root_service_finalize (GObject *gobject)
+graviton_root_service_finalize (GObject *object)
 {
-  GravitonRootService *self = GRAVITON_ROOT_SERVICE (gobject);
+  G_OBJECT_CLASS (graviton_root_service_parent_class)->finalize (object);
 }
 
 GravitonRootService *

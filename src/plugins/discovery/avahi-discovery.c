@@ -39,20 +39,6 @@ GRAVITON_DEFINE_DISCOVERY_PLUGIN (GRAVITON_AVAHI_DISCOVERY_METHOD_TYPE)
 
 G_DEFINE_TYPE (GravitonAvahiDiscoveryMethod, graviton_avahi_discovery_method, GRAVITON_DISCOVERY_METHOD_TYPE);
 
-enum {
-  PROP_ZERO,
-  N_PROPERTIES
-};
-
-enum {
-  SIGNAL_0,
-  N_SIGNALS
-};
-
-static int obj_signals[N_SIGNALS] = { 0, };
-
-static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
-
 static void
 graviton_avahi_discovery_method_class_init (GravitonAvahiDiscoveryMethodClass *klass)
 {
@@ -64,9 +50,6 @@ graviton_avahi_discovery_method_class_init (GravitonAvahiDiscoveryMethodClass *k
   object_class->finalize = graviton_avahi_discovery_method_finalize;
   object_class->set_property =  graviton_avahi_discovery_method_set_property;
   object_class->get_property =  graviton_avahi_discovery_method_get_property;
-  /*g_object_class_install_properties (object_class,
-      N_PROPERTIES,
-      obj_properties);*/
 
   GravitonDiscoveryMethodClass *method_class = GRAVITON_DISCOVERY_METHOD_CLASS (klass);
   method_class->start = start_browse;
@@ -79,7 +62,6 @@ graviton_avahi_discovery_method_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  GravitonAvahiDiscoveryMethod *self = GRAVITON_AVAHI_DISCOVERY_METHOD (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -93,7 +75,6 @@ graviton_avahi_discovery_method_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  GravitonAvahiDiscoveryMethod *self = GRAVITON_AVAHI_DISCOVERY_METHOD (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -135,7 +116,7 @@ cb_resolve (AvahiServiceResolver *resolver,
       if (addrName)
         addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
 
-      g_debug ("Found %s: %s:%d", type, ip_str, port);
+      g_debug ("Found %s via avahi: %s:%d", type, ip_str, port);
       g_free (ip_str);
       GravitonJsonrpcNodeTransport *transport = graviton_jsonrpc_node_transport_new (addr);
       g_object_unref (addr);
@@ -183,6 +164,11 @@ cb_browse (AvahiServiceBrowser *browser,
       self->priv->end_of_avahi_list = TRUE;
       if (self->priv->unresolved_count == 0)
         graviton_discovery_method_finished (GRAVITON_DISCOVERY_METHOD (self));
+      break;
+    //FIXME: Do these need handled?
+    case AVAHI_BROWSER_REMOVE:
+    case AVAHI_BROWSER_CACHE_EXHAUSTED:
+    case AVAHI_BROWSER_FAILURE:
       break;
   }
 }

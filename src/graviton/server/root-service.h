@@ -19,7 +19,6 @@ typedef struct _GravitonRootServicePrivate GravitonRootServicePrivate;
 struct _GravitonRootService
 {
   GravitonService parent_instance;
-  GravitonRootServicePrivate *priv;
 };
 
 struct _GravitonRootServiceClass

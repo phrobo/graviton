@@ -63,7 +63,7 @@ get_property (GObject *object,
                      GValue *value,
                      GParamSpec *pspec)
 {
-  GravitonNodeStream *self = GRAVITON_NODE_STREAM (self);
+  GravitonNodeStream *self = GRAVITON_NODE_STREAM (object);
   switch (property_id) {
     case PROP_NAME:
       g_value_set_string (value, self->priv->name);
@@ -112,20 +112,26 @@ graviton_node_stream_class_init (GravitonNodeStreamClass *klass)
 static void
 graviton_node_stream_init (GravitonNodeStream *self)
 {
-  GravitonNodeStreamPrivate *priv;
-  priv = self->priv = GRAVITON_NODE_STREAM_GET_PRIVATE (self);
+  self->priv = GRAVITON_NODE_STREAM_GET_PRIVATE (self);
 }
 
 static void
 graviton_node_stream_dispose (GObject *object)
 {
+  GravitonNodeStream *self = GRAVITON_NODE_STREAM (object);
   G_OBJECT_CLASS (graviton_node_stream_parent_class)->dispose (object);
+  g_object_unref (self->priv->service);
+  g_hash_table_unref (self->priv->args);
 }
 
 static void
 graviton_node_stream_finalize (GObject *object)
 {
+  GravitonNodeStream *self = GRAVITON_NODE_STREAM (object);
   G_OBJECT_CLASS (graviton_node_stream_parent_class)->finalize (object);
+  g_free (self->priv->name);
+  self->priv->service = NULL;
+  self->priv->args = NULL;
 }
 
 GravitonNodeStream *

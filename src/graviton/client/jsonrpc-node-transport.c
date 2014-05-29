@@ -49,13 +49,6 @@ enum {
   N_PROPERTIES
 };
 
-enum {
-  SIGNAL_0,
-  N_SIGNALS
-};
-
-static int obj_signals[N_SIGNALS] = { 0, };
-
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
 static void
@@ -163,14 +156,14 @@ graviton_jsonrpc_node_transport_init (GravitonJsonrpcNodeTransport *self)
 {
   GravitonJsonrpcNodeTransportPrivate *priv;
   priv = self->priv = GRAVITON_JSONRPC_NODE_TRANSPORT_GET_PRIVATE (self);
-  self->priv->rpc_uri = 0;
-  self->priv->event_uri = 0;
-  self->priv->stream_uri = 0;
-  self->priv->address = NULL;
-  self->priv->soup = soup_session_sync_new ();
-  g_object_set (self->priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
+  priv->rpc_uri = 0;
+  priv->event_uri = 0;
+  priv->stream_uri = 0;
+  priv->address = NULL;
+  priv->soup = soup_session_sync_new ();
+  g_object_set (priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
 
-  self->priv->endpoint_node_id = NULL;
+  priv->endpoint_node_id = NULL;
 }
 
 static void
@@ -346,13 +339,13 @@ call_args (GravitonNodeTransport *trans_self,
           //g_object_unref (resultNode);
         }
       } else {
-        g_critical ("JSON-RPC reply from %s wasn't JSON-RPC: %s", self->priv->rpc_uri, responseBody->data);
+        g_critical ("JSON-RPC reply from %s wasn't JSON-RPC: %s", soup_uri_get_host (self->priv->rpc_uri), responseBody->data);
       }
     } else {
-      g_critical ("Got badly structured JSON-RPC reply from node %s: <<%s>>", self->priv->rpc_uri, responseBody->data);
+      g_critical ("Got badly structured JSON-RPC reply from node %s: <<%s>>", soup_uri_get_host (self->priv->rpc_uri), responseBody->data);
     }
   } else {
-    g_critical ("Got unparsable JSON from node %s: %s", self->priv->rpc_uri, error->message);
+    g_critical ("Got unparsable JSON from node %s: %s", soup_uri_get_host (self->priv->rpc_uri), error->message);
     g_error_free (error);
   }
 
@@ -381,11 +374,11 @@ graviton_jsonrpc_node_transport_get_node_id (GravitonJsonrpcNodeTransport *trans
     GHashTable *args = g_hash_table_new_full (g_str_hash,
                                               g_str_equal,
                                               NULL,
-                                              g_variant_unref);
+                                              (GDestroyNotify)g_variant_unref);
     g_hash_table_insert (args, "service", g_variant_new_string ("net:phrobo:graviton"));
     g_hash_table_insert (args, "property", g_variant_new_string ("node-id"));
 
-    GVariant *ret = call_args (transport,
+    GVariant *ret = call_args (GRAVITON_NODE_TRANSPORT (transport),
                                NULL,
                                "net:phrobo:graviton/introspection.getProperty",
                                args,

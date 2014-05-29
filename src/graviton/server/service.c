@@ -63,6 +63,9 @@ struct _GravitonServicePrivate
   GHashTable *stream_data;
 };
 
+static void graviton_service_dispose (GObject *object);
+static void graviton_service_finalize (GObject *object);
+
 static void
 set_property (GObject *object,
                      guint property_id,
@@ -103,6 +106,8 @@ graviton_service_class_init (GravitonServiceClass *klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   g_type_class_add_private (klass, sizeof (GravitonServicePrivate));
 
+  gobject_class->dispose = graviton_service_dispose;
+  gobject_class->finalize = graviton_service_finalize;
   gobject_class->set_property = set_property;
   gobject_class->get_property = get_property;
 
@@ -136,6 +141,7 @@ graviton_service_init (GravitonService *self)
   GravitonServicePrivate *priv;
   self->priv = priv = GRAVITON_SERVICE_GET_PRIVATE (self);
   priv->name = 0;
+  //FIXME: These should be tuples that map callback and data to each other
   priv->streams = g_hash_table_new_full (g_str_hash,
                                          g_str_equal,
                                          g_free,
@@ -163,15 +169,23 @@ graviton_service_init (GravitonService *self)
 }
 
 static void
-graviton_service_dispose (GravitonService *self)
+graviton_service_dispose (GObject *object)
 {
+  GravitonService *self = GRAVITON_SERVICE (object);
+  G_OBJECT_CLASS (graviton_service_parent_class)->dispose (object);
   g_hash_table_unref (self->priv->methods);
   g_hash_table_unref (self->priv->method_data);
+  g_hash_table_unref (self->priv->method_destroys);
+  g_hash_table_unref (self->priv->streams);
+  g_hash_table_unref (self->priv->stream_data);
+  g_hash_table_unref (self->priv->services);
 }
 
 static void
-graviton_service_finalize (GravitonService *self)
+graviton_service_finalize (GObject *object)
 {
+  GravitonService *self = GRAVITON_SERVICE (object);
+  G_OBJECT_CLASS (graviton_service_parent_class)->finalize (object);
   g_free (self->priv->name);
 }
 
@@ -192,7 +206,6 @@ graviton_service_add_method (GravitonService *self,
                              gpointer user_data,
                              GDestroyNotify destroy_func)
 {
-  int i;
   g_hash_table_replace (self->priv->methods, g_strdup (name), func);
   g_hash_table_replace (self->priv->method_data, g_strdup (name), user_data);
   g_hash_table_replace (self->priv->method_destroys, g_strdup (name), destroy_func);
