@@ -134,36 +134,13 @@ int main (int argc, char** argv)
 
   GMainLoop *loop = g_main_loop_new (NULL, 0);
 
-  if (argc == 3) {
-    /*GInetSocketAddress *addr = NULL;
-    GInetAddress *addrName = NULL;
-    guint port = atoi (argv[2]);
-    addrName = g_inet_address_new_from_string (argv[1]);
-    if (addrName) {
-      addr = (GInetSocketAddress*)g_inet_socket_address_new (addrName, port);
-    }
-    GravitonNode *node = GRAVITON_NODE (graviton_jsonrpc_node_new_from_address (addr));
-    print_node (node);
-    g_object_unref (node);*/
-  } else if (argc == 2) {
-    /*const gchar *cloud_id;
-    const gchar *node_id;
-    GravitonNodeBrowser *browser = graviton_node_browser_new ();
-    GravitonCloud *cloud = graviton_cloud_new (cloud_id, browser);
-    GravitonNode *node = graviton_cloud_find_node (cloud, node_id, NULL);
-    print_node (node);
-    g_object_unref (node);
-    g_object_unref (cloud);*/
-  } else {
-    GravitonNodeBrowser *browser = graviton_node_browser_new ();
-    g_signal_connect (browser,
-                      "all-nodes-found",
-                      G_CALLBACK (cb_nodes),
-                      loop);
-    graviton_node_browser_load_discovery_plugins (browser);
-    g_main_loop_run (loop);
-  }
-
+  GravitonNodeBrowser *browser = graviton_node_browser_new ();
+  g_signal_connect (browser,
+                    "all-nodes-found",
+                    G_CALLBACK (cb_nodes),
+                    loop);
+  graviton_node_browser_load_discovery_plugins (browser);
+  g_main_loop_run (loop);
 
   return 0;
 }
