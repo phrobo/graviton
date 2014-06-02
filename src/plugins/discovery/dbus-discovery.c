@@ -5,12 +5,6 @@
 #include "dbus-discovery.h"
 #include <graviton/client/jsonrpc-node-transport.h>
 
-typedef struct _GravitonDbusDiscoveryMethodPrivate GravitonDbusDiscoveryMethodPrivate;
-
-struct _GravitonDbusDiscoveryMethodPrivate
-{
-};
-
 #define GRAVITON_DBUS_DISCOVERY_METHOD_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_DBUS_DISCOVERY_METHOD_TYPE, GravitonDbusDiscoveryMethodPrivate))
 
@@ -104,15 +98,10 @@ graviton_dbus_discovery_method_class_init (GravitonDbusDiscoveryMethodClass *kla
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (GravitonDbusDiscoveryMethodPrivate));
-
   object_class->dispose = graviton_dbus_discovery_method_dispose;
   object_class->finalize = graviton_dbus_discovery_method_finalize;
   object_class->set_property =  graviton_dbus_discovery_method_set_property;
   object_class->get_property =  graviton_dbus_discovery_method_get_property;
-  /*g_object_class_install_properties (object_class,
-      N_PROPERTIES,
-      obj_properties);*/
 
   GravitonDiscoveryMethodClass *method_class = GRAVITON_DISCOVERY_METHOD_CLASS (klass);
   method_class->start = start_browse;

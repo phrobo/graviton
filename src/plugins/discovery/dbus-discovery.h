@@ -17,7 +17,6 @@ G_BEGIN_DECLS
 
 typedef struct _GravitonDbusDiscoveryMethod      GravitonDbusDiscoveryMethod;
 typedef struct _GravitonDbusDiscoveryMethodClass GravitonDbusDiscoveryMethodClass;
-typedef struct _GravitonDbusDiscoveryMethodPrivate GravitonDbusDiscoveryMethodPrivate;
 
 struct _GravitonDbusDiscoveryMethodClass
 {
@@ -27,7 +26,6 @@ struct _GravitonDbusDiscoveryMethodClass
 struct _GravitonDbusDiscoveryMethod
 {
   GravitonDiscoveryMethod parent;
-  GravitonDbusDiscoveryMethodPrivate *priv;
 };
 
 GType graviton_dbus_discovery_method_get_type (void);
