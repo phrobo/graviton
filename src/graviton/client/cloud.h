@@ -47,6 +47,14 @@ struct _GravitonCloud
   GravitonCloudPrivate *priv;
 };
 
+typedef enum {
+  GRAVITON_SERVICE_NEW,
+  GRAVITON_SERVICE_ALL_FOR_NOW,
+  GRAVITON_SERVICE_LOST
+} GravitonServiceEvent;
+
+typedef void (*GravitonServiceBrowseCallback)(GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceInterface *iface, gpointer user_data);
+
 GType graviton_cloud_get_type (void);
 
 GravitonCloud *graviton_cloud_new (const gchar *cloud_id, GravitonNodeBrowser *browser);
@@ -55,7 +63,7 @@ GravitonCloud *graviton_cloud_new_default_cloud ();
 GList *graviton_cloud_get_found_nodes (GravitonCloud *client);
 
 GravitonNode *graviton_cloud_find_node (GravitonCloud *client, const gchar *guid, GError **error);
-GList *graviton_cloud_find_service (GravitonCloud *client, const gchar *serviceName, GError **error);
+void graviton_cloud_find_service_interfaces (GravitonCloud *client, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data);
 
 const gchar *graviton_cloud_get_cloud_id (GravitonCloud *client);
 const gchar *graviton_cloud_get_cloud_name (GravitonCloud *client);

@@ -10,10 +10,18 @@
 
 typedef struct _GravitonCloudPrivate GravitonCloudPrivate;
 
+typedef struct BrowseCallbackData {
+  GravitonServiceBrowseCallback callback;
+  gpointer data;
+} BrowseCallbackData;
+
 struct _GravitonCloudPrivate
 {
   gchar *cloud_id;
   GravitonNodeBrowser *browser;
+  gboolean all_nodes_found_for_now;
+  GHashTable *browse_callbacks;
+  GMutex browse_lock;
 };
 
 #define GRAVITON_CLOUD_GET_PRIVATE(o) \
@@ -24,17 +32,23 @@ static void graviton_cloud_init       (GravitonCloud *self);
 static void graviton_cloud_dispose    (GObject *object);
 static void graviton_cloud_finalize   (GObject *object);
 
+static void notify_all_service_callbacks_by_iface (GravitonCloud *cloud,
+                                          GravitonServiceEvent event,
+                                          GravitonServiceInterface *iface);
+static void notify_all_service_callbacks_by_node (GravitonCloud *cloud,
+                                          GravitonServiceEvent event,
+                                          GravitonNode *node);
+static void notify_all_service_callbacks (GravitonCloud *cloud,
+                                          GravitonServiceEvent event);
+static void notify_service_callback (GravitonCloud *cloud,
+                                     BrowseCallbackData *data,
+                                     GravitonServiceEvent event,
+                                     GravitonServiceInterface *iface);
+static void free_browse_cb_data (BrowseCallbackData *data);
+
 void setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser);
 
 G_DEFINE_TYPE (GravitonCloud, graviton_cloud, G_TYPE_OBJECT);
-
-enum {
-  SIGNAL_0,
-  SIGNAL_NODE_FOUND,
-  SIGNAL_NODE_LOST,
-  SIGNAL_ALL_NODES_FOUND,
-  N_SIGNALS
-};
 
 enum {
   PROP_0,
@@ -42,8 +56,6 @@ enum {
   PROP_NODE_BROWSER,
   N_PROPERTIES
 };
-
-static int obj_signals[N_SIGNALS] = {0, };
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
@@ -118,67 +130,6 @@ graviton_cloud_class_init (GravitonCloudClass *klass)
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
                                      obj_properties);
-
-  /**
-   * GravitonCloud::node-found:
-   * @client: The client that is reporting the found node
-   * @node: The node that was found
-   *
-   * A #GravitonNode has appeared through a discovery method. No guarantee about
-   * its reachability is made, which might be the case for i.e. a
-   * file-based discovery method that reports a static list of nodes
-   * the user has bookmarked or recently accessed.
-   */
-  obj_signals[SIGNAL_NODE_FOUND] =
-    g_signal_new ("node-found",
-                  G_TYPE_FROM_CLASS (klass),
-                  G_SIGNAL_RUN_LAST,
-                  0,
-                  NULL,
-                  NULL,
-                  g_cclosure_marshal_VOID__OBJECT,
-                  G_TYPE_NONE,
-                  1,
-                  GRAVITON_NODE_TYPE);
-  /**
-   * GravitonCloud::node-lost:
-   * @client: The client that is reporting the lost node
-   * @node: The node that was lost
-   *
-   * A #GravitonNode has disappeared from view. It might still be reachable, but
-   * a discovery method has reported it as gone.
-   */
-  //FIXME: Add method argument
-  obj_signals[SIGNAL_NODE_LOST] =
-    g_signal_new ("node-lost",
-                  G_TYPE_FROM_CLASS (klass),
-                  G_SIGNAL_RUN_LAST,
-                  0,
-                  NULL,
-                  NULL,
-                  g_cclosure_marshal_VOID__OBJECT,
-                  G_TYPE_NONE,
-                  1,
-                  GRAVITON_NODE_TYPE);
-  /**
-   * GravitonNode::all-nodes-found:
-   * @client: The client
-   *
-   * All current discovery methods have finished their initial enumeration of
-   * available nodes. This does not mean that they won't discover more later
-   * while the methods are active.
-   */
-  obj_signals[SIGNAL_ALL_NODES_FOUND] =
-    g_signal_new ("all-nodes-found",
-                  G_TYPE_FROM_CLASS (klass),
-                  G_SIGNAL_RUN_LAST,
-                  0,
-                  NULL,
-                  NULL,
-                  g_cclosure_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0,
-                  G_TYPE_NONE);
 }
 
 static void
@@ -186,17 +137,35 @@ graviton_cloud_init (GravitonCloud *self)
 {
   GravitonCloudPrivate *priv;
   self->priv = priv = GRAVITON_CLOUD_GET_PRIVATE (self);
+  g_mutex_init (&priv->browse_lock);
   priv->cloud_id = NULL;
   priv->browser = NULL;
+  priv->browse_callbacks = g_hash_table_new_full(g_str_hash,
+                                                 g_str_equal,
+                                                 g_free,
+                                                 NULL);
+  priv->all_nodes_found_for_now = FALSE;
 }
 
 static void
 graviton_cloud_dispose (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_cloud_parent_class)->dispose (object);
-  GravitonCloud *self = GRAVITON_CLOUD (object);
+  GHashTableIter iter;
+  GravitonCloud *self;
+  GList *cur;
+  self = GRAVITON_CLOUD (object);
   g_object_unref (self->priv->browser);
   self->priv->browser = NULL;
+
+  g_mutex_lock (&self->priv->browse_lock);
+  g_hash_table_iter_init (&iter, self->priv->browse_callbacks);
+  while (g_hash_table_iter_next (&iter, NULL, (gpointer*)&cur)) {
+    g_list_free_full (cur, (GDestroyNotify)free_browse_cb_data);
+  }
+  g_hash_table_unref (self->priv->browse_callbacks);
+  g_mutex_unlock (&self->priv->browse_lock);
+
+  G_OBJECT_CLASS (graviton_cloud_parent_class)->dispose (object);
 }
 
 static void
@@ -208,6 +177,7 @@ graviton_cloud_finalize (GObject *object)
     g_free (self->priv->cloud_id);
     self->priv->cloud_id = NULL;
   }
+  g_mutex_clear (&self->priv->browse_lock);
 }
 
 GravitonNode *
@@ -216,18 +186,103 @@ graviton_cloud_find_node (GravitonCloud *self, const gchar *guid, GError **error
   g_error ("graviton_cloud_find_node_sync is not implemented");
 }
 
-GList *
-graviton_cloud_find_service (GravitonCloud *self, const gchar *serviceName, GError **error)
+static void
+notify_all_service_callbacks (GravitonCloud *self, GravitonServiceEvent event)
 {
+  GList *cur;
+  GHashTableIter iter;
+
+  g_mutex_lock (&self->priv->browse_lock);
+  g_hash_table_iter_init (&iter, self->priv->browse_callbacks);
+  while (g_hash_table_iter_next (&iter, NULL, (gpointer*)&cur)) {
+    while (cur) {
+      notify_service_callback (self, cur->data, event, NULL);
+      cur = cur->next;
+    }
+  }
+  g_mutex_unlock (&self->priv->browse_lock);
+}
+
+static void
+notify_all_service_callbacks_by_iface (GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceInterface *iface)
+{
+  GList *cur;
+  const gchar *service_name;
+
+  service_name = graviton_service_interface_get_name (iface);
+  g_mutex_lock (&cloud->priv->browse_lock);
+  cur = g_hash_table_lookup (cloud->priv->browse_callbacks, service_name);
+  g_debug ("Notifying callbacks for %s: %i", service_name, event);
+  if (cur) {
+    while (cur) {
+      notify_service_callback (cloud, cur->data, event, iface);
+      cur = cur->next;
+    }
+  }
+  g_mutex_unlock (&cloud->priv->browse_lock);
+}
+
+static void
+notify_all_service_callbacks_by_node (GravitonCloud *self, GravitonServiceEvent event, GravitonNode *node)
+{
+  GError *error = NULL;
+  GList *services = graviton_node_get_services (node, &error);
+  GList *cur;
+  
+  cur = services;
+  if (cur) {
+    g_debug ("Notifing callbacks about a node: %i", event);
+    while (cur) {
+      GravitonServiceInterface *iface = graviton_node_get_service_interface (node, (gchar*)cur->data, NULL);
+      notify_all_service_callbacks_by_iface (self, event, iface);
+      g_object_unref (iface);
+      cur = cur->next;
+    }
+  }
+}
+
+static void
+notify_service_callback (GravitonCloud *cloud, BrowseCallbackData *data, GravitonServiceEvent event, GravitonServiceInterface *iface)
+{
+  g_debug ("FIRE");
+  data->callback (cloud, event, iface, data->data);
+}
+
+static void
+free_browse_cb_data (BrowseCallbackData *data)
+{
+  g_free (data->data);
+  data->data = NULL;
+  g_free (data);
+}
+
+void
+graviton_cloud_find_service_interfaces (GravitonCloud *self, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data)
+{
+  BrowseCallbackData *data;
+  GList *current_callbacks;
+
+  data = g_new0 (BrowseCallbackData, 1);
+  data->callback = callback;
+  data->data = user_data;
+
+  g_mutex_lock (&self->priv->browse_lock);
+  current_callbacks = g_hash_table_lookup (self->priv->browse_callbacks, serviceName);
+  current_callbacks = g_list_prepend (current_callbacks, data);
+
+  g_hash_table_replace (self->priv->browse_callbacks, g_strdup (serviceName), current_callbacks);
+
+  g_debug ("Setting up browser for %s in %s", serviceName, self->priv->cloud_id);
+
   GList *cur = graviton_node_browser_get_found_nodes (self->priv->browser, self->priv->cloud_id);
-  GList *ret = NULL;
-  g_debug ("Browsing %s for %s", self->priv->cloud_id, serviceName);
+  g_mutex_unlock (&self->priv->browse_lock);
+
   while (cur) {
     GError *error = NULL;
     if (graviton_node_has_service (cur->data, serviceName, &error)) {
       g_debug ("Hit!");
       GravitonServiceInterface *service = graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (cur->data), serviceName);
-      ret = g_list_append (ret, service);
+      notify_service_callback (self, data, GRAVITON_SERVICE_NEW, service);
     } else {
       if (error) {
         g_debug ("Error while asking about service: %s", error->message);
@@ -238,7 +293,11 @@ graviton_cloud_find_service (GravitonCloud *self, const gchar *serviceName, GErr
     cur = cur->next;
   }
 
-  return ret;
+  //FIXME: Only notify if we've gotten the signal from the discovery methods
+  if (self->priv->all_nodes_found_for_now) {
+    g_debug ("Previously received all-nodes-found, bubbling to callbacks");
+    notify_service_callback (self, data, GRAVITON_SERVICE_ALL_FOR_NOW, NULL);
+  }
 }
 
 /**
@@ -285,8 +344,8 @@ graviton_cloud_new_default_cloud ()
 
   g_key_file_unref (keyfile);
   browser = graviton_node_browser_new ();
-  graviton_node_browser_load_discovery_plugins (browser);
   cloud = graviton_cloud_new (cloud_id, browser);
+  graviton_node_browser_load_discovery_plugins (browser);
   g_free (cloud_id);
   g_object_unref (browser);
   return cloud;
@@ -301,27 +360,37 @@ graviton_cloud_get_cloud_id (GravitonCloud *self)
 static void
 cb_node_found (GravitonNodeBrowser *browser, GravitonNode *node, gpointer data)
 {
-  GravitonCloud *self = GRAVITON_CLOUD (data);
-  g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, node);
+  GravitonCloud *self;
+
+  self = GRAVITON_CLOUD (data);
+
+  notify_all_service_callbacks_by_node (self, GRAVITON_SERVICE_NEW, node);
 }
 
 static void
 cb_node_lost (GravitonNodeBrowser *browser, GravitonNode *node, gpointer data)
 {
   GravitonCloud *self = GRAVITON_CLOUD (data);
-  g_signal_emit (self, obj_signals[SIGNAL_NODE_LOST], 0, node);
+
+  notify_all_service_callbacks_by_node (self, GRAVITON_SERVICE_LOST, node);
 }
 
 static void
 cb_nodes_found (GravitonNodeBrowser *browser, gpointer data)
 {
-  GravitonCloud *self = GRAVITON_CLOUD (data);
-  g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
+  GravitonCloud *self;
+
+  self = GRAVITON_CLOUD (data);
+  
+  self->priv->all_nodes_found_for_now = TRUE;
+  g_debug ("Got all-nodes-found signal.");
+  notify_all_service_callbacks (self, GRAVITON_SERVICE_ALL_FOR_NOW);
 }
 
 void
 setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser)
 {
+  g_debug ("Connecting to browser");
   self->priv->browser = browser;
   g_signal_connect (browser,
                     "node-found",
