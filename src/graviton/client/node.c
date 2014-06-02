@@ -255,10 +255,21 @@ graviton_node_call_va (GravitonNode *self,
   return ret;
 }
 
+GList *
+graviton_node_get_services (GravitonNode *node, GError **error)
+{
+  //FIXME: handle errors
+  GravitonIntrospectionControl *introspection = graviton_introspection_interface_new_from_interface (GRAVITON_SERVICE_INTERFACE (node));
+  GList *ret;
+  ret = graviton_introspection_interface_list_interfaces (introspection, NULL);
+  g_object_unref (introspection);
+  return ret;
+}
+
 GravitonServiceInterface *
 graviton_node_get_service_interface (GravitonNode *node, const gchar *name, GError **error)
 {
-  return NULL;
+  return graviton_service_interface_get_subservice (node->priv->gobj, name);
 }
 
 gboolean
