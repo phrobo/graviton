@@ -174,10 +174,19 @@ probe_thread_loop (gpointer data)
       g_debug ("Node belongs to cloud %s", cloud_id);
       nodes = g_hash_table_lookup (self->priv->discovered_nodes,
                                    cloud_id);
-      nodes = g_list_prepend (nodes, cur);
-      g_hash_table_replace (self->priv->discovered_nodes, g_strdup (cloud_id), nodes);
-      //g_assert (g_hash_table_lookup (self->priv->discovered_nodes, cloud_id) == nodes);
-      //g_assert (nodes->data == cur);
+      if (!g_list_find (nodes, cur)) {
+        nodes = g_list_prepend (nodes, cur);
+        g_hash_table_replace (self->priv->discovered_nodes, g_strdup (cloud_id), nodes);
+
+        g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, cur);
+      }
+
+      if (g_async_queue_length (self->priv->unprobed_nodes) <= 0 && g_atomic_int_get (&self->priv->pending_discovery_methods) == 0) {
+        g_debug ("All backends are finished, and we've probed all bootstrapped nodes");
+        g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
+      } else {
+        g_debug ("Still waiting on %i nodes and %i methods", g_async_queue_length (self->priv->unprobed_nodes), g_atomic_int_get (&self->priv->pending_discovery_methods));
+      }
     }
   }
 }
@@ -199,6 +208,7 @@ graviton_node_browser_init (GravitonNodeBrowser *self)
                                                   g_str_equal,
                                                   g_free,
                                                   NULL);
+  priv->pending_discovery_methods = 0;
 
   priv->probe_thread = g_thread_new (NULL, probe_thread_loop, self);
 }
@@ -238,7 +248,6 @@ cb_node_found (GravitonDiscoveryMethod *method, GravitonNode *node, gpointer dat
   GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (data);
   g_debug ("Got a new node. Queueing it for bootstrap probe");
   g_async_queue_push (self->priv->unprobed_nodes, node);
-  g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, node);
 }
 
 static void
@@ -252,9 +261,13 @@ static void
 cb_discovery_finished (GravitonDiscoveryMethod *method, gpointer data)
 {
   GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (data);
-  self->priv->pending_discovery_methods--;
-  if (self->priv->pending_discovery_methods == 0)
+  g_atomic_int_dec_and_test (&self->priv->pending_discovery_methods);
+  if (g_async_queue_length (self->priv->unprobed_nodes) <= 0 && g_atomic_int_get (&self->priv->pending_discovery_methods) == 0) {
+    g_debug ("All backends are finished, and we've probed all bootstrapped nodes");
     g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
+  } else {
+    g_debug ("Still waiting on %i nodes and %i methods", g_async_queue_length (self->priv->unprobed_nodes), g_atomic_int_get (&self->priv->pending_discovery_methods));
+  }
 }
 
 
@@ -262,6 +275,7 @@ void
 graviton_node_browser_add_discovery_method (GravitonNodeBrowser *self, GravitonDiscoveryMethod *method)
 {
   g_object_ref_sink (method);
+  g_atomic_int_inc (&self->priv->pending_discovery_methods);
   self->priv->discovery_methods = g_list_append (self->priv->discovery_methods, method);
   g_signal_connect (method,
                     "finished",
@@ -275,7 +289,6 @@ graviton_node_browser_add_discovery_method (GravitonNodeBrowser *self, GravitonD
                     "node-lost",
                     G_CALLBACK (cb_node_lost),
                     self);
-  self->priv->pending_discovery_methods++;
 }
 
 void
