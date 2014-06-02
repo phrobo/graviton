@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#define G_LOG_DOMAIN "GravitonServiceInterface"
+
 #include "service-interface.h"
 #include "node.h"
 #include "node-stream.h"

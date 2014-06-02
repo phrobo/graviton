@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#define G_LOG_DOMAIN "GravitonAvahiDiscoveryMethod"
+
 #include "avahi-discovery.h"
 
 #include <avahi-client/client.h>

@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#define G_LOG_DOMAIN "GravitonCloud"
+
 #include "cloud.h"
 #include "node.h"
 #include <uuid/uuid.h>

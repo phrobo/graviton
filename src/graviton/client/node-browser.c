@@ -2,6 +2,8 @@
 #include "config.h"
 #endif
 
+#define G_LOG_DOMAIN "GravitonNodeBrowser"
+
 #include "node-browser.h"
 #include "cloud.h"
 
