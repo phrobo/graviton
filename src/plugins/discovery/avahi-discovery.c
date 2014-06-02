@@ -130,8 +130,10 @@ cb_resolve (AvahiServiceResolver *resolver,
       self->priv->unresolved_count--;
       break;
   }
-  if (self->priv->end_of_avahi_list && self->priv->unresolved_count == 0)
+  if (self->priv->end_of_avahi_list && self->priv->unresolved_count == 0) {
     graviton_discovery_method_finished (GRAVITON_DISCOVERY_METHOD (self));
+    g_debug ("Avahi discovery is finished.");
+  }
 
   avahi_service_resolver_free (resolver);
 }
