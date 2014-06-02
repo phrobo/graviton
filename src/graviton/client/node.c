@@ -269,7 +269,7 @@ graviton_node_get_services (GravitonNode *node, GError **error)
 GravitonServiceInterface *
 graviton_node_get_service_interface (GravitonNode *node, const gchar *name, GError **error)
 {
-  return graviton_service_interface_get_subservice (node->priv->gobj, name);
+  return graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (node), name);
 }
 
 gboolean
