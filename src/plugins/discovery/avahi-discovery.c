@@ -150,6 +150,7 @@ cb_browse (AvahiServiceBrowser *browser,
   GravitonAvahiDiscoveryMethod *self = GRAVITON_AVAHI_DISCOVERY_METHOD (user_data);
   switch (event) {
     case AVAHI_BROWSER_NEW:
+      g_debug ("Creating new service resolver for %s", name);
       avahi_service_resolver_new (self->priv->avahi,
                                   interface,
                                   protocol,
@@ -163,6 +164,7 @@ cb_browse (AvahiServiceBrowser *browser,
       self->priv->unresolved_count++;
       break;
     case AVAHI_BROWSER_ALL_FOR_NOW:
+      g_debug ("End of avahi for now");
       self->priv->end_of_avahi_list = TRUE;
       if (self->priv->unresolved_count == 0)
         graviton_discovery_method_finished (GRAVITON_DISCOVERY_METHOD (self));
@@ -185,7 +187,7 @@ browse_services (AvahiClient *client, GravitonAvahiDiscoveryMethod *self)
                                AVAHI_PROTO_UNSPEC,
                                "_graviton._tcp",
                                NULL,
-                               0,
+                               AVAHI_LOOKUP_NO_TXT,
                                cb_browse,
                                self);
   }
