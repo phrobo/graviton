@@ -1,6 +1,45 @@
 find_package(GtkDoc)
 
 if (GTKDOC_FOUND)
+
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/Graviton-docs.xml.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/Graviton-docs.xml
+    @ONLY
+  )
+
+#FIXME: Make this a macro!
+  add_custom_command(
+    OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/xml/book/intro.xml
+    COMMAND
+      pandoc
+        -t docbook
+        -o ${CMAKE_CURRENT_BINARY_DIR}/xml/book/intro.xml
+        ${CMAKE_CURRENT_SOURCE_DIR}/book/intro.md
+    DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/book/intro.md
+  )
+
+  add_custom_command(
+    OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/xml/book/concepts.xml
+    COMMAND
+      pandoc
+        -t docbook
+        -o ${CMAKE_CURRENT_BINARY_DIR}/xml/book/concepts.xml
+        ${CMAKE_CURRENT_SOURCE_DIR}/book/concepts.md
+    DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/book/concepts.md
+  )
+
+  file(
+    COPY
+      ${CMAKE_CURRENT_SOURCE_DIR}/xml/
+    DESTINATION
+      ${CMAKE_CURRENT_BINARY_DIR}/
+  )
+
   add_custom_command(
     OUTPUT
       ${CMAKE_CURRENT_BINARY_DIR}/Graviton-decl.txt
@@ -15,20 +54,7 @@ if (GTKDOC_FOUND)
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_BINARY_DIR}
   )
-  add_custom_command(
-    OUTPUT
-      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-docs.xml
-    COMMAND
-      ${GTKDOC_MKDB_EXE}
-        --module=Graviton
-        --output-format=xml
-        --xml-mode
-        --source-dir=${CMAKE_SOURCE_DIR}/src/graviton/
-    DEPENDS
-      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-decl.txt
-    WORKING_DIRECTORY
-      ${CMAKE_CURRENT_BINARY_DIR}
-  )
+
   add_custom_command(
     OUTPUT
       ${CMAKE_CURRENT_BINARY_DIR}/html/index.html
@@ -38,9 +64,12 @@ if (GTKDOC_FOUND)
         ${CMAKE_CURRENT_BINARY_DIR}/Graviton-docs.xml
     DEPENDS
       ${CMAKE_CURRENT_BINARY_DIR}/Graviton-docs.xml
+      ${CMAKE_CURRENT_BINARY_DIR}/xml/book/intro.xml
+      ${CMAKE_CURRENT_BINARY_DIR}/xml/book/concepts.xml
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_BINARY_DIR}/html/
   )
+
   add_custom_target(
     docs_html
     DEPENDS
@@ -48,6 +77,7 @@ if (GTKDOC_FOUND)
   )
 
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html/)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/xml/book/)
 
 endif()
 
