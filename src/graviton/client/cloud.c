@@ -8,6 +8,79 @@
 #include "node.h"
 #include <uuid/uuid.h>
 
+/**
+ * SECTION:cloud
+ * @short_description: Core interface to discover services and nodes within a
+ *    Graviton cloud
+ * @title: GravitonCloud
+ * @see_also: #GravitonServiceInterface, #GravitonServer, #GravitonNodeBrowser
+ * @stability: Unstable
+ * @include: graviton/client/cloud.h
+ *
+ * The GravitonCloud class is the central interface to discovering services and,
+ * to a lesser extent, individual nodes within a Graviton cloud.
+ *
+ * Conceptually speaking, a Graviton cloud is a set of all #GravitonNode objects that
+ * share the same cloud ID.
+ *
+ * The fastest way to get started is to grab the default cloud as configured by
+ * the user, set up a callback, and start poking services:
+ *
+ * <example>
+ *   <title>Grabbing the default cloud and browsing for services</title>
+ *   <programlisting>
+ * #include <stdlib.h>
+ * #include <graviton/client/cloud.h>
+ * #include <graviton/client/service-interface.h>
+ *
+ * static void cb_browse (GravitonCloud *cloud,
+ *                        GravitonServiceEvent event,
+ *                        GravitonServiceInterface *iface,
+ *                        gpointer user_data)
+ * {
+ *   switch (event) {
+ *     case GRAVITON_SERVICE_NEW:
+ *       graviton_service_interface_call_noref (iface, "ping", NULL, NULL);
+ *       break;
+ *     case GRAVITON_SERVICE_ALL_FOR_NOW:
+ *       exit(0);
+ *   }
+ * }
+ *
+ * int main(int argc, char** argv)
+ * {
+ *   GMainLoop *loop;
+ *   GravitonCloud *cloud;
+ *
+ *   loop = g_main_loop_new (NULL, 0);
+ *   cloud = graviton_cloud_new_default_cloud ();
+ *
+ *   graviton_cloud_find_service_interfaces (cloud, "net:phrobo:graviton:ping", cb_browse, NULL);
+ *   g_main_loop_run (loop);
+ * }
+ *   </programlisting>
+ * </example>
+ *
+ * This example does the following:
+ *
+ * - Creates a #GMainLoop which is essential to GLib event processing
+ * - Fetches the default #GravitonCloud
+ * - Registers the cb_browse callback to be triggered while searching for
+ *   net:phrobo:graviton:ping services in the cloud
+ * - Runs the #GMainLoop
+ *
+ * Once the loop is running, the following steps happen behind the scenes:
+ *
+ * - The cloud's #GravitonNodeBrowser begins loading #GravitonDiscoveryMethod
+ *   plugins, which are then started
+ * - As nodes are discovered from the discovery plugins, the callback is
+ *   triggered with the #GravitonServiceEvent.GRAVITON_SERVICE_NEW event
+ * - Each net:phrobo:graviton:ping service on the network has its "ping" method
+ *   called
+ * - Once all of the plugins have determined that there are no more
+ *   undiscovered nodes, the callback is triggered with
+ *   #GravitonServiceEvent.GRAVITON_SERVICE_ALL_FOR_NOW
+ */
 typedef struct _GravitonCloudPrivate GravitonCloudPrivate;
 
 typedef struct BrowseCallbackData {
@@ -256,8 +329,19 @@ free_browse_cb_data (BrowseCallbackData *data)
   g_free (data);
 }
 
+/**
+ * graviton_cloud_find_service_interfaces:
+ * @cloud: A #GravitonCloud to query
+ * @serviceName: A name of the service to locate, eg net:phrobo:graviton:introspection
+ * @callback: Callback that will be called at certain times
+ * @user_data: User data
+ *
+ * This sets up a callback that is called for each node that supports a
+ * particular service within a cloud. Check #GravitonServiceBrowseCallback for
+ * more details.
+ */
 void
-graviton_cloud_find_service_interfaces (GravitonCloud *self, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data)
+graviton_cloud_find_service_interfaces (GravitonCloud *cloud, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data)
 {
   BrowseCallbackData *data;
   GList *current_callbacks;
@@ -266,23 +350,23 @@ graviton_cloud_find_service_interfaces (GravitonCloud *self, const gchar *servic
   data->callback = callback;
   data->data = user_data;
 
-  g_mutex_lock (&self->priv->browse_lock);
-  current_callbacks = g_hash_table_lookup (self->priv->browse_callbacks, serviceName);
+  g_mutex_lock (&cloud->priv->browse_lock);
+  current_callbacks = g_hash_table_lookup (cloud->priv->browse_callbacks, serviceName);
   current_callbacks = g_list_prepend (current_callbacks, data);
 
-  g_hash_table_replace (self->priv->browse_callbacks, g_strdup (serviceName), current_callbacks);
+  g_hash_table_replace (cloud->priv->browse_callbacks, g_strdup (serviceName), current_callbacks);
 
-  g_debug ("Setting up browser for %s in %s", serviceName, self->priv->cloud_id);
+  g_debug ("Setting up browser for %s in %s", serviceName, cloud->priv->cloud_id);
 
-  GList *cur = graviton_node_browser_get_found_nodes (self->priv->browser, self->priv->cloud_id);
-  g_mutex_unlock (&self->priv->browse_lock);
+  GList *cur = graviton_node_browser_get_found_nodes (cloud->priv->browser, cloud->priv->cloud_id);
+  g_mutex_unlock (&cloud->priv->browse_lock);
 
   while (cur) {
     GError *error = NULL;
     if (graviton_node_has_service (cur->data, serviceName, &error)) {
       g_debug ("Hit!");
       GravitonServiceInterface *service = graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (cur->data), serviceName);
-      notify_service_callback (self, data, GRAVITON_SERVICE_NEW, service);
+      notify_service_callback (cloud, data, GRAVITON_SERVICE_NEW, service);
     } else {
       if (error) {
         g_debug ("Error while asking about service: %s", error->message);
@@ -294,15 +378,21 @@ graviton_cloud_find_service_interfaces (GravitonCloud *self, const gchar *servic
   }
 
   //FIXME: Only notify if we've gotten the signal from the discovery methods
-  if (self->priv->all_nodes_found_for_now) {
+  if (cloud->priv->all_nodes_found_for_now) {
     g_debug ("Previously received all-nodes-found, bubbling to callbacks");
-    notify_service_callback (self, data, GRAVITON_SERVICE_ALL_FOR_NOW, NULL);
+    notify_service_callback (cloud, data, GRAVITON_SERVICE_ALL_FOR_NOW, NULL);
   }
 }
 
 /**
- * graviton_cloud_new: Creates a new #GravitonCloud
+ * graviton_cloud_new: 
+ * @cloud_id: The cloud ID requested
+ * @browser: A #GravitonNodeBrowser that will be used to discover nodes and
+ * services
  *
+ * Creates a new #GravitonCloud
+ *
+ * Returns: (transfer full): A new #GravitonCloud
  */
 GravitonCloud *
 graviton_cloud_new (const gchar *cloud_id, GravitonNodeBrowser *browser)
@@ -323,6 +413,15 @@ graviton_cloud_get_found_nodes (GravitonCloud *self)
   return graviton_node_browser_get_found_nodes (self->priv->browser, self->priv->cloud_id);
 }
 
+/**
+ * graviton_cloud_new_default_cloud:
+ *
+ * The prefered way to create a #GravitonCloud. It returns one that uses the
+ * user's configured cloud ID and discovery plugins.
+ *
+ * Returns: (transfer none): A cloud with the default cloud ID and configured
+ * set of plugins
+ */
 GravitonCloud *
 graviton_cloud_new_default_cloud ()
 {

@@ -20,6 +20,12 @@ typedef struct _GravitonDiscoveryMethodPrivate GravitonDiscoveryMethodPrivate;
 
 typedef struct _GravitonNodeBrowser GravitonNodeBrowser;
 
+/**
+ * GravitonDiscoveryMethodClass:
+ * @parent_class: Parent GObjectClass
+ * @start: Called to start up the discovery process
+ * @stop: Called to stop the discovery process
+ */
 struct _GravitonDiscoveryMethodClass
 {
   GObjectClass parent_class;
@@ -30,6 +36,7 @@ struct _GravitonDiscoveryMethodClass
 struct _GravitonDiscoveryMethod
 {
   GObject parent;
+  /*< private >*/
   GravitonDiscoveryMethodPrivate *priv;
 };
 
