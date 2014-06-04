@@ -1,6 +1,40 @@
 #include "service.h"
 #include <string.h>
 
+/**
+ * SECTION:service
+ * @short_description: An interface to expose services within a Graviton cloud
+ * @title: GravitonService
+ * @see_also: #GravitonServer, #GravitonServiceInterface
+ * @stability: Unstable
+ * @include: graviton/server/service.h
+ *
+ * In Graviton, services are the things in a cloud that one interacts with. To
+ * expose a service on a Graviton cloud, one must create a service, attach
+ * methods, properties, and streams, then publish it on a #GravitonServer.
+ *
+ * For a good example of how to do that, try the example code found with the
+ * #GravitonServer documentation.
+ *
+ * To construct a service, use graviton_service_new(), and give it a relevant
+ * interface name such as net:phrobo:graviton:ping.
+ *
+ * Attaching methods is done with graviton_service_add_method(). These methods
+ * can be called via graviton_service_call_method().
+ *
+ * Services may be nested within other services, allowing for a hiearchy of
+ * methods, properties, and streams. Following the chain of parent services will
+ * lead you to the #GravitonRootService which is attached to a #GravitonServer.
+ * To attach a subservice to a service, use graviton_service_add_subservice().
+ *
+ * There are other functions for introspection of a service:
+ * - graviton_service_list_methods()
+ * - graviton_service_has_method()
+ * - graviton_service_list_subservices()
+ * - graviton_service_list_streams()
+ *
+ */
+
 #define GRAVITON_SERVICE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_SERVICE_TYPE, GravitonServicePrivate))
 
 GQuark
@@ -9,31 +43,6 @@ graviton_service_error_quark ()
   return g_quark_from_static_string ("graviton-service-error-quark");
 }
 
-/**
- * GravitonService:
- *
- * Controls provide services to the graviton network by way of exposing a set of
- * properties, methods, IO channels, and child services. Controls have names
- * which are browseable via the net:phrobo:graviton introspection service.
- *
- * After a #GravitonServer is created, you can attach services to it by fetching
- * its #GravitonRootService via graviton_server_get_root_service() and calling
- * graviton_service_add_subservice().
- *
- * Properties are exposed on a #GravitonService through the normal #GObject API
- * that is used by g_object_set()/g_object_get()
- *
- * FIXME: Example of properties
- *
- * Methods are exposed by calling graviton_service_add_method() and supplying a
- * callback.
- *
- * FIXME: Example of adding a method
- *
- * IO channels use graviton_service_add_stream() with a supplied
- * #GravitonServiceStreamGenerator callback for later activation.
- *
- */
 G_DEFINE_TYPE (GravitonService, graviton_service, G_TYPE_OBJECT);
 
 enum {

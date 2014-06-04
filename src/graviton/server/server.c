@@ -16,6 +16,110 @@
 
 #include "config.h"
 
+/**
+ * SECTION:server
+ * @short_description: A nucleus around which services are exposed within a
+ *    Graviton cloud
+ * @title: GravitonServer
+ * @see_also: #GravitonCloud, #GravitonNode, #GravitonService
+ * @stability: Unstable
+ * @include: graviton/server/server.h
+ *
+ * One of the core components of Graviton is the GravitonServer. It provides an
+ * interface through which services may be exposed to the cloud.
+ *
+ * At the moment, GravitonServer is implemented as a glorified JSON-RPC server.
+ * In the future, you will not have to worry about what implementation a
+ * GravitonServer uses to expose services. It might not even be JSON-RPC. Try to
+ * avoid thinking of anything like that when possible.
+ *
+ * To expose services in Graviton, the pattern is to create a service, add
+ * methods to it, and attach it to a server.
+ *
+ * <example>
+ * <title>A simple ping server</title>
+ * <programlisting>
+ * #include <graviton/server/server.h>
+ * #include <graviton/server/service.h>
+ * #include <glib.h>
+ * 
+ * static GVariant *
+ * cb_ping(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
+ * {
+ *   return g_variant_new_string ("pong");
+ * }
+ * 
+ * int main(int argc, char** argv)
+ * {
+ *   GMainLoop *loop = NULL;
+ *   GravitonServer *server = NULL;
+ * 
+ * #if !GLIB_CHECK_VERSION(2, 36, 0)
+ *   g_type_init ();
+ * #endif
+ * 
+ *   loop = g_main_loop_new (NULL, FALSE);
+ * 
+ *   server = graviton_server_new ();
+ *   GravitonRootService *root = graviton_server_get_root_service (server);
+ *   GravitonService *pingService = graviton_service_new ("net:phrobo:graviton:ping");
+ *   graviton_service_add_subservice (GRAVITON_SERVICE (root), pingService);
+ *   graviton_service_add_method (pingService, "ping", cb_ping, NULL, NULL);
+ * 
+ *   graviton_server_run_async (server);
+ * 
+ *   g_main_loop_run (loop);
+ * 
+ *   return 0;
+ * }
+ * </programlisting>
+ * </example>
+ *
+ * The above example does the following:
+ *
+ * - Creates a #GMainLoop which is essential to GLib event processing
+ * - Creates a new #GravitonServer
+ * - Grabs the #GravitonRootService from the server
+ * - Creates a new #GravitonService that exposes the net:phrobo:graviton:ping
+ *   interface
+ * - Attaches the service to the root service
+ * - Exposes a "ping" method that takes no arguments, and is implemented in
+ *   cb_ping
+ * - Starts the server within the event loop via graviton_server_run_async()
+ * - Starts the event loop
+ *
+ * Calling graviton_server_run_async() causes the following to happen:
+ *
+ * - An internal-use-only #SoupServer is started up on a random TCP port, both
+ *   on IPV6 and IPV4
+ * - The address and TCP port are exposed on the LAN via avahi
+ * - A local DBus service under the name org.aether.graviton-[port] is exported
+ *
+ * All of that is implementation detail and subject to change, but still useful
+ * to know!
+ *
+ * Once the #GMainLoop is started, the internal server begins responding to
+ * JSON-RPC requests. Calling the ping() method on the net:phrobo:graviton:ping
+ * calls cb_ping with:
+ *
+ * - The net:phrobo:graviton:ping #GravitonService you attached with
+ *   graviton_service_add_method()
+ * - A #GHashTable that maps parameter names to #GVariant values
+ * - A pointer to a #GError variable that you can set to return any errors to
+ *   the client
+ * - The generic pointer that was set in graviton_service_add_method()
+ *
+ * Methods can return either a #GVariant (of any structural complexity) or NULL.
+ * The returned #GVariant is passed to g_variant_take_ref(), which allows you to
+ * return a non-floating reference in case the value already exists. As
+ * demonstrated, this lets you return simple values incredibly easily via
+ * g_variant_new_string(), g_variant_new_int32(), g_variant_new_boolean(), and
+ * even build one using #GVariantBuilder and return g_variant_builder_end().
+ *
+ * To restate in fewer words, don't worry about references or ownership because
+ * magic.
+ */
+
 #define GRAVITON_SERVER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_SERVER_TYPE, GravitonServerPrivate))
 
 GQuark
@@ -24,36 +128,6 @@ graviton_server_error_quark ()
   return g_quark_from_static_string ("graviton-server-error-quark");
 }
 
-/**
- * GravitonServer:
- *
- * A core concept of Graviton is nodes that provide services to a cloud of other
- * servers and clients.
- *
- * The #GravitonServer exposes a list #GravitonService objects to a cloud. It
- * may be addressed by a tuple of cloud-id and node-id.
- *
- * #GravitonServer supports routing of messages to other nodes in the network
- * simply by receiving a request that is addressed to another node. The server
- * will attempt to contact the destination node, or the next hop in the route
- * and forward the message verbatim.
- *
- * To begin, create a server using graviton_server_new(). You can add a service
- * that implements a given interface by attaching it to the
- * #GravitonRootService exposed via graviton_server_get_root_service().
- *
- * Servers have two unique properties: #GravitonServer:node-id and
- * #GravitonServer:cloud-id. The cloud ID is shared by all members of the cloud
- * and is used to identify the cloud. Each server has a unique node ID that is
- * generated at startup. These properties can also be read with
- * graviton_server_get_node_id() and graviton_server_get_cloud_id().
- *
- * All servers come equiped with an introspection service available as
- * net:phrobo:graviton.
- *
- * FIXME: Document net:phrobo:graviton API
- *
- */
 G_DEFINE_TYPE (GravitonServer, graviton_server, G_TYPE_OBJECT);
 
 enum
@@ -794,6 +868,7 @@ GravitonServer *graviton_server_new ()
 
 /**
  * graviton_server_run_async:
+ * @server: The #GravitonServer to start
  *
  * Starts @server, causing it to listen for and process requests.
  *
@@ -808,56 +883,61 @@ void graviton_server_run_async (GravitonServer *self)
 
 /**
  * graviton_server_get_root_service:
+ * @server: The graviton server in question
  *
  * Gets the #GravitonRootService for this server. Required for attaching
  * sub-services and exposing them to the cloud this server is a member of.
  *
- * Returns: The #GravitonRootService for this server
+ * Returns: (transfer full): The #GravitonRootService for this server. Must be
+ * freed with g_object_unref() when finished.
  */
 GravitonRootService *
-graviton_server_get_root_service (GravitonServer *self)
+graviton_server_get_root_service (GravitonServer *server)
 {
-  g_object_ref (self->priv->plugins);
-  return self->priv->plugins;
+  g_object_ref (server->priv->plugins);
+  return server->priv->plugins;
 }
 
 /**
  * graviton_server_get_node_id:
+ * @server: The server in question
  *
  * Gets the ID of the node this server is providing
  *
- * Returns: Node ID of this server
+ * Returns: (transfer none): Node ID of this server
  */
 const gchar *
-graviton_server_get_node_id (GravitonServer *self)
+graviton_server_get_node_id (GravitonServer *server)
 {
-  return self->priv->node_id;
+  return server->priv->node_id;
 }
 
 /**
  * graviton_server_get_cloud_id:
+ * @server: The server in question
  *
  * Gets the ID of the cloud this server is a member of
  *
- * Returns: Cloud ID of this server
+ * Returns: (transfer none): Cloud ID of this server
  */
 const gchar *
-graviton_server_get_cloud_id (GravitonServer *self)
+graviton_server_get_cloud_id (GravitonServer *server)
 {
-  return self->priv->cloud_id;
+  return server->priv->cloud_id;
 }
 
 /**
  * graviton_server_get_port:
+ * @server: The server in question
  *
  * Gets the TCP port number this server is listening on.
  *
  * Returns: The port this server is listening on
  */
 int
-graviton_server_get_port (GravitonServer *self)
+graviton_server_get_port (GravitonServer *server)
 {
-  SoupSocket *socket = soup_server_get_listener (self->priv->server);
+  SoupSocket *socket = soup_server_get_listener (server->priv->server);
   SoupAddress *address = soup_socket_get_local_address (socket);
   int port = soup_address_get_port (address);
   g_object_unref (address);

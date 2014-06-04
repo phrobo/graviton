@@ -24,6 +24,31 @@ typedef struct _GravitonServiceClass GravitonServiceClass;
 
 typedef struct _GravitonServicePrivate GravitonServicePrivate;
 
+/**
+ * GravitonService:
+ *
+ * Controls provide services to the graviton network by way of exposing a set of
+ * properties, methods, IO channels, and child services. Controls have names
+ * which are browseable via the net:phrobo:graviton introspection service.
+ *
+ * After a #GravitonServer is created, you can attach services to it by fetching
+ * its #GravitonRootService via graviton_server_get_root_service() and calling
+ * graviton_service_add_subservice().
+ *
+ * Properties are exposed on a #GravitonService through the normal #GObject API
+ * that is used by g_object_set()/g_object_get()
+ *
+ * FIXME: Example of properties
+ *
+ * Methods are exposed by calling graviton_service_add_method() and supplying a
+ * callback.
+ *
+ * FIXME: Example of adding a method
+ *
+ * IO channels use graviton_service_add_stream() with a supplied
+ * #GravitonServiceStreamGenerator callback for later activation.
+ *
+ */
 struct _GravitonService 
 {
   GObject parent_instance;
