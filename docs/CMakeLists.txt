@@ -2,6 +2,21 @@ find_package(GtkDoc)
 
 if (GTKDOC_FOUND)
 
+  add_custom_command(
+    OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-docs.xml
+    COMMAND
+      ${GTKDOC_MKDB_EXE}
+        --module=Graviton
+        --output-format=xml
+        --xml-mode
+        --source-dir=${CMAKE_SOURCE_DIR}/src/graviton/
+    DEPENDS
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton-decl.txt
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
   configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Graviton-docs.xml.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/Graviton-docs.xml
