@@ -164,6 +164,19 @@ GList *graviton_introspection_interface_list_interfaces (GravitonIntrospectionCo
                                   NULL);
 }
 
+GList *graviton_introspection_interface_list_methods (GravitonIntrospectionControl *self, GError **err)
+{
+  GVariant *name = NULL;
+  if (self->priv->target)
+    name = g_variant_new_string (self->priv->target);
+  return call_string_list_method (self,
+                                  "net:phrobo:graviton/introspection.listMethods",
+                                  err,
+                                  "service",
+                                  name,
+                                  NULL);
+}
+
 GList *graviton_introspection_interface_list_properties (GravitonIntrospectionControl *self, GError **err)
 {
   GVariant *name = NULL;

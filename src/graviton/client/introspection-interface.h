@@ -35,6 +35,7 @@ GType graviton_introspection_interface_get_type (void);
 GList *graviton_introspection_interface_list_interfaces (GravitonIntrospectionControl *self, GError **error);
 GList *graviton_introspection_interface_list_properties (GravitonIntrospectionControl *self, GError **error);
 GList *graviton_introspection_interface_list_streams (GravitonIntrospectionControl *self, GError **error);
+GList *graviton_introspection_interface_list_methods (GravitonIntrospectionControl *self, GError **error);
 GravitonIntrospectionControl *graviton_introspection_interface_new_from_interface (GravitonServiceInterface *service);
 GravitonIntrospectionControl *graviton_introspection_interface_new (GravitonNode *node, const gchar *name);
 
