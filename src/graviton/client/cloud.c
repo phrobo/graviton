@@ -55,7 +55,7 @@
  *   loop = g_main_loop_new (NULL, 0);
  *   cloud = graviton_cloud_new_default_cloud ();
  *
- *   graviton_cloud_find_service_interfaces (cloud, "net:phrobo:graviton:ping", cb_browse, NULL);
+ *   graviton_cloud_browse_services (cloud, "net:phrobo:graviton:ping", cb_browse, NULL);
  *   g_main_loop_run (loop);
  * }
  *   </programlisting>
@@ -83,10 +83,11 @@
  */
 typedef struct _GravitonCloudPrivate GravitonCloudPrivate;
 
-typedef struct BrowseCallbackData {
+typedef struct _GravitonServiceBrowser {
   GravitonServiceBrowseCallback callback;
   gpointer data;
-} BrowseCallbackData;
+  gchar *name;
+} GravitonServiceBrowser;
 
 struct _GravitonCloudPrivate
 {
@@ -113,11 +114,11 @@ static void notify_all_service_callbacks_by_node (GravitonCloud *cloud,
                                           GravitonNode *node);
 static void notify_all_service_callbacks (GravitonCloud *cloud,
                                           GravitonServiceEvent event);
-static void notify_service_callback (GravitonCloud *cloud,
-                                     BrowseCallbackData *data,
+static void notify_service_browser (GravitonCloud *cloud,
+                                     GravitonServiceBrowser *browser,
                                      GravitonServiceEvent event,
                                      GravitonServiceInterface *iface);
-static void free_browse_cb_data (BrowseCallbackData *data);
+static void free_browser (GravitonServiceBrowser *data);
 
 void setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser);
 
@@ -233,7 +234,7 @@ graviton_cloud_dispose (GObject *object)
   g_mutex_lock (&self->priv->browse_lock);
   g_hash_table_iter_init (&iter, self->priv->browse_callbacks);
   while (g_hash_table_iter_next (&iter, NULL, (gpointer*)&cur)) {
-    g_list_free_full (cur, (GDestroyNotify)free_browse_cb_data);
+    g_list_free_full (cur, (GDestroyNotify)free_browser);
   }
   g_hash_table_unref (self->priv->browse_callbacks);
   g_mutex_unlock (&self->priv->browse_lock);
@@ -269,7 +270,7 @@ notify_all_service_callbacks (GravitonCloud *self, GravitonServiceEvent event)
   g_hash_table_iter_init (&iter, self->priv->browse_callbacks);
   while (g_hash_table_iter_next (&iter, NULL, (gpointer*)&cur)) {
     while (cur) {
-      notify_service_callback (self, cur->data, event, NULL);
+      notify_service_browser (self, cur->data, event, NULL);
       cur = cur->next;
     }
   }
@@ -288,7 +289,7 @@ notify_all_service_callbacks_by_iface (GravitonCloud *cloud, GravitonServiceEven
   g_debug ("Notifying callbacks for %s: %i", service_name, event);
   if (cur) {
     while (cur) {
-      notify_service_callback (cloud, cur->data, event, iface);
+      notify_service_browser (cloud, cur->data, event, iface);
       cur = cur->next;
     }
   }
@@ -315,22 +316,24 @@ notify_all_service_callbacks_by_node (GravitonCloud *self, GravitonServiceEvent 
 }
 
 static void
-notify_service_callback (GravitonCloud *cloud, BrowseCallbackData *data, GravitonServiceEvent event, GravitonServiceInterface *iface)
+notify_service_browser (GravitonCloud *cloud, GravitonServiceBrowser *browser, GravitonServiceEvent event, GravitonServiceInterface *iface)
 {
   g_debug ("FIRE");
-  data->callback (cloud, event, iface, data->data);
+  browser->callback (cloud, event, iface, browser->data);
 }
 
 static void
-free_browse_cb_data (BrowseCallbackData *data)
+free_browser (GravitonServiceBrowser *browser)
 {
-  g_free (data->data);
-  data->data = NULL;
-  g_free (data);
+  g_free (browser->data);
+  g_free (browser->name);
+  browser->data = NULL;
+  browser->name = NULL;
+  g_free (browser);
 }
 
 /**
- * graviton_cloud_find_service_interfaces:
+ * graviton_cloud_browse_services:
  * @cloud: A #GravitonCloud to query
  * @serviceName: A name of the service to locate, eg net:phrobo:graviton:introspection
  * @callback: Callback that will be called at certain times
@@ -340,19 +343,20 @@ free_browse_cb_data (BrowseCallbackData *data)
  * particular service within a cloud. Check #GravitonServiceBrowseCallback for
  * more details.
  */
-void
-graviton_cloud_find_service_interfaces (GravitonCloud *cloud, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data)
+GravitonServiceBrowser* 
+graviton_cloud_browse_services (GravitonCloud *cloud, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data)
 {
-  BrowseCallbackData *data;
+  GravitonServiceBrowser *browser;
   GList *current_callbacks;
 
-  data = g_new0 (BrowseCallbackData, 1);
-  data->callback = callback;
-  data->data = user_data;
+  browser = g_new0 (GravitonServiceBrowser, 1);
+  browser->callback = callback;
+  browser->data = user_data;
+  browser->name = g_strdup (serviceName);
 
   g_mutex_lock (&cloud->priv->browse_lock);
   current_callbacks = g_hash_table_lookup (cloud->priv->browse_callbacks, serviceName);
-  current_callbacks = g_list_prepend (current_callbacks, data);
+  current_callbacks = g_list_prepend (current_callbacks, browser);
 
   g_hash_table_replace (cloud->priv->browse_callbacks, g_strdup (serviceName), current_callbacks);
 
@@ -366,7 +370,7 @@ graviton_cloud_find_service_interfaces (GravitonCloud *cloud, const gchar *servi
     if (graviton_node_has_service (cur->data, serviceName, &error)) {
       g_debug ("Hit!");
       GravitonServiceInterface *service = graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (cur->data), serviceName);
-      notify_service_callback (cloud, data, GRAVITON_SERVICE_NEW, service);
+      notify_service_browser (cloud, browser, GRAVITON_SERVICE_NEW, service);
     } else {
       if (error) {
         g_debug ("Error while asking about service: %s", error->message);
@@ -379,9 +383,25 @@ graviton_cloud_find_service_interfaces (GravitonCloud *cloud, const gchar *servi
 
   //FIXME: Only notify if we've gotten the signal from the discovery methods
   if (cloud->priv->all_nodes_found_for_now) {
-    g_debug ("Previously received all-nodes-found, bubbling to callbacks");
-    notify_service_callback (cloud, data, GRAVITON_SERVICE_ALL_FOR_NOW, NULL);
+    g_debug ("Previously received all-nodes-found, bubbling to browsers");
+    notify_service_browser (cloud, browser, GRAVITON_SERVICE_ALL_FOR_NOW, NULL);
   }
+
+  return browser;
+}
+
+void
+graviton_cloud_destroy_service_browser (GravitonCloud *cloud, GravitonServiceBrowser *browser)
+{
+  GList *current_callbacks;
+
+  g_mutex_lock (&cloud->priv->browse_lock);
+  current_callbacks = g_hash_table_lookup (cloud->priv->browse_callbacks, browser->name);
+  current_callbacks = g_list_remove (current_callbacks, browser);
+  g_hash_table_replace (cloud->priv->browse_callbacks, g_strdup (browser->name), current_callbacks);
+  g_mutex_unlock (&cloud->priv->browse_lock);
+
+  free_browser( browser);
 }
 
 /**

@@ -77,7 +77,10 @@ GravitonCloud *graviton_cloud_new_default_cloud ();
 GList *graviton_cloud_get_found_nodes (GravitonCloud *client);
 
 GravitonNode *graviton_cloud_find_node (GravitonCloud *cloud, const gchar *guid, GError **error);
-void graviton_cloud_find_service_interfaces (GravitonCloud *cloud, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data);
+
+typedef struct _GravitonServiceBrowser      GravitonServiceBrowser;
+GravitonServiceBrowser* graviton_cloud_browse_services (GravitonCloud *cloud, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data);
+void graviton_cloud_destroy_service_browser (GravitonCloud *cloud, GravitonServiceBrowser* browser);
 
 const gchar *graviton_cloud_get_cloud_id (GravitonCloud *client);
 const gchar *graviton_cloud_get_cloud_name (GravitonCloud *client);
