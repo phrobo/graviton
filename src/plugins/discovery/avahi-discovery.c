@@ -19,6 +19,7 @@ struct _GravitonAvahiDiscoveryMethodPrivate
 {
   AvahiClient *avahi;
   AvahiGLibPoll *avahi_poll_api;
+  AvahiServiceBrowser *browser;
   guint unresolved_count;
   gboolean end_of_avahi_list;
   gboolean started;
@@ -123,10 +124,9 @@ cb_resolve (AvahiServiceResolver *resolver,
       GravitonJsonrpcNodeTransport *transport = graviton_jsonrpc_node_transport_new (addr);
       g_object_unref (addr);
       const gchar *node_id = graviton_jsonrpc_node_transport_get_node_id (transport);
-      GravitonNode *node = graviton_node_get_by_id (node_id);
+      GravitonNode *node = graviton_discovery_method_get_node_from_browser (GRAVITON_DISCOVERY_METHOD (self), node_id);
       graviton_node_add_transport (node, GRAVITON_NODE_TRANSPORT (transport), 0);
 
-      graviton_discovery_method_node_found (GRAVITON_DISCOVERY_METHOD (self), node);
       self->priv->unresolved_count--;
       break;
   }
@@ -150,6 +150,7 @@ cb_browse (AvahiServiceBrowser *browser,
            void *user_data)
 {
   GravitonAvahiDiscoveryMethod *self = GRAVITON_AVAHI_DISCOVERY_METHOD (user_data);
+  g_debug ("cb_browse");
   switch (event) {
     case AVAHI_BROWSER_NEW:
       g_debug ("Creating new service resolver for %s", name);
@@ -175,6 +176,7 @@ cb_browse (AvahiServiceBrowser *browser,
     case AVAHI_BROWSER_REMOVE:
     case AVAHI_BROWSER_CACHE_EXHAUSTED:
     case AVAHI_BROWSER_FAILURE:
+      g_debug ("Unhandled event %i", event);
       break;
   }
 }
@@ -184,14 +186,21 @@ browse_services (AvahiClient *client, GravitonAvahiDiscoveryMethod *self)
 {
   AvahiClientState state = avahi_client_get_state (client);
   if (state == AVAHI_CLIENT_S_RUNNING && self->priv->started) {
-    avahi_service_browser_new (client,
-                               AVAHI_IF_UNSPEC,
-                               AVAHI_PROTO_UNSPEC,
-                               "_graviton._tcp",
-                               NULL,
-                               AVAHI_LOOKUP_NO_TXT,
-                               cb_browse,
-                               self);
+    g_debug ("Starting new browser");
+    self->priv->browser = avahi_service_browser_new (client,
+                                                     AVAHI_IF_UNSPEC,
+                                                     AVAHI_PROTO_UNSPEC,
+                                                     "_graviton._tcp",
+                                                     NULL,
+                                                     0,
+                                                     cb_browse,
+                                                     self);
+    if (!self->priv->browser) {
+      g_warning ("Could not create avahi browser!");
+      graviton_discovery_method_finished (GRAVITON_DISCOVERY_METHOD (self));
+    }
+  } else {
+    g_debug ("Not browsing services. State is %i, started is %i", state, self->priv->started);
   }
 }
 
@@ -209,6 +218,7 @@ stop_browse (GravitonDiscoveryMethod *method)
 {
   GravitonAvahiDiscoveryMethod *self = GRAVITON_AVAHI_DISCOVERY_METHOD (method);
   self->priv->started = FALSE;
+  g_debug ("Finishing browsing");
   //FIXME: Remove discovered nodes
 }
 
@@ -241,6 +251,7 @@ graviton_avahi_discovery_method_dispose (GObject *object)
   GravitonAvahiDiscoveryMethod *self = GRAVITON_AVAHI_DISCOVERY_METHOD (object);
   g_object_unref (self->priv->avahi);
   g_object_unref (self->priv->avahi_poll_api);
+  g_object_unref (self->priv->browser);
 }
 
 static void

@@ -44,8 +44,6 @@ struct _GravitonNode
 
 GType graviton_node_get_type (void);
 
-GravitonNode *graviton_node_get_by_id (const gchar *id);
-
 const gchar *graviton_node_get_id (GravitonNode *node, GError **err);
 const gchar *graviton_node_get_cloud_id (GravitonNode *node, GError **err);
 

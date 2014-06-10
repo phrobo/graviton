@@ -19,8 +19,6 @@ struct _GravitonNodePrivate
   gchar *node_id;
 };
 
-static GHashTable *node_cache = NULL;
-
 #define GRAVITON_NODE_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_TYPE, GravitonNodePrivate))
 
@@ -42,6 +40,14 @@ enum {
   PROP_NODE_ID,
   N_PROPERTIES
 };
+
+enum {
+  SIGNAL_0,
+  SIGNAL_TRANSPORT_ADDED,
+  N_SIGNALS
+};
+
+static int obj_signals[N_SIGNALS] = { 0, };
 
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL, };
 
@@ -109,6 +115,26 @@ graviton_node_class_init (GravitonNodeClass *klass)
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
                                      obj_properties);
+
+  /**
+   * GravitonNode::transport-added:
+   * @node: The node that has a new transport
+   * @transport: The transport that was added
+   *
+   * A #GravitonNode has had a new transport added. Consumers should consider
+   * the priority of the new transport when possible.
+   */
+  obj_signals[SIGNAL_TRANSPORT_ADDED] =
+    g_signal_new ("transport-added",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL,
+                  NULL,
+                  g_cclosure_marshal_VOID__OBJECT,
+                  G_TYPE_NONE,
+                  1,
+                  GRAVITON_NODE_TRANSPORT_TYPE);
 }
 
 static void
@@ -128,9 +154,6 @@ graviton_node_dispose (GObject *object)
   GravitonNode *self = GRAVITON_NODE (object);
   g_object_unref (self->priv->gobj);
   g_ptr_array_free (self->priv->transports, TRUE);
-
-  g_hash_table_remove (node_cache, self->priv->node_id);
-  g_hash_table_unref (node_cache);
 
   self->priv->gobj = NULL;
   self->priv->transports = NULL;
@@ -152,33 +175,6 @@ graviton_node_proxy_to_id (GravitonNode *node,
                            GError **error)
 {
   return NULL;
-}
-
-//FIXME: This needs to be a proper singleton
-GravitonNode *graviton_node_get_by_id (const gchar *node_id)
-{
-  GravitonNode *result = NULL;
-  if (node_cache == NULL) {
-    node_cache = g_hash_table_new_full (g_str_hash,
-                                        g_str_equal,
-                                        g_free,
-                                        g_object_unref);
-  }
-  result = g_hash_table_lookup (node_cache, node_id);
-  if (result == NULL) {
-    result = g_object_new (GRAVITON_NODE_TYPE,
-                           "node-id", node_id,
-                           NULL);
-    g_hash_table_insert (node_cache, g_strdup (node_id), result);
-    g_debug ("Created new node for %s", node_id);
-  } else {
-    g_debug ("Returning existing node for %s", node_id);
-    g_object_ref (result);
-  }
-
-  g_hash_table_ref (node_cache);
-
-  return result;
 }
 
 const gchar *
@@ -326,6 +322,7 @@ graviton_node_add_transport (GravitonNode *self,
 {
   g_object_ref_sink (transport);
   g_ptr_array_add (self->priv->transports, transport);
+  g_signal_emit (self, obj_signals[SIGNAL_TRANSPORT_ADDED], 0, transport);
 }
 
 GPtrArray *

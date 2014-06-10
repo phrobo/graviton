@@ -14,6 +14,7 @@ struct _GravitonNodeBrowserPrivate
   GList *discovery_methods;
   int pending_discovery_methods;
   GHashTable *discovered_nodes;
+  GHashTable *cloud_nodes;
   GAsyncQueue *unprobed_nodes;
   GThread *probe_thread;
 };
@@ -28,6 +29,8 @@ static void graviton_node_browser_finalize   (GObject *object);
 static void graviton_node_browser_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
 static void graviton_node_browser_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
 
+static void notify_new_cloud (GravitonNodeBrowser *browser, GravitonCloud *cloud);
+
 G_DEFINE_TYPE (GravitonNodeBrowser, graviton_node_browser, G_TYPE_OBJECT);
 
 enum {
@@ -40,6 +43,7 @@ enum {
   SIGNAL_NODE_FOUND,
   SIGNAL_NODE_LOST,
   SIGNAL_ALL_NODES_FOUND,
+  SIGNAL_NEW_CLOUD,
   N_SIGNALS
 };
 
@@ -123,6 +127,25 @@ graviton_node_browser_class_init (GravitonNodeBrowserClass *klass)
                   G_TYPE_NONE,
                   0,
                   G_TYPE_NONE);
+  /**
+   * GravitonNodeBrowser::new-cloud:
+   * @browser: The browser
+   * @cloud_id: Cloud ID
+   *
+   * A new cloud has been discovered.
+   *
+   */
+  obj_signals[SIGNAL_NEW_CLOUD] =
+    g_signal_new ("new-cloud",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL,
+                  NULL,
+                  g_cclosure_marshal_VOID__OBJECT,
+                  G_TYPE_NONE,
+                  1,
+                  GRAVITON_CLOUD_TYPE);
 }
 
 static void
@@ -172,11 +195,11 @@ probe_thread_loop (gpointer data)
       const gchar *cloud_id = NULL;
       cloud_id = graviton_node_get_cloud_id (cur, &error);
       g_debug ("Node belongs to cloud %s", cloud_id);
-      nodes = g_hash_table_lookup (self->priv->discovered_nodes,
+      nodes = g_hash_table_lookup (self->priv->cloud_nodes,
                                    cloud_id);
       if (!g_list_find (nodes, cur)) {
         nodes = g_list_prepend (nodes, cur);
-        g_hash_table_replace (self->priv->discovered_nodes, g_strdup (cloud_id), nodes);
+        g_hash_table_replace (self->priv->cloud_nodes, g_strdup (cloud_id), nodes);
 
         g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, cur);
       }
@@ -204,13 +227,17 @@ graviton_node_browser_init (GravitonNodeBrowser *self)
   GravitonNodeBrowserPrivate *priv;
   priv = self->priv = GRAVITON_NODE_BROWSER_GET_PRIVATE (self);
   priv->unprobed_nodes = g_async_queue_new_full (g_object_unref);
-  priv->discovered_nodes = g_hash_table_new_full (g_str_hash,
-                                                  g_str_equal,
-                                                  g_free,
-                                                  NULL);
+  priv->cloud_nodes = g_hash_table_new_full (g_str_hash,
+                                             g_str_equal,
+                                             g_free,
+                                             NULL);
   priv->pending_discovery_methods = 0;
 
   priv->probe_thread = g_thread_new (NULL, probe_thread_loop, self);
+  priv->discovered_nodes = g_hash_table_new_full (g_str_hash,
+                                                  g_str_equal,
+                                                  g_free,
+                                                  g_object_unref);
 }
 
 static void
@@ -226,28 +253,22 @@ graviton_node_browser_dispose (GObject *object)
   g_thread_unref (self->priv->probe_thread);
   self->priv->probe_thread = NULL;
 
-  g_hash_table_foreach (self->priv->discovered_nodes,
+  g_hash_table_foreach (self->priv->cloud_nodes,
                        free_node_list,
                        NULL);
-  g_hash_table_unref (self->priv->discovered_nodes);
-  self->priv->discovered_nodes = NULL;
+  g_hash_table_unref (self->priv->cloud_nodes);
+  self->priv->cloud_nodes = NULL;
 
   g_list_free_full (self->priv->discovery_methods, g_object_unref);
   self->priv->discovery_methods = NULL;
+
+  g_hash_table_ref (self->priv->discovered_nodes);
 }
 
 static void
 graviton_node_browser_finalize (GObject *object)
 {
   G_OBJECT_CLASS (graviton_node_browser_parent_class)->finalize (object);
-}
-
-static void
-cb_node_found (GravitonDiscoveryMethod *method, GravitonNode *node, gpointer data)
-{
-  GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (data);
-  g_debug ("Got a new node. Queueing it for bootstrap probe");
-  g_async_queue_push (self->priv->unprobed_nodes, node);
 }
 
 static void
@@ -280,10 +301,6 @@ graviton_node_browser_add_discovery_method (GravitonNodeBrowser *self, GravitonD
   g_signal_connect (method,
                     "finished",
                     G_CALLBACK (cb_discovery_finished),
-                    self);
-  g_signal_connect (method,
-                    "node-found",
-                    G_CALLBACK (cb_node_found),
                     self);
   g_signal_connect (method,
                     "node-lost",
@@ -372,11 +389,74 @@ graviton_node_browser_new ()
 GList*
 graviton_node_browser_get_found_nodes (GravitonNodeBrowser *self, const gchar* cloud_id)
 {
-  return g_hash_table_lookup (self->priv->discovered_nodes, cloud_id);
+  return g_hash_table_lookup (self->priv->cloud_nodes, cloud_id);
 }
 
 GList *
 graviton_node_browser_get_found_cloud_ids (GravitonNodeBrowser *client)
 {
-  return g_hash_table_get_keys (client->priv->discovered_nodes);
+  return g_hash_table_get_keys (client->priv->cloud_nodes);
+}
+
+static void
+notify_new_cloud (GravitonNodeBrowser *browser, GravitonCloud *cloud)
+{
+  const gchar* cloud_id = graviton_cloud_get_cloud_id (cloud);
+
+  if (!g_hash_table_contains (browser->priv->cloud_nodes, cloud_id)) {
+    g_hash_table_insert (browser->priv->cloud_nodes, g_strdup (cloud_id), NULL);
+    g_signal_emit (browser, obj_signals[SIGNAL_NEW_CLOUD], 0, cloud);
+  }
+}
+
+/**
+ * graviton_cloud_new: 
+ * @cloud_id: The cloud ID requested
+ * @browser: A #GravitonNodeBrowser that will be used to discover nodes and
+ * services
+ *
+ * Creates a new #GravitonCloud
+ *
+ * Returns: (transfer full): A new #GravitonCloud
+ */
+GravitonCloud *
+graviton_node_browser_get_cloud (GravitonNodeBrowser *browser, const gchar *cloud_id)
+{
+  GravitonCloud *cloud;
+
+  cloud = g_object_new (GRAVITON_CLOUD_TYPE, "cloud-id", cloud_id, "browser", browser, NULL);
+  notify_new_cloud (browser, cloud);
+  return cloud;
+}
+
+static void
+cb_transport_added (GravitonNode *node, GravitonNodeTransport *transport, GravitonNodeBrowser *self)
+{
+  g_debug ("Got a new node. Queueing it for bootstrap probe");
+  g_async_queue_push (self->priv->unprobed_nodes, node);
+}
+
+GravitonNode *
+graviton_node_browser_get_node_by_id (GravitonNodeBrowser *browser, const gchar *node_id)
+{
+  GravitonNode *result = NULL;
+  result = g_hash_table_lookup (browser->priv->discovered_nodes, node_id);
+  if (result == NULL) {
+    result = g_object_new (GRAVITON_NODE_TYPE,
+                           "node-id", node_id,
+                           NULL);
+
+    g_signal_connect (result,
+                      "transport-added",
+                      G_CALLBACK (cb_transport_added),
+                      browser);
+
+    g_hash_table_insert (browser->priv->discovered_nodes, g_strdup (node_id), result);
+    g_debug ("Created new node for %s", node_id);
+  } else {
+    g_debug ("Returning existing node for %s", node_id);
+    g_object_ref (result);
+  }
+
+  return result;
 }

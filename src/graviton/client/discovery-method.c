@@ -234,6 +234,41 @@ graviton_discovery_method_class_init (GravitonDiscoveryMethodClass *klass)
                   G_TYPE_NONE,
                   0,
                   G_TYPE_NONE);
+
+  klass->start = NULL;
+  klass->stop = NULL;
+  klass->setup_transport = NULL;
+  klass->browse_cloud = NULL;
+}
+
+static void
+cb_new_cloud (GravitonNodeBrowser *browser, GravitonCloud *cloud, GravitonDiscoveryMethod *method)
+{
+  if (GRAVITON_DISCOVERY_METHOD_GET_CLASS (method)->browse_cloud)
+    GRAVITON_DISCOVERY_METHOD_GET_CLASS (method)->browse_cloud (method, cloud);
+}
+
+static void
+cb_new_node (GravitonNodeBrowser *browser, GravitonNode *node, GravitonDiscoveryMethod *method)
+{
+  if (GRAVITON_DISCOVERY_METHOD_GET_CLASS (method)->setup_transport)
+    GRAVITON_DISCOVERY_METHOD_GET_CLASS (method)->setup_transport (method, node);
+}
+
+static void
+setup_browser (GravitonDiscoveryMethod *self, GravitonNodeBrowser *browser)
+{
+  if (self->priv->browser)
+    g_object_unref (self->priv->browser);
+  self->priv->browser = browser;
+  g_signal_connect (browser,
+                    "new-cloud",
+                    G_CALLBACK (cb_new_cloud),
+                    self);
+  g_signal_connect (browser,
+                    "node-found",
+                    G_CALLBACK (cb_new_node),
+                    self);
 }
 
 static void
@@ -245,9 +280,7 @@ graviton_discovery_method_set_property (GObject *object,
   GravitonDiscoveryMethod *self = GRAVITON_DISCOVERY_METHOD (object);
   switch (property_id) {
     case PROP_NODE_BROWSER:
-      if (self->priv->browser)
-        g_object_unref (self->priv->browser);
-      self->priv->browser = g_value_dup_object (value);
+      setup_browser (self, g_value_dup_object (value));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -338,4 +371,18 @@ GravitonNodeBrowser *
 graviton_discovery_method_get_browser (GravitonDiscoveryMethod *self)
 {
   return g_object_ref (self->priv->browser);
+}
+
+/**
+ * graviton_discovery_method_get_node_from_browser:
+ * @method: The method
+ * @node_id:  The node to fetch
+ *
+ * A convienence function that calls graviton_node_browser_get_node_by_id() on
+ * this method's browser.
+ */
+GravitonNode *
+graviton_discovery_method_get_node_from_browser (GravitonDiscoveryMethod *method, const gchar *node_id)
+{
+  return graviton_node_browser_get_node_by_id (method->priv->browser, node_id);
 }

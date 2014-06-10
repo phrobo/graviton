@@ -71,7 +71,6 @@ typedef void (*GravitonServiceBrowseCallback)(GravitonCloud *cloud, GravitonServ
 
 GType graviton_cloud_get_type (void);
 
-GravitonCloud *graviton_cloud_new (const gchar *cloud_id, GravitonNodeBrowser *browser);
 GravitonCloud *graviton_cloud_new_default_cloud ();
 
 GList *graviton_cloud_get_found_nodes (GravitonCloud *client);

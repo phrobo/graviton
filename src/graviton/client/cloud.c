@@ -6,6 +6,7 @@
 
 #include "cloud.h"
 #include "node.h"
+#include "node-browser.h"
 #include <uuid/uuid.h>
 
 /**
@@ -120,7 +121,7 @@ static void notify_service_browser (GravitonCloud *cloud,
                                      GravitonServiceInterface *iface);
 static void free_browser (GravitonServiceBrowser *data);
 
-void setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser);
+static void setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser);
 
 G_DEFINE_TYPE (GravitonCloud, graviton_cloud, G_TYPE_OBJECT);
 
@@ -405,22 +406,6 @@ graviton_cloud_destroy_service_browser (GravitonCloud *cloud, GravitonServiceBro
 }
 
 /**
- * graviton_cloud_new: 
- * @cloud_id: The cloud ID requested
- * @browser: A #GravitonNodeBrowser that will be used to discover nodes and
- * services
- *
- * Creates a new #GravitonCloud
- *
- * Returns: (transfer full): A new #GravitonCloud
- */
-GravitonCloud *
-graviton_cloud_new (const gchar *cloud_id, GravitonNodeBrowser *browser)
-{
-  return g_object_new (GRAVITON_CLOUD_TYPE, "cloud-id", cloud_id, "browser", browser, NULL);
-}
-
-/**
  * graviton_cloud_get_found_nodes:
  * @client: a #GravitonCloud to query
  *
@@ -463,8 +448,8 @@ graviton_cloud_new_default_cloud ()
 
   g_key_file_unref (keyfile);
   browser = graviton_node_browser_new ();
-  cloud = graviton_cloud_new (cloud_id, browser);
   graviton_node_browser_load_discovery_plugins (browser);
+  cloud = graviton_node_browser_get_cloud (browser, cloud_id);
   g_free (cloud_id);
   g_object_unref (browser);
   return cloud;
@@ -506,7 +491,7 @@ cb_nodes_found (GravitonNodeBrowser *browser, gpointer data)
   notify_all_service_callbacks (self, GRAVITON_SERVICE_ALL_FOR_NOW);
 }
 
-void
+static void
 setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser)
 {
   g_debug ("Connecting to browser");

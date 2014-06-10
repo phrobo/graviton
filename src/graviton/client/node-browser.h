@@ -33,10 +33,14 @@ GType graviton_node_browser_get_type (void);
 
 GravitonNodeBrowser *graviton_node_browser_new ();
 
+GravitonCloud *graviton_node_browser_get_cloud (GravitonNodeBrowser *browser, const gchar *cloud_id);
+GravitonNode *graviton_node_browser_get_node_by_id (GravitonNodeBrowser *browser, const gchar *node_id);
+
 void graviton_node_browser_add_discovery_method (GravitonNodeBrowser *client, GravitonDiscoveryMethod *method);
 void graviton_node_browser_load_discovery_plugins (GravitonNodeBrowser *client);
 GArray *graviton_node_browser_find_discovery_plugins (GravitonNodeBrowser *client);
 
+GravitonNode *graviton_node_browser_request_node (GravitonNodeBrowser *client, const gchar *node_id);
 GList *graviton_node_browser_get_found_nodes (GravitonNodeBrowser *client, const gchar *cloud_id);
 GList *graviton_node_browser_get_found_cloud_ids (GravitonNodeBrowser *client);
 

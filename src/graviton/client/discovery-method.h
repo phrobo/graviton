@@ -25,12 +25,19 @@ typedef struct _GravitonNodeBrowser GravitonNodeBrowser;
  * @parent_class: Parent GObjectClass
  * @start: Called to start up the discovery process
  * @stop: Called to stop the discovery process
+ * @setup_transport: Called when graviton_node_browser_request_node() is called.
+ * Can be NULL if this backend does not configure nodes after browsing. Should
+ * configure and add a #GravitonNodeTransport that can talk with the passed node
+ * @browse_cloud: Called when the associated GravitonNodeBrowser creates a new
+ * cloud via graviton_node_browser_get_cloud()
  */
 struct _GravitonDiscoveryMethodClass
 {
   GObjectClass parent_class;
   void (*start) (GravitonDiscoveryMethod *self);
   void (*stop) (GravitonDiscoveryMethod *self);
+  void (*setup_transport) (GravitonDiscoveryMethod *self, GravitonNode *node);
+  void (*browse_cloud) (GravitonDiscoveryMethod *self, GravitonCloud *cloud);
 };
 
 struct _GravitonDiscoveryMethod
@@ -50,11 +57,9 @@ typedef GravitonDiscoveryMethod *(*GravitonDiscoveryPluginLoaderFunc)(GravitonNo
 void graviton_discovery_method_start (GravitonDiscoveryMethod *method);
 void graviton_discovery_method_stop (GravitonDiscoveryMethod *method);
 
-void graviton_discovery_method_node_found (GravitonDiscoveryMethod *method, GravitonNode *node);
 void graviton_discovery_method_finished (GravitonDiscoveryMethod *method);
-void graviton_discovery_method_node_lost (GravitonDiscoveryMethod *method, GravitonNode *node);
 
-GravitonCloud *graviton_discovery_method_get_cloud (GravitonDiscoveryMethod *method);
+GravitonNode *graviton_discovery_method_get_node_from_browser (GravitonDiscoveryMethod *method, const gchar *node_id);
 
 GList *graviton_discovery_method_found_nodes (GravitonDiscoveryMethod *method);
 

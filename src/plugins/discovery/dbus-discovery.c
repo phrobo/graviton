@@ -72,10 +72,9 @@ start_browse (GravitonDiscoveryMethod *method)
 
       GravitonJsonrpcNodeTransport *transport = graviton_jsonrpc_node_transport_new (addr);
       const gchar *node_id = graviton_jsonrpc_node_transport_get_node_id (transport);
-      GravitonNode *node = graviton_node_get_by_id (node_id);
+      GravitonNode *node = graviton_discovery_method_get_node_from_browser (GRAVITON_DISCOVERY_METHOD (self), node_id);
       graviton_node_add_transport (node, GRAVITON_NODE_TRANSPORT (transport), 0);
       g_object_unref (addr);
-      graviton_discovery_method_node_found (GRAVITON_DISCOVERY_METHOD (self), node);
     }
     i++;
   }
