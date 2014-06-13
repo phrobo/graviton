@@ -30,6 +30,7 @@ static GVariant *
 cb_ping(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
 {
   g_print ("Responding to ping request\n");
+  graviton_service_emit_event (control, "handled-ping", NULL);
   return g_variant_new_string ("pong");
 }
 

@@ -74,6 +74,7 @@ static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
 enum {
   SIGNAL_0,
+  SIGNAL_EVENT,
   SIGNAL_PROPERTY_UPDATE,
   N_SIGNALS
 };
@@ -93,6 +94,7 @@ struct _GravitonServicePrivate
 
 static void graviton_service_dispose (GObject *object);
 static void graviton_service_finalize (GObject *object);
+static void cb_event_from_notify (GravitonService *self, GParamSpec *pspec, gpointer user_data);
 
 static void
 set_property (GObject *object,
@@ -150,17 +152,28 @@ graviton_service_class_init (GravitonServiceClass *klass)
                                      N_PROPERTIES,
                                      obj_properties);
 
-  obj_signals[SIGNAL_PROPERTY_UPDATE] = 
-    g_signal_new ("property-update",
+  /**
+   * GravitonService::event:
+   * @name: The event name
+   * @data: The event data
+   *
+   * Emitted when graviton_service_emit_event() is called.
+   * 
+   * In normal usage, this is handled by GravitonServer to dispatch events to
+   * the cloud.
+   */
+  obj_signals[SIGNAL_EVENT] =
+    g_signal_new ("event",
                   G_TYPE_FROM_CLASS (klass),
-                  G_SIGNAL_RUN_LAST,
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
                   0,
                   NULL,
                   NULL,
-                  g_cclosure_marshal_VOID__STRING,
+                  g_cclosure_marshal_generic,
                   G_TYPE_NONE,
-                  1,
-                  G_TYPE_STRING);
+                  2,
+                  G_TYPE_STRING,
+                  G_TYPE_VARIANT);
 }
 
 static void
@@ -194,6 +207,13 @@ graviton_service_init (GravitonService *self)
                                                  g_str_equal,
                                                  g_free,
                                                  NULL);
+
+  //FIXME: Shouldn't use gobject properties since they use GValue. I guess we
+  //need our own mechanism :(
+  g_signal_connect (self,
+                    "notify",
+                    G_CALLBACK (cb_event_from_notify),
+                    NULL);
 }
 
 static void
@@ -331,27 +351,37 @@ graviton_service_get_subservice (GravitonService *self,
 }
 
 static void
-cb_subservice_notify (GravitonService *subservice, GParamSpec *pspec, gpointer user_data)
+cb_event_from_notify (GravitonService *self, GParamSpec *pspec, gpointer user_data)
 {
-  GravitonService *self = GRAVITON_SERVICE(user_data);
-  gchar *subname;
-  g_object_get (subservice, "name", &subname, NULL);
-  gchar *full_name = g_strdup_printf ("%s/%s", subname, pspec->name);
+  GVariant *property_data = NULL;
+  GValue property_value = G_VALUE_INIT;
 
-  g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], 0, full_name);
-  g_debug ("Subproperty notify: %s", full_name);
-  g_free (full_name);
+  g_value_init (&property_value, pspec->value_type);
+  g_object_get_property (G_OBJECT (self), pspec->name, &property_value);
+
+  if (G_VALUE_HOLDS_STRING (&property_value))
+    property_data = g_variant_new_string (g_value_get_string (&property_value));
+
+  if (property_data) {
+    graviton_service_emit_event (self, "property", property_data);
+  } else {
+    g_warning ("Could not convert %s.%s to a GVariant!", self->priv->name, pspec->name);
+  }
 }
 
 static void
-cb_propigate_property_update (GravitonService *subservice, const gchar *name, gpointer user_data)
+cb_propagate_event (GravitonService *subservice, const gchar *name, GVariant *data, gpointer user_data)
 {
-  GravitonService *self = GRAVITON_SERVICE(user_data);
-  gchar *full_name = g_strdup_printf ("%s/%s", self->priv->name, name);
+  GravitonService *self = GRAVITON_SERVICE (user_data);
+  gchar *full_name;
+  if (strlen (self->priv->name)) {
+    full_name = g_strdup_printf ("%s/%s", self->priv->name, name);
+  } else {
+    full_name = g_strdup (name);
+  }
+  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (full_name), full_name, data);
 
-  g_signal_emit (self, obj_signals[SIGNAL_PROPERTY_UPDATE], 0, full_name);
-
-  g_debug ("Subproperty update: %s", full_name);
+  g_debug ("Propagating event: %s", full_name);
   g_free (full_name);
 }
 
@@ -373,12 +403,8 @@ graviton_service_add_subservice (GravitonService *self,
   g_hash_table_replace (self->priv->services, name, service);
 
   g_signal_connect (service,
-                    "notify",
-                    G_CALLBACK(cb_subservice_notify),
-                    self);
-  g_signal_connect (service,
-                    "property-update",
-                    G_CALLBACK(cb_propigate_property_update),
+                    "event",
+                    G_CALLBACK(cb_propagate_event),
                     self);
 }
 
@@ -457,4 +483,15 @@ GravitonService *
 graviton_service_new (const gchar *serviceName)
 {
   return g_object_new (GRAVITON_SERVICE_TYPE, "name", serviceName, NULL);
+}
+
+void
+graviton_service_emit_event (GravitonService *self, const gchar *name, GVariant *data)
+{
+  gchar *full_name;
+
+  full_name = g_strdup_printf ("%s.%s", self->priv->name, name);
+  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (full_name), full_name, data);
+  g_debug ("Dispatch event: %s", full_name);
+  g_free (full_name);
 }

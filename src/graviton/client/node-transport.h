@@ -57,6 +57,11 @@ GravitonNodeTransport *graviton_node_transport_new ();
 GVariant *graviton_node_transport_call_args (GravitonNodeTransport *self, GravitonNode *node, const gchar *method, GHashTable *args, GError **error);
 GIOStream *graviton_node_transport_open_stream (GravitonNodeTransport *self, GravitonNode *node, const gchar *name, GHashTable *args, GError **error);
 
+void graviton_node_transport_emit_event (GravitonNodeTransport *self,
+                                         const gchar *node_id,
+                                         const gchar *name,
+                                         GVariant *data);
+
 G_END_DECLS
 
 #endif

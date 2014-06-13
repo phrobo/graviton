@@ -81,6 +81,8 @@ void graviton_node_add_transport (GravitonNode *node, GravitonNodeTransport *tra
 GPtrArray *graviton_node_get_transports (GravitonNode *node, int priority);
 GravitonNodeTransport *graviton_node_get_default_transport (GravitonNode *node);
 
+void graviton_node_emit_event (GravitonNode *node, const gchar *name, GVariant *value);
+
 G_END_DECLS
 
 #endif

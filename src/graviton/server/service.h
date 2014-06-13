@@ -115,4 +115,6 @@ GravitonStream *graviton_service_get_stream (GravitonService *self, const gchar 
 
 GravitonService *graviton_service_new (const gchar *serviceName);
 
+void graviton_service_emit_event (GravitonService *self, const gchar *name, GVariant *data);
+
 #endif // GRAVITON_SERVICE_H

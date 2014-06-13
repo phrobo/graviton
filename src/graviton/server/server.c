@@ -730,75 +730,51 @@ cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext 
 }
 
 static void
-cb_property_update (GravitonService *service, const gchar *name, gpointer user_data)
+cb_event (GravitonService *service, const gchar *name, GVariant *data, gpointer user_data)
 {
-  GravitonServer *self = GRAVITON_SERVER(user_data);
+  GravitonServer *self = GRAVITON_SERVER (user_data);
+  g_debug ("Event from a service: %s", name);
 
-  g_debug ("Property was updated on a plugin: %s", name);
   JsonBuilder *builder;
   JsonNode *result = NULL;
   JsonGenerator *generator;
 
-  GValue property_value = G_VALUE_INIT;
-  GVariant *converted_variant = NULL;
-  gchar **split_property_name = g_strsplit (name, ".", 0);
-  gchar *property_name;
-  gchar *service_name;
-  int split = g_strv_length (split_property_name) - 1;
-  property_name = g_strdup (split_property_name[split]);
-  g_free (split_property_name[split]);
-  split_property_name[split] = NULL;
-  service_name = g_strjoinv (".", split_property_name);
-  g_strfreev (split_property_name);
+  generator = json_generator_new ();
 
-  GravitonService *subservice = graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
-                                                                 service_name);
-  GParamSpec *prop = g_object_class_find_property (G_OBJECT_GET_CLASS (subservice), property_name);
-  g_value_init (&property_value, prop->value_type);
-  g_object_get_property (G_OBJECT (subservice), prop->name, &property_value);
-  g_free (property_name);
-  g_free (service_name);
-
-  if (G_VALUE_HOLDS_STRING (&property_value))
-    converted_variant = g_variant_new_string (g_value_get_string (&property_value));
-
-  if (converted_variant) {
-    generator = json_generator_new ();
-
-    GList *client = self->priv->event_listeners;
-    builder = json_builder_new ();
-    json_builder_begin_object (builder);
-    json_builder_set_member_name (builder, "type");
-    json_builder_add_string_value (builder, "property");
-    json_builder_set_member_name (builder, "property");
-    json_builder_add_string_value (builder, name);
-    json_builder_set_member_name (builder, "value");
-
-    json_builder_add_value (builder, json_gvariant_serialize (converted_variant));
-    json_builder_end_object (builder);
-    result = json_builder_get_root (builder);
-    g_object_unref (builder);
-    json_generator_set_root (generator, result);
-
-    gsize length;
-    gchar *data = json_generator_to_data (generator, &length);
-    gchar *fullData = g_strconcat (data, "\r\n", NULL);
-    length = strlen(fullData);
-    json_node_free(result);
-
-    while (client) {
-      SoupMessageBody *body;
-      g_object_get (client->data, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
-      g_object_ref (G_OBJECT (body));
-      soup_message_body_append (body, SOUP_MEMORY_COPY, fullData, length);
-      soup_server_unpause_message (self->priv->server, client->data);
-      client = g_list_next (client);
-      g_debug ("Sent event: %s", data);
-    }
-
-    g_free (fullData);
-    g_free (data);
+  GList *client = self->priv->event_listeners;
+  builder = json_builder_new ();
+  json_builder_begin_object (builder);
+  json_builder_set_member_name (builder, "name");
+  json_builder_add_string_value (builder, name);
+  json_builder_set_member_name (builder, "data");
+  if (data) {
+    json_builder_add_value (builder, json_gvariant_serialize (data));
+  } else {
+    json_builder_add_null_value (builder);
   }
+
+  json_builder_end_object (builder);
+  result = json_builder_get_root (builder);
+  g_object_unref (builder);
+  json_generator_set_root (generator, result);
+  gsize length;
+  gchar *json = json_generator_to_data (generator, &length);
+  gchar *full_data = g_strconcat (json, "\r\n", NULL);
+  length = strlen(full_data);
+  json_node_free (result);
+
+  while (client) {
+    SoupMessageBody *body;
+    g_object_get (client->data, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+    soup_message_body_append (body, SOUP_MEMORY_COPY, full_data, length);
+    soup_message_body_complete (body);
+    soup_server_unpause_message (self->priv->server, client->data);
+    client = g_list_next (client);
+    g_debug ("Sent event: %s", (gchar*)data);
+  }
+
+  g_free (full_data);
+  g_free (data);
 }
 
 SoupServer *
@@ -853,8 +829,8 @@ graviton_server_init (GravitonServer *self)
   priv->dbus = graviton_dbus_server_skeleton_new ();
 
   g_signal_connect (priv->plugins,
-                    "property-update",
-                    G_CALLBACK (cb_property_update),
+                    "event",
+                    G_CALLBACK (cb_event),
                     self);
 
   graviton_service_add_subservice (GRAVITON_SERVICE (self->priv->plugins),

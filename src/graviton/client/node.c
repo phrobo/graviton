@@ -63,6 +63,7 @@ enum {
 enum {
   SIGNAL_0,
   SIGNAL_TRANSPORT_ADDED,
+  SIGNAL_EVENT,
   N_SIGNALS
 };
 
@@ -154,6 +155,26 @@ graviton_node_class_init (GravitonNodeClass *klass)
                   G_TYPE_NONE,
                   1,
                   GRAVITON_NODE_TRANSPORT_TYPE);
+
+  /**
+   * GravitonNode::event:
+   * @name: Event name
+   * @data: Event data
+   *
+   * Emitted when the remote service emits an event. Detail is the event name.
+   */
+  obj_signals[SIGNAL_EVENT] =
+    g_signal_new ("service-event",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+                  0,
+                  NULL,
+                  NULL,
+                  g_cclosure_marshal_generic,
+                  G_TYPE_NONE,
+                  2,
+                  G_TYPE_STRING,
+                  G_TYPE_VARIANT);
 }
 
 static void
@@ -333,6 +354,15 @@ graviton_node_open_stream (GravitonNode *self,
   return ret;
 }
 
+static void
+cb_transport_event (GravitonNodeTransport *transport, const gchar *node_id, const gchar *name, GVariant *value, gpointer data)
+{
+  GravitonNode *self = GRAVITON_NODE (data);
+  if (strcmp (node_id, self->priv->node_id)) {
+    g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (name), name, value);
+  }
+}
+
 //FIXME: Check refcounts for node_*_transport functions
 void
 graviton_node_add_transport (GravitonNode *self,
@@ -342,6 +372,10 @@ graviton_node_add_transport (GravitonNode *self,
   g_object_ref_sink (transport);
   g_ptr_array_add (self->priv->transports, transport);
   g_signal_emit (self, obj_signals[SIGNAL_TRANSPORT_ADDED], 0, transport);
+  g_signal_connect (transport,
+                    "event",
+                    G_CALLBACK (cb_transport_event),
+                    self);
 }
 
 GPtrArray *
@@ -363,4 +397,12 @@ GravitonNodeTransport *graviton_node_get_default_transport (GravitonNode *node)
   g_assert (transport);
 
   return transport;
+}
+
+void
+graviton_node_emit_event (GravitonNode *self,
+                          const gchar *name,
+                          GVariant *value)
+{
+  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (name), name, value);
 }

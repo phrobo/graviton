@@ -27,6 +27,8 @@
 #include "node.h"
 #include "node-stream.h"
 
+#include <string.h>
+
 typedef struct _GravitonServiceInterfacePrivate GravitonServiceInterfacePrivate;
 
 struct _GravitonServiceInterfacePrivate
@@ -54,6 +56,42 @@ enum {
 
 static GParamSpec *obj_properties[N_PROPERTIES] = {NULL, };
 
+enum {
+  SIGNAL_0,
+  SIGNAL_EVENT,
+  N_SIGNALS
+};
+
+static int obj_signals[N_SIGNALS] = {0, };
+
+static void
+cb_dispatch_event (GravitonServiceInterface *self, const gchar *name, GVariant *value)
+{
+  gchar **event_name;
+  event_name = g_strsplit (name, ".", 0);
+  if (strcmp (event_name[0], self->priv->name) == 0) {
+    g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (event_name[1]), event_name[1], value);
+    g_debug ("Dispatching %s event", event_name[1]);
+  }
+  g_strfreev (event_name);
+}
+
+static void
+setup_node (GravitonServiceInterface *self, GravitonNode *node)
+{
+  if (self->priv->node)
+    g_object_unref (self->priv->node);
+
+  self->priv->node = node;
+
+  if (node) {
+    g_signal_connect (node,
+                      "service-event",
+                      G_CALLBACK (cb_dispatch_event),
+                      self);
+  }
+}
+
 static void
 set_property (GObject *object,
                      guint property_id,
@@ -66,7 +104,7 @@ set_property (GObject *object,
       self->priv->name = g_value_dup_string (value);
       break;
     case PROP_NODE:
-      self->priv->node = GRAVITON_NODE (g_value_dup_object (value));
+      setup_node (self, GRAVITON_NODE (g_value_dup_object (value)));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -119,6 +157,26 @@ graviton_service_interface_class_init (GravitonServiceInterfaceClass *klass)
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
                                      obj_properties);
+
+  /**
+   * GravitonServiceInterface::event:
+   * @name: Event name
+   * @data: Event data
+   *
+   * Emitted when the remote service emits an event.
+   */
+  obj_signals[SIGNAL_EVENT] =
+    g_signal_new ("event",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+                  0,
+                  NULL,
+                  NULL,
+                  g_cclosure_marshal_generic,
+                  G_TYPE_NONE,
+                  2,
+                  G_TYPE_STRING,
+                  G_TYPE_VARIANT);
 }
 
 static void

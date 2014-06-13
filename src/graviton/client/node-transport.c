@@ -32,6 +32,14 @@ static void graviton_node_transport_get_property (GObject *object, guint propert
 
 G_DEFINE_TYPE (GravitonNodeTransport, graviton_node_transport, G_TYPE_OBJECT);
 
+enum {
+  SIGNAL_0,
+  SIGNAL_EVENT,
+  N_SIGNALS
+};
+
+static int obj_signals[N_SIGNALS] = { 0, };
+
 static void
 graviton_node_transport_class_init (GravitonNodeTransportClass *klass)
 {
@@ -41,6 +49,30 @@ graviton_node_transport_class_init (GravitonNodeTransportClass *klass)
   object_class->finalize = graviton_node_transport_finalize;
   object_class->set_property =  graviton_node_transport_set_property;
   object_class->get_property =  graviton_node_transport_get_property;
+
+  /**
+   * GravitonNodeTransport::event:
+   * @node_id: Node ID that this originated from
+   * @name: Event name
+   * @data: Event data
+   *
+   * Emitted when the transport receives an event from a node on the other side.
+   * Detail is the event name.
+   */
+  obj_signals[SIGNAL_EVENT] =
+    g_signal_new ("event",
+                  G_TYPE_FROM_CLASS (klass),
+                  G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+                  0,
+                  NULL,
+                  NULL,
+                  g_cclosure_marshal_generic,
+                  G_TYPE_NONE,
+                  3,
+                  G_TYPE_STRING,
+                  G_TYPE_STRING,
+                  G_TYPE_VARIANT);
+
 }
 
 static void
@@ -105,4 +137,14 @@ graviton_node_transport_call_args (GravitonNodeTransport *self,
 {
   GravitonNodeTransportClass *klass = GRAVITON_NODE_TRANSPORT_GET_CLASS (self);
   return klass->call_args (self, node, method, args, error);
+}
+
+void
+graviton_node_transport_emit_event (GravitonNodeTransport *self,
+                                    const gchar *node_id,
+                                    const gchar *name,
+                                    GVariant *data)
+{
+  g_debug ("Emitting a %s event for %s", name, node_id);
+  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (name), node_id, name, data);
 }

@@ -32,12 +32,17 @@ typedef struct _GravitonJsonrpcNodeTransportPrivate GravitonJsonrpcNodeTransport
 struct _GravitonJsonrpcNodeTransportPrivate
 {
   SoupSession *soup;
+  SoupSession *event_session;
   GInetSocketAddress *address;
   SoupURI *rpc_uri;
   SoupURI *event_uri;
   SoupURI *stream_uri;
 
-  gchar* endpoint_node_id;
+  gchar *endpoint_node_id;
+
+  GCancellable *event_cancel;
+  gchar *event_buffer;
+  GString *cur_event;
 };
 
 #define GRAVITON_JSONRPC_NODE_TRANSPORT_GET_PRIVATE(o) \
@@ -60,6 +65,8 @@ static GVariant* call_args (GravitonNodeTransport *trans_self,
                             GHashTable *args,
                             GError **err);
 
+static void open_event_stream (GravitonJsonrpcNodeTransport *self);
+
 G_DEFINE_TYPE (GravitonJsonrpcNodeTransport, graviton_jsonrpc_node_transport, GRAVITON_NODE_TRANSPORT_TYPE);
 
 enum {
@@ -69,6 +76,60 @@ enum {
 };
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
+
+static void
+cb_read_event (SoupSession *session, SoupMessage *msg, gpointer data)
+{
+  GravitonJsonrpcNodeTransport *self;
+  GError *error = NULL;
+  SoupMessageBody *response = NULL;
+  JsonParser *parser;
+  GVariant *event_data = NULL;
+  const gchar *event_name;
+
+  self = GRAVITON_JSONRPC_NODE_TRANSPORT (data);
+  g_object_get (msg, SOUP_MESSAGE_RESPONSE_BODY, &response, NULL);
+
+  if (response->length) {
+    parser = json_parser_new ();
+    if (json_parser_load_from_data (parser, response->data, response->length, &error)) {
+      JsonNode *response_json = json_parser_get_root (parser);
+      if (JSON_NODE_HOLDS_OBJECT (response_json)) {
+        JsonObject *response_obj = json_node_get_object (response_json);
+        event_name = json_object_get_string_member (response_obj, "name");
+        JsonNode *result_node = json_object_get_member (response_obj, "data");
+        event_data = json_gvariant_deserialize (result_node, NULL, &error);
+      } else {
+        g_critical ("Got a badly structured json event: %s", response->data);
+      }
+    } else {
+      g_critical ("Got unparsable JSON: %s", error->message);
+      g_error_free (error);
+    }
+
+    if (event_data) {
+      graviton_node_transport_emit_event (GRAVITON_NODE_TRANSPORT (self), graviton_jsonrpc_node_transport_get_node_id (self), event_name, event_data);
+    }
+
+    g_object_unref (parser);
+  } else {
+    g_debug ("cb_read_event called but there was no data to read!");
+  }
+  soup_message_body_free (response);
+  open_event_stream (self);
+}
+
+static void
+open_event_stream (GravitonJsonrpcNodeTransport *self)
+{
+  SoupMessage *request;
+
+  request = soup_message_new_from_uri ("GET", self->priv->event_uri);
+  soup_session_queue_message (self->priv->event_session,
+                              request,
+                              cb_read_event,
+                              self);
+}
 
 static void
 rebuild_uri (GravitonJsonrpcNodeTransport *self)
@@ -103,6 +164,8 @@ rebuild_uri (GravitonJsonrpcNodeTransport *self)
   soup_uri_free (base);
 
   g_free (ip_str);
+
+  open_event_stream (self);
 }
 
 
@@ -181,6 +244,12 @@ graviton_jsonrpc_node_transport_init (GravitonJsonrpcNodeTransport *self)
   priv->address = NULL;
   priv->soup = soup_session_sync_new ();
   g_object_set (priv->soup, SOUP_SESSION_TIMEOUT, 5, NULL);
+
+  priv->event_session = soup_session_async_new ();
+  g_object_set (priv->event_session,
+                SOUP_SESSION_TIMEOUT, 5,
+                SOUP_SESSION_IDLE_TIMEOUT, 0,
+                NULL);
 
   priv->endpoint_node_id = NULL;
 }
