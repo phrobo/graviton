@@ -166,7 +166,6 @@ struct _GravitonServerPrivate
   SoupServer *server;
   SoupServer *server6;
   GravitonRootService *plugins;
-  GList *event_listeners;
   GHashTable *plugin_names;
   GList *streams;
   AvahiClient *avahi;
@@ -176,6 +175,9 @@ struct _GravitonServerPrivate
 
   gchar *cloud_id;
   gchar *node_id;
+  
+  GMutex event_lock;
+  GList *event_listeners;
 };
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
@@ -634,8 +636,10 @@ cb_handle_events (SoupServer *server,
   soup_message_headers_set_content_type (headers, "text/json", NULL);
   soup_message_headers_append (headers, "Connection", "close");
 
+  g_mutex_lock (&self->priv->event_lock);
   self->priv->event_listeners =
     g_list_append (self->priv->event_listeners, msg);
+  g_mutex_unlock (&self->priv->event_lock);
   g_debug ("New event listener");
 }
 
@@ -747,8 +751,10 @@ cb_aborted_request (SoupServer *server,
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
 
+  g_mutex_lock (&self->priv->event_lock);
   self->priv->event_listeners = g_list_remove (self->priv->event_listeners,
                                                message);
+  g_mutex_unlock (&self->priv->event_lock);
 
   GList *cur = self->priv->streams;
   while (cur) {
@@ -772,15 +778,15 @@ cb_event (GravitonService *service,
           gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
-  g_debug ("Event from a service: %s", name);
-
+  GList *client;
   JsonBuilder *builder;
   JsonNode *result = NULL;
   JsonGenerator *generator;
 
+  g_debug ("Event from a service: %s", name);
+
   generator = json_generator_new ();
 
-  GList *client = self->priv->event_listeners;
   builder = json_builder_new ();
   json_builder_begin_object (builder);
   json_builder_set_member_name (builder, "name");
@@ -801,6 +807,13 @@ cb_event (GravitonService *service,
   gchar *full_data = g_strconcat (json, "\r\n", NULL);
   length = strlen(full_data);
   json_node_free (result);
+
+  // Copy the list of event listeners which will all be unrefed immediately after
+  // transmission
+  g_mutex_lock (&self->priv->event_lock);
+  client = self->priv->event_listeners;
+  self->priv->event_listeners = NULL;
+  g_mutex_unlock (&self->priv->event_lock);
 
   while (client) {
     SoupMessageBody *body;
@@ -855,6 +868,8 @@ graviton_server_init (GravitonServer *self)
   //uuid_unparse_upper (uuid, self->priv->cloud_id);
   uuid_generate (uuid);
   uuid_unparse_upper (uuid, self->priv->node_id);
+
+  g_mutex_init (&priv->event_lock);
 
   priv->avahi_group = NULL;
 
