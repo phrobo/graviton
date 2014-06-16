@@ -21,8 +21,8 @@
 #include "config.h"
 #endif
 
-#include "node-io-stream.h"
 #include "node-input-stream.h"
+#include "node-io-stream.h"
 
 typedef struct _GravitonNodeIOStreamPrivate GravitonNodeIOStreamPrivate;
 
@@ -35,7 +35,8 @@ struct _GravitonNodeIOStreamPrivate
 };
 
 #define GRAVITON_NODE_IO_STREAM_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_IO_STREAM_TYPE, GravitonNodeIOStreamPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_IO_STREAM_TYPE, \
+                                GravitonNodeIOStreamPrivate))
 
 static void graviton_node_io_stream_class_init (GravitonNodeIOStreamClass *klass);
 static void graviton_node_io_stream_init       (GravitonNodeIOStream *self);
@@ -55,38 +56,38 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {NULL, };
 
 static void
 set_property (GObject *object,
-                     guint property_id,
-                     const GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
 {
   GravitonNodeIOStream *self = GRAVITON_NODE_IO_STREAM (object);
   switch (property_id) {
-    case PROP_URI:
-      self->priv->uri = g_value_dup_boxed (value);
-      break;
-    case PROP_SESSION:
-      self->priv->session = SOUP_SESSION (g_value_dup_object (value));
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_URI:
+    self->priv->uri = g_value_dup_boxed (value);
+    break;
+  case PROP_SESSION:
+    self->priv->session = SOUP_SESSION (g_value_dup_object (value));
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 get_property (GObject *object,
-                     guint property_id,
-                     GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
 {
   GravitonNodeIOStream *self = GRAVITON_NODE_IO_STREAM (object);
   switch (property_id) {
-    case PROP_URI:
-      g_value_set_boxed (value, self->priv->uri);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_URI:
+    g_value_set_boxed (value, self->priv->uri);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -95,7 +96,6 @@ get_output_stream (GIOStream *stream)
 {
   GravitonNodeIOStream *self = GRAVITON_NODE_IO_STREAM (stream);
   if (self->priv->output == NULL) {
-
   }
   return self->priv->output;
 }
@@ -129,11 +129,11 @@ graviton_node_io_stream_class_init (GravitonNodeIOStreamClass *klass)
 
   obj_properties[PROP_URI] =
     g_param_spec_boxed ("uri",
-                         "uri",
-                         "URI to stream from",
-                         SOUP_TYPE_URI,
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
-  obj_properties [PROP_SESSION] = 
+                        "uri",
+                        "URI to stream from",
+                        SOUP_TYPE_URI,
+                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
+  obj_properties [PROP_SESSION] =
     g_param_spec_object ("session",
                          "SoupSession",
                          "The underlying SoupSession (for proxies, if needed)",
@@ -165,15 +165,22 @@ graviton_node_io_stream_finalize (GObject *object)
 GravitonNodeIOStream *
 graviton_node_io_stream_new (SoupURI *uri, SoupSession *session)
 {
-  return g_object_new (GRAVITON_NODE_IO_STREAM_TYPE, "uri", uri, "session", session, NULL);
+  return g_object_new (GRAVITON_NODE_IO_STREAM_TYPE,
+                       "uri",
+                       uri,
+                       "session",
+                       session,
+                       NULL);
 }
 
-SoupURI *graviton_node_io_stream_get_uri (GravitonNodeIOStream *self)
+SoupURI *
+graviton_node_io_stream_get_uri (GravitonNodeIOStream *self)
 {
   return self->priv->uri;
 }
 
-SoupSession *graviton_node_io_stream_get_session (GravitonNodeIOStream *self)
+SoupSession *
+graviton_node_io_stream_get_session (GravitonNodeIOStream *self)
 {
   return self->priv->session;
 }

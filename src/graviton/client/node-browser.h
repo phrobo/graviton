@@ -20,20 +20,28 @@
 #ifndef __GRAVITON_NODE_BROWSER_H__
 #define __GRAVITON_NODE_BROWSER_H__
 
-#include <glib.h>
-#include <glib-object.h>
 #include "discovery-method.h"
+#include <glib-object.h>
+#include <glib.h>
 
 G_BEGIN_DECLS
 
 #define GRAVITON_NODE_BROWSER_TYPE            (graviton_node_browser_get_type ())
-#define GRAVITON_NODE_BROWSER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_NODE_BROWSER_TYPE, GravitonNodeBrowser))
-#define GRAVITON_NODE_BROWSER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_NODE_BROWSER_TYPE, GravitonNodeBrowserClass))
-#define IS_GRAVITON_NODE_BROWSER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_NODE_BROWSER_TYPE))
-#define IS_GRAVITON_NODE_BROWSER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_NODE_BROWSER_TYPE))
-#define GRAVITON_NODE_BROWSER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_NODE_BROWSER_TYPE, GravitonNodeBrowserClass))
+#define GRAVITON_NODE_BROWSER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
+                                                                           GRAVITON_NODE_BROWSER_TYPE, \
+                                                                           GravitonNodeBrowser))
+#define GRAVITON_NODE_BROWSER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), \
+                                                                        GRAVITON_NODE_BROWSER_TYPE, \
+                                                                        GravitonNodeBrowserClass))
+#define IS_GRAVITON_NODE_BROWSER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
+                                                                           GRAVITON_NODE_BROWSER_TYPE))
+#define IS_GRAVITON_NODE_BROWSER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), \
+                                                                        GRAVITON_NODE_BROWSER_TYPE))
+#define GRAVITON_NODE_BROWSER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), \
+                                                                          GRAVITON_NODE_BROWSER_TYPE, \
+                                                                          GravitonNodeBrowserClass))
 
-typedef struct _GravitonNodeBrowser      GravitonNodeBrowser;
+typedef struct _GravitonNodeBrowser GravitonNodeBrowser;
 typedef struct _GravitonNodeBrowserClass GravitonNodeBrowserClass;
 typedef struct _GravitonNodeBrowserPrivate GravitonNodeBrowserPrivate;
 
@@ -52,15 +60,22 @@ GType graviton_node_browser_get_type (void);
 
 GravitonNodeBrowser *graviton_node_browser_new ();
 
-GravitonCloud *graviton_node_browser_get_cloud (GravitonNodeBrowser *browser, const gchar *cloud_id);
-GravitonNode *graviton_node_browser_get_node_by_id (GravitonNodeBrowser *browser, const gchar *node_id);
+GravitonCloud *graviton_node_browser_get_cloud (GravitonNodeBrowser *browser,
+                                                const gchar *cloud_id);
+GravitonNode *graviton_node_browser_get_node_by_id (
+  GravitonNodeBrowser *browser,
+  const gchar *node_id);
 
-void graviton_node_browser_add_discovery_method (GravitonNodeBrowser *client, GravitonDiscoveryMethod *method);
+void graviton_node_browser_add_discovery_method (GravitonNodeBrowser *client,
+                                                 GravitonDiscoveryMethod *method);
 void graviton_node_browser_load_discovery_plugins (GravitonNodeBrowser *client);
-GArray *graviton_node_browser_find_discovery_plugins (GravitonNodeBrowser *client);
+GArray *graviton_node_browser_find_discovery_plugins (
+  GravitonNodeBrowser *client);
 
-GravitonNode *graviton_node_browser_request_node (GravitonNodeBrowser *client, const gchar *node_id);
-GList *graviton_node_browser_get_found_nodes (GravitonNodeBrowser *client, const gchar *cloud_id);
+GravitonNode *graviton_node_browser_request_node (GravitonNodeBrowser *client,
+                                                  const gchar *node_id);
+GList *graviton_node_browser_get_found_nodes (GravitonNodeBrowser *client,
+                                              const gchar *cloud_id);
 GList *graviton_node_browser_get_found_cloud_ids (GravitonNodeBrowser *client);
 
 G_END_DECLS

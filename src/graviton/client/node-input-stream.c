@@ -45,31 +45,40 @@ typedef struct _Buffer
 static gssize
 read_buffer (GQueue *queue, void *buffer, gsize count)
 {
-  g_debug ("Requesting to read %" G_GSIZE_FORMAT " bytes, we have %u buffers", count, g_queue_get_length (queue));
+  g_debug ("Requesting to read %" G_GSIZE_FORMAT " bytes, we have %u buffers",
+           count,
+           g_queue_get_length (queue));
   gssize read_size = 0;
   while (read_size < count && !g_queue_is_empty (queue)) {
-    Buffer *curBuf = (Buffer*) g_queue_pop_head (queue);
-    g_debug ("Looking to read %" G_GSSIZE_FORMAT " more out of %" G_GSIZE_FORMAT ", current buffer is %" G_GSIZE_FORMAT, count-read_size, count, curBuf->size);
-    if (curBuf->size == 0 && curBuf->data == NULL) {
+    Buffer *cur_buf = (Buffer*) g_queue_pop_head (queue);
+    g_debug (
+      "Looking to read %" G_GSSIZE_FORMAT " more out of %" G_GSIZE_FORMAT ", current buffer is %" G_GSIZE_FORMAT,
+      count - read_size,
+      count,
+      cur_buf->size);
+    if (cur_buf->size == 0 && cur_buf->data == NULL) {
       g_debug ("Got empty buffer, must mean we are done.");
       return 0;
     }
-    if (count-read_size > curBuf->size) {
-      memcpy (buffer + read_size, curBuf->data, curBuf->size);
-      g_debug ("Consuming first buffer of size %" G_GSIZE_FORMAT, curBuf->size);
-      g_free (curBuf->data);
-      g_free (curBuf);
-      read_size += curBuf->size;
+    if (count - read_size > cur_buf->size) {
+      memcpy (buffer + read_size, cur_buf->data, cur_buf->size);
+      g_debug ("Consuming first buffer of size %" G_GSIZE_FORMAT, cur_buf->size);
+      g_free (cur_buf->data);
+      g_free (cur_buf);
+      read_size += cur_buf->size;
     } else {
-      memcpy (buffer + read_size, curBuf->data, count-read_size);
-      char *newSegment = g_new (char, curBuf->size-count-read_size);
-      memcpy (newSegment, curBuf->data + (count-read_size), curBuf->size-count-read_size);
-      g_debug ("Consuming first %" G_GSSIZE_FORMAT " bytes of first buffer", count-read_size);
-      g_free (curBuf->data);
-      curBuf->data = newSegment;
-      curBuf->size = curBuf->size-count-read_size;
-      read_size += count-read_size;
-      g_queue_push_head (queue, curBuf);
+      memcpy (buffer + read_size, cur_buf->data, count - read_size);
+      char *new_segment = g_new (char, cur_buf->size - count - read_size);
+      memcpy (new_segment,
+              cur_buf->data + (count - read_size),
+              cur_buf->size - count - read_size);
+      g_debug ("Consuming first %" G_GSSIZE_FORMAT " bytes of first buffer",
+               count - read_size);
+      g_free (cur_buf->data);
+      cur_buf->data = new_segment;
+      cur_buf->size = cur_buf->size - count - read_size;
+      read_size += count - read_size;
+      g_queue_push_head (queue, cur_buf);
     }
   }
   return read_size;
@@ -86,14 +95,18 @@ add_buffer (GQueue *queue, const void *buffer, gsize size)
 }
 
 #define GRAVITON_NODE_INPUT_STREAM_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_INPUT_STREAM_TYPE, GravitonNodeInputStreamPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_INPUT_STREAM_TYPE, \
+                                GravitonNodeInputStreamPrivate))
 
-static void graviton_node_input_stream_class_init (GravitonNodeInputStreamClass *klass);
+static void graviton_node_input_stream_class_init (
+  GravitonNodeInputStreamClass *klass);
 static void graviton_node_input_stream_init       (GravitonNodeInputStream *self);
 static void graviton_node_input_stream_dispose    (GObject *object);
 static void graviton_node_input_stream_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonNodeInputStream, graviton_node_input_stream, G_TYPE_INPUT_STREAM);
+G_DEFINE_TYPE (GravitonNodeInputStream,
+               graviton_node_input_stream,
+               G_TYPE_INPUT_STREAM);
 
 enum {
   PROP_0,
@@ -105,35 +118,35 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {NULL, };
 
 static void
 set_property (GObject *object,
-                     guint property_id,
-                     const GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
 {
   GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (object);
   switch (property_id) {
-    case PROP_IO_STREAM:
-      self->priv->stream = g_value_dup_object (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_IO_STREAM:
+    self->priv->stream = g_value_dup_object (value);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 get_property (GObject *object,
-                     guint property_id,
-                     GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
 {
   GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (object);
   switch (property_id) {
-    case PROP_IO_STREAM:
-      g_value_set_object (value, self->priv->stream);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_IO_STREAM:
+    g_value_set_object (value, self->priv->stream);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -174,13 +187,18 @@ stream_read (GInputStream *stream,
   if (!self->priv->msg) {
     SoupMessageBody *body;
     SoupURI *uri = graviton_node_io_stream_get_uri (self->priv->stream);
-    g_debug ("Opening node input stream to %s", soup_uri_to_string (uri, FALSE));
+    g_debug ("Opening node input stream to %s",
+             soup_uri_to_string (uri, FALSE));
     self->priv->msg = soup_message_new_from_uri ( "GET", uri);
     g_object_get (self->priv->msg, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
     soup_message_body_set_accumulate (body, FALSE);
-    g_signal_connect (self->priv->msg, "got-chunk", G_CALLBACK (cb_chunk_ready), self);
-    g_signal_connect (self->priv->msg, "finished", G_CALLBACK (cb_finished), self);
-    soup_session_queue_message (graviton_node_io_stream_get_session (self->priv->stream), self->priv->msg, NULL, NULL);
+    g_signal_connect (self->priv->msg, "got-chunk", G_CALLBACK (
+                        cb_chunk_ready), self);
+    g_signal_connect (self->priv->msg, "finished", G_CALLBACK (
+                        cb_finished), self);
+    soup_session_queue_message (graviton_node_io_stream_get_session (self->priv
+                                                                     ->stream), self->priv->msg, NULL,
+                                NULL);
   }
 
   if (g_queue_get_length (self->priv->buffers) == 0) {
@@ -189,7 +207,10 @@ stream_read (GInputStream *stream,
   }
 
   read_size = read_buffer (self->priv->buffers, buffer, count);
-  g_debug ("Got a buffer of size %" G_GSSIZE_FORMAT " after asking for %" G_GSIZE_FORMAT, read_size, count);
+  g_debug (
+    "Got a buffer of size %" G_GSSIZE_FORMAT " after asking for %" G_GSIZE_FORMAT,
+    read_size,
+    count);
 
   return read_size;
 }
@@ -216,7 +237,9 @@ stream_close (GInputStream *stream,
   g_assert (self->priv->stream);
 
   if (self->priv->msg)
-    soup_session_cancel_message (graviton_node_io_stream_get_session (self->priv->stream), self->priv->msg, SOUP_STATUS_CANCELLED);
+    soup_session_cancel_message (graviton_node_io_stream_get_session (self->priv
+                                                                      ->stream), self->priv->msg,
+                                 SOUP_STATUS_CANCELLED);
 
   g_debug ("Closed!");
 
@@ -241,7 +264,7 @@ graviton_node_input_stream_class_init (GravitonNodeInputStreamClass *klass)
   object_class->set_property = set_property;
   object_class->get_property = get_property;
 
-  obj_properties [PROP_IO_STREAM] = 
+  obj_properties [PROP_IO_STREAM] =
     g_param_spec_object ("io-stream",
                          "GravitonNodeIOStream",
                          "The underlying GravitonNodeIOStream",
@@ -277,5 +300,8 @@ graviton_node_input_stream_finalize (GObject *object)
 GravitonNodeInputStream *
 graviton_node_input_stream_new (GravitonNodeIOStream *stream)
 {
-  return g_object_new (GRAVITON_NODE_INPUT_STREAM_TYPE, "io-stream", stream, NULL);
+  return g_object_new (GRAVITON_NODE_INPUT_STREAM_TYPE,
+                       "io-stream",
+                       stream,
+                       NULL);
 }

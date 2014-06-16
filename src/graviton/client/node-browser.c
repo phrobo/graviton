@@ -23,8 +23,8 @@
 
 #define G_LOG_DOMAIN "GravitonNodeBrowser"
 
-#include "node-browser.h"
 #include "cloud.h"
+#include "node-browser.h"
 
 typedef struct _GravitonNodeBrowserPrivate GravitonNodeBrowserPrivate;
 
@@ -39,16 +39,24 @@ struct _GravitonNodeBrowserPrivate
 };
 
 #define GRAVITON_NODE_BROWSER_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_BROWSER_TYPE, GravitonNodeBrowserPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_BROWSER_TYPE, \
+                                GravitonNodeBrowserPrivate))
 
 static void graviton_node_browser_class_init (GravitonNodeBrowserClass *klass);
 static void graviton_node_browser_init       (GravitonNodeBrowser *self);
 static void graviton_node_browser_dispose    (GObject *object);
 static void graviton_node_browser_finalize   (GObject *object);
-static void graviton_node_browser_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void graviton_node_browser_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
+static void graviton_node_browser_set_property (GObject *object,
+                                                guint property_id,
+                                                const GValue *value,
+                                                GParamSpec *pspec);
+static void graviton_node_browser_get_property (GObject *object,
+                                                guint property_id,
+                                                GValue *value,
+                                                GParamSpec *pspec);
 
-static void notify_new_cloud (GravitonNodeBrowser *browser, GravitonCloud *cloud);
+static void notify_new_cloud (GravitonNodeBrowser *browser,
+                              GravitonCloud *cloud);
 
 G_DEFINE_TYPE (GravitonNodeBrowser, graviton_node_browser, G_TYPE_OBJECT);
 
@@ -83,8 +91,8 @@ graviton_node_browser_class_init (GravitonNodeBrowserClass *klass)
   object_class->get_property =  graviton_node_browser_get_property;
 
   /*g_object_class_install_properties (object_class,
-      N_PROPERTIES,
-      obj_properties);*/
+   *   N_PROPERTIES,
+   *   obj_properties);*/
 
   /**
    * GravitonNodeBrowser::node-found:
@@ -169,29 +177,29 @@ graviton_node_browser_class_init (GravitonNodeBrowserClass *klass)
 
 static void
 graviton_node_browser_set_property (GObject *object,
-    guint property_id,
-    const GValue *value,
-    GParamSpec *pspec)
+                                    guint property_id,
+                                    const GValue *value,
+                                    GParamSpec *pspec)
 {
   //GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (object);
   switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 graviton_node_browser_get_property (GObject *object,
-    guint property_id,
-    GValue *value,
-    GParamSpec *pspec)
+                                    guint property_id,
+                                    GValue *value,
+                                    GParamSpec *pspec)
 {
   //GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (object);
   switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -202,7 +210,8 @@ probe_thread_loop (gpointer data)
   g_object_ref (self);
   while (TRUE) {
     g_debug ("Waiting for new nodes to probe");
-    GravitonNode *cur = GRAVITON_NODE (g_async_queue_pop (self->priv->unprobed_nodes));
+    GravitonNode *cur =
+      GRAVITON_NODE (g_async_queue_pop (self->priv->unprobed_nodes));
     g_debug ("Probing new node");
     if (cur == NULL) {
       g_debug ("Exiting probe loop");
@@ -218,16 +227,21 @@ probe_thread_loop (gpointer data)
                                    cloud_id);
       if (!g_list_find (nodes, cur)) {
         nodes = g_list_prepend (nodes, cur);
-        g_hash_table_replace (self->priv->cloud_nodes, g_strdup (cloud_id), nodes);
+        g_hash_table_replace (self->priv->cloud_nodes, g_strdup (
+                                cloud_id), nodes);
 
         g_signal_emit (self, obj_signals[SIGNAL_NODE_FOUND], 0, cur);
       }
 
-      if (g_async_queue_length (self->priv->unprobed_nodes) <= 0 && g_atomic_int_get (&self->priv->pending_discovery_methods) == 0) {
-        g_debug ("All backends are finished, and we've probed all bootstrapped nodes");
+      if (g_async_queue_length (self->priv->unprobed_nodes) <= 0 &&
+          g_atomic_int_get (&self->priv->pending_discovery_methods) == 0) {
+        g_debug (
+          "All backends are finished, and we've probed all bootstrapped nodes");
         g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
       } else {
-        g_debug ("Still waiting on %i nodes and %i methods", g_async_queue_length (self->priv->unprobed_nodes), g_atomic_int_get (&self->priv->pending_discovery_methods));
+        g_debug ("Still waiting on %i nodes and %i methods",
+                 g_async_queue_length (self->priv->unprobed_nodes),
+                 g_atomic_int_get (&self->priv->pending_discovery_methods));
       }
     }
   }
@@ -273,8 +287,8 @@ graviton_node_browser_dispose (GObject *object)
   self->priv->probe_thread = NULL;
 
   g_hash_table_foreach (self->priv->cloud_nodes,
-                       free_node_list,
-                       NULL);
+                        free_node_list,
+                        NULL);
   g_hash_table_unref (self->priv->cloud_nodes);
   self->priv->cloud_nodes = NULL;
 
@@ -291,7 +305,8 @@ graviton_node_browser_finalize (GObject *object)
 }
 
 static void
-cb_node_lost (GravitonDiscoveryMethod *method, GravitonNode *node, gpointer data)
+cb_node_lost (GravitonDiscoveryMethod *method, GravitonNode *node,
+              gpointer data)
 {
   GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (data);
   g_signal_emit (self, obj_signals[SIGNAL_NODE_LOST], 0, node);
@@ -302,21 +317,26 @@ cb_discovery_finished (GravitonDiscoveryMethod *method, gpointer data)
 {
   GravitonNodeBrowser *self = GRAVITON_NODE_BROWSER (data);
   g_atomic_int_dec_and_test (&self->priv->pending_discovery_methods);
-  if (g_async_queue_length (self->priv->unprobed_nodes) <= 0 && g_atomic_int_get (&self->priv->pending_discovery_methods) == 0) {
-    g_debug ("All backends are finished, and we've probed all bootstrapped nodes");
+  if (g_async_queue_length (self->priv->unprobed_nodes) <= 0 &&
+      g_atomic_int_get (&self->priv->pending_discovery_methods) == 0) {
+    g_debug (
+      "All backends are finished, and we've probed all bootstrapped nodes");
     g_signal_emit (self, obj_signals[SIGNAL_ALL_NODES_FOUND], 0, NULL);
   } else {
-    g_debug ("Still waiting on %i nodes and %i methods", g_async_queue_length (self->priv->unprobed_nodes), g_atomic_int_get (&self->priv->pending_discovery_methods));
+    g_debug ("Still waiting on %i nodes and %i methods",
+             g_async_queue_length (self->priv->unprobed_nodes),
+             g_atomic_int_get (&self->priv->pending_discovery_methods));
   }
 }
 
-
 void
-graviton_node_browser_add_discovery_method (GravitonNodeBrowser *self, GravitonDiscoveryMethod *method)
+graviton_node_browser_add_discovery_method (GravitonNodeBrowser *self,
+                                            GravitonDiscoveryMethod *method)
 {
   g_object_ref_sink (method);
   g_atomic_int_inc (&self->priv->pending_discovery_methods);
-  self->priv->discovery_methods = g_list_append (self->priv->discovery_methods, method);
+  self->priv->discovery_methods = g_list_append (self->priv->discovery_methods,
+                                                 method);
   g_signal_connect (method,
                     "finished",
                     G_CALLBACK (cb_discovery_finished),
@@ -335,7 +355,9 @@ graviton_node_browser_load_discovery_plugins (GravitonNodeBrowser *self)
 
   plugins = graviton_node_browser_find_discovery_plugins (self);
   for (i = 0; i < plugins->len; i++) {
-    GravitonDiscoveryPluginLoaderFunc factory = g_array_index (plugins, GravitonDiscoveryPluginLoaderFunc, i);
+    GravitonDiscoveryPluginLoaderFunc factory = g_array_index (plugins,
+                                                               GravitonDiscoveryPluginLoaderFunc,
+                                                               i);
     GravitonDiscoveryMethod *method = factory(self);
     graviton_node_browser_add_discovery_method (self, method);
     g_object_unref (method);
@@ -348,55 +370,61 @@ graviton_node_browser_load_discovery_plugins (GravitonNodeBrowser *self)
 GArray*
 graviton_node_browser_find_discovery_plugins (GravitonNodeBrowser *self)
 {
-  GArray *pluginList = g_array_new(FALSE, FALSE, sizeof (GravitonDiscoveryPluginLoaderFunc));
-  const gchar *pluginPath = g_getenv("GRAVITON_DISCOVERY_PLUGIN_PATH");
-  if (!pluginPath)
-    pluginPath = GRAVITON_DEFAULT_DISCOVERY_PLUGIN_PATH;
-  g_debug ("Searching %s for plugins\n", pluginPath);
-  GDir *pluginDir = g_dir_open (pluginPath, 0, NULL);
-  if (!pluginDir) {
-    g_debug ("Plugin path not found: %s", pluginPath);
-    return pluginList;
+  GArray *plugin_list =
+    g_array_new(FALSE, FALSE, sizeof (GravitonDiscoveryPluginLoaderFunc));
+  const gchar *plugin_path = g_getenv("GRAVITON_DISCOVERY_PLUGIN_PATH");
+  if (!plugin_path)
+    plugin_path = GRAVITON_DEFAULT_DISCOVERY_PLUGIN_PATH;
+  g_debug ("Searching %s for plugins\n", plugin_path);
+  GDir *plugin_dir = g_dir_open (plugin_path, 0, NULL);
+  if (!plugin_dir) {
+    g_debug ("Plugin path not found: %s", plugin_path);
+    return plugin_list;
   }
-  const gchar *entry = g_dir_read_name (pluginDir);
+  const gchar *entry = g_dir_read_name (plugin_dir);
   while (entry) {
-    gchar *entryPath = g_build_path ("/", pluginPath, entry, NULL);
-    if (!g_str_has_suffix (entryPath, ".so"))
-      goto nextPlugin;
-    g_debug ("Attempting to load plugin %s", entryPath);
-    GModule *module = g_module_open (entryPath, G_MODULE_BIND_LOCAL);
+    gchar *entry_path = g_build_path ("/", plugin_path, entry, NULL);
+    if (!g_str_has_suffix (entry_path, ".so"))
+      goto next_plugin;
+    g_debug ("Attempting to load plugin %s", entry_path);
+    GModule *module = g_module_open (entry_path, G_MODULE_BIND_LOCAL);
     GravitonDiscoveryPluginLoaderFunc loader = NULL;
     if (!module) {
-      g_warning ("Can't open plugin %s: %s", entryPath, g_module_error ());
-      goto nextPlugin;
+      g_warning ("Can't open plugin %s: %s", entry_path, g_module_error ());
+      goto next_plugin;
     }
 
-    if (!g_module_symbol (module, "make_graviton_discovery_plugin", (gpointer *)&loader)) {
-      g_warning ("Can't find graviton_plugin symbol in %s: %s", entryPath, g_module_error ());
-      goto badPlugin;
+    if (!g_module_symbol (module, "make_graviton_discovery_plugin",
+                          (gpointer *)&loader)) {
+      g_warning ("Can't find graviton_plugin symbol in %s: %s",
+                 entry_path,
+                 g_module_error ());
+      goto bad_plugin;
     }
 
     if (loader == NULL) {
-      g_warning ("graviton_plugin symbol is NULL in %s: %s", entryPath, g_module_error ());
-      goto badPlugin;
+      g_warning ("graviton_plugin symbol is NULL in %s: %s",
+                 entry_path,
+                 g_module_error ());
+      goto bad_plugin;
     }
 
     g_module_make_resident (module);
-    g_array_append_val (pluginList, loader);
+    g_array_append_val (plugin_list, loader);
 
-    goto nextPlugin;
+    goto next_plugin;
 
-badPlugin:
+bad_plugin:
     g_module_close (module);
 
-nextPlugin:
-    g_free (entryPath);
-    entry = g_dir_read_name (pluginDir);
+next_plugin:
+    g_free (entry_path);
+    entry = g_dir_read_name (plugin_dir);
   }
 
-  g_dir_close (pluginDir);
+  g_dir_close (plugin_dir);
 
-  return pluginList;
+  return plugin_list;
 }
 
 GravitonNodeBrowser *
@@ -406,7 +434,8 @@ graviton_node_browser_new ()
 }
 
 GList*
-graviton_node_browser_get_found_nodes (GravitonNodeBrowser *self, const gchar* cloud_id)
+graviton_node_browser_get_found_nodes (GravitonNodeBrowser *self,
+                                       const gchar*cloud_id)
 {
   return g_hash_table_lookup (self->priv->cloud_nodes, cloud_id);
 }
@@ -420,7 +449,7 @@ graviton_node_browser_get_found_cloud_ids (GravitonNodeBrowser *client)
 static void
 notify_new_cloud (GravitonNodeBrowser *browser, GravitonCloud *cloud)
 {
-  const gchar* cloud_id = graviton_cloud_get_cloud_id (cloud);
+  const gchar*cloud_id = graviton_cloud_get_cloud_id (cloud);
 
   if (!g_hash_table_contains (browser->priv->cloud_nodes, cloud_id)) {
     g_hash_table_insert (browser->priv->cloud_nodes, g_strdup (cloud_id), NULL);
@@ -429,7 +458,7 @@ notify_new_cloud (GravitonNodeBrowser *browser, GravitonCloud *cloud)
 }
 
 /**
- * graviton_cloud_new: 
+ * graviton_cloud_new:
  * @cloud_id: The cloud ID requested
  * @browser: A #GravitonNodeBrowser that will be used to discover nodes and
  * services
@@ -439,24 +468,33 @@ notify_new_cloud (GravitonNodeBrowser *browser, GravitonCloud *cloud)
  * Returns: (transfer full): A new #GravitonCloud
  */
 GravitonCloud *
-graviton_node_browser_get_cloud (GravitonNodeBrowser *browser, const gchar *cloud_id)
+graviton_node_browser_get_cloud (GravitonNodeBrowser *browser,
+                                 const gchar *cloud_id)
 {
   GravitonCloud *cloud;
 
-  cloud = g_object_new (GRAVITON_CLOUD_TYPE, "cloud-id", cloud_id, "browser", browser, NULL);
+  cloud = g_object_new (GRAVITON_CLOUD_TYPE,
+                        "cloud-id",
+                        cloud_id,
+                        "browser",
+                        browser,
+                        NULL);
   notify_new_cloud (browser, cloud);
   return cloud;
 }
 
 static void
-cb_transport_added (GravitonNode *node, GravitonNodeTransport *transport, GravitonNodeBrowser *self)
+cb_transport_added (GravitonNode *node,
+                    GravitonNodeTransport *transport,
+                    GravitonNodeBrowser *self)
 {
   g_debug ("Got a new node. Queueing it for bootstrap probe");
   g_async_queue_push (self->priv->unprobed_nodes, node);
 }
 
 GravitonNode *
-graviton_node_browser_get_node_by_id (GravitonNodeBrowser *browser, const gchar *node_id)
+graviton_node_browser_get_node_by_id (GravitonNodeBrowser *browser,
+                                      const gchar *node_id)
 {
   GravitonNode *result = NULL;
   result = g_hash_table_lookup (browser->priv->discovered_nodes, node_id);
@@ -470,7 +508,8 @@ graviton_node_browser_get_node_by_id (GravitonNodeBrowser *browser, const gchar 
                       G_CALLBACK (cb_transport_added),
                       browser);
 
-    g_hash_table_insert (browser->priv->discovered_nodes, g_strdup (node_id), result);
+    g_hash_table_insert (browser->priv->discovered_nodes, g_strdup (
+                           node_id), result);
     g_debug ("Created new node for %s", node_id);
   } else {
     g_debug ("Returning existing node for %s", node_id);

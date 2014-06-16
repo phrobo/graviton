@@ -31,7 +31,8 @@ struct _GravitonFileStreamPrivate
 };
 
 #define GRAVITON_FILE_STREAM_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_FILE_STREAM_TYPE, GravitonFileStreamPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_FILE_STREAM_TYPE, \
+                                GravitonFileStreamPrivate))
 
 static void graviton_file_stream_class_init (GravitonFileStreamClass *klass);
 static void graviton_file_stream_init       (GravitonFileStream *self);
@@ -50,35 +51,35 @@ static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
 static void
 set_property (GObject *object,
-                     guint property_id,
-                     const GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
 {
   GravitonFileStream *self = GRAVITON_FILE_STREAM (object);
   switch (property_id) {
-    case PROP_FILE:
-      self->priv->file = g_value_dup_object (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_FILE:
+    self->priv->file = g_value_dup_object (value);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 get_property (GObject *object,
-                     guint property_id,
-                     GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
 {
   GravitonFileStream *self = GRAVITON_FILE_STREAM (object);
   switch (property_id) {
-    case PROP_FILE:
-      g_value_set_object (value, self->priv->file);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_FILE:
+    g_value_set_object (value, self->priv->file);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -94,7 +95,8 @@ static GOutputStream *
 open_write (GravitonStream *stream, GError **error)
 {
   GravitonFileStream *self = GRAVITON_FILE_STREAM (stream);
-  return G_OUTPUT_STREAM (g_file_append_to (self->priv->file, G_FILE_CREATE_NONE, NULL, error));
+  return G_OUTPUT_STREAM (g_file_append_to (self->priv->file,
+                                            G_FILE_CREATE_NONE, NULL, error));
 }
 
 static void

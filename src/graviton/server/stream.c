@@ -31,7 +31,8 @@ struct _GravitonStreamPrivate
 };
 
 #define GRAVITON_STREAM_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_STREAM_TYPE, GravitonStreamPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_STREAM_TYPE, \
+                                GravitonStreamPrivate))
 
 static void graviton_stream_class_init (GravitonStreamClass *klass);
 static void graviton_stream_init       (GravitonStream *self);

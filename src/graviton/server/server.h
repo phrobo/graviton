@@ -20,8 +20,8 @@
 #ifndef GRAVITON_SERVER_H
 #define GRAVITON_SERVER_H
 
-#include <glib-object.h>
 #include "root-service.h"
+#include <glib-object.h>
 
 /**
  * GRAVITON_SERVER_TYPE:
@@ -29,11 +29,19 @@
  * GType for a #GravitonServer
  */
 #define GRAVITON_SERVER_TYPE            (graviton_server_get_type ())
-#define GRAVITON_SERVER(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_SERVER_TYPE, GravitonServer))
-#define GRAVITON_IS_SERVER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_SERVER_TYPE))
-#define GRAVITON_SERVER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_SERVER_TYPE, GravitonServerClass))
-#define GRAVITON_IS_SERVER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_SERVER_TYPE))
-#define GRAVITON_SERVER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_SERVER_TYPE, GravitonServerClass))
+#define GRAVITON_SERVER(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
+                                                                          GRAVITON_SERVER_TYPE, \
+                                                                          GravitonServer))
+#define GRAVITON_IS_SERVER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
+                                                                     GRAVITON_SERVER_TYPE))
+#define GRAVITON_SERVER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), \
+                                                                  GRAVITON_SERVER_TYPE, \
+                                                                  GravitonServerClass))
+#define GRAVITON_IS_SERVER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), \
+                                                                  GRAVITON_SERVER_TYPE))
+#define GRAVITON_SERVER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), \
+                                                                    GRAVITON_SERVER_TYPE, \
+                                                                    GravitonServerClass))
 
 /**
  * GRAVITON_SERVER_ERROR:
@@ -56,7 +64,9 @@
  * Error type for #GravitonServer operations.
  */
 typedef enum {
-  GRAVITON_SERVER_ERROR_INVALID_REQUEST = -32600, // These magic numbers are specified in the jsonrpc 2.0 spec
+  GRAVITON_SERVER_ERROR_INVALID_REQUEST = -32600, // These magic numbers are
+                                                  // specified in the jsonrpc
+                                                  // 2.0 spec
   GRAVITON_SERVER_ERROR_NO_SUCH_METHOD = -32601,
   GRAVITON_SERVER_ERROR_INVALID_PARAMS = -32602,
   GRAVITON_SERVER_ERROR_NOT_IMPLEMENTED = -32603,

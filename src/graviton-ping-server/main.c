@@ -47,10 +47,10 @@ int main(int argc, char** argv)
 
   server = graviton_server_new ();
   GravitonRootService *root = graviton_server_get_root_service (server);
-  GravitonService *pingService = graviton_service_new ("net:phrobo:graviton:ping");
-  graviton_service_add_subservice (GRAVITON_SERVICE (root), pingService);
+  GravitonService *ping_service = graviton_service_new ("net:phrobo:graviton:ping");
+  graviton_service_add_subservice (GRAVITON_SERVICE (root), ping_service);
 
-  graviton_service_add_method (pingService, "ping", cb_ping, NULL, NULL);
+  graviton_service_add_method (ping_service, "ping", cb_ping, NULL, NULL);
 
   const gchar *cloud_id = graviton_server_get_cloud_id (server);
   const gchar *node_id = graviton_server_get_node_id (server);

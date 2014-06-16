@@ -20,21 +20,29 @@
 #ifndef __GRAVITON_CLOUD_H__
 #define __GRAVITON_CLOUD_H__
 
-#include <glib.h>
-#include <glib-object.h>
-#include "node.h"
 #include "node-browser.h"
+#include "node.h"
+#include <glib-object.h>
+#include <glib.h>
 
 G_BEGIN_DECLS
 
 #define GRAVITON_CLOUD_TYPE            (graviton_cloud_get_type ())
-#define GRAVITON_CLOUD(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GRAVITON_CLOUD_TYPE, GravitonCloud))
-#define GRAVITON_CLOUD_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GRAVITON_CLOUD_TYPE, GravitonCloudClass))
-#define IS_GRAVITON_CLOUD(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), GRAVITON_CLOUD_TYPE))
-#define IS_GRAVITON_CLOUD_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), GRAVITON_CLOUD_TYPE))
-#define GRAVITON_CLOUD_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), GRAVITON_CLOUD_TYPE, GravitonCloudClass))
+#define GRAVITON_CLOUD(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
+                                                                    GRAVITON_CLOUD_TYPE, \
+                                                                    GravitonCloud))
+#define GRAVITON_CLOUD_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), \
+                                                                 GRAVITON_CLOUD_TYPE, \
+                                                                 GravitonCloudClass))
+#define IS_GRAVITON_CLOUD(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), \
+                                                                    GRAVITON_CLOUD_TYPE))
+#define IS_GRAVITON_CLOUD_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), \
+                                                                 GRAVITON_CLOUD_TYPE))
+#define GRAVITON_CLOUD_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), \
+                                                                   GRAVITON_CLOUD_TYPE, \
+                                                                   GravitonCloudClass))
 
-typedef struct _GravitonCloud      GravitonCloud;
+typedef struct _GravitonCloud GravitonCloud;
 typedef struct _GravitonCloudClass GravitonCloudClass;
 typedef struct _GravitonCloudPrivate GravitonCloudPrivate;
 
@@ -55,11 +63,12 @@ struct _GravitonCloud
   GravitonCloudPrivate *priv;
 };
 
-
 /**
  * GravitonServiceEvent:
- * @GRAVITON_SERVICE_NEW: A new #GravitonServiceInterface has been located within the cloud
- * @GRAVITON_SERVICE_ALL_FOR_NOW: All #GravitonDiscoveryMethod objects have indicated that they have
+ * @GRAVITON_SERVICE_NEW: A new #GravitonServiceInterface has been located
+ *within the cloud
+ * @GRAVITON_SERVICE_ALL_FOR_NOW: All #GravitonDiscoveryMethod objects have
+ *indicated that they have
  *   identified their initial list of services in the cloud
  * @GRAVITON_SERVICE_LOST: A #GravitonNode has been confirmed as unreachable
  */
@@ -81,12 +90,16 @@ typedef enum {
  * A registered callback can be triggered by a set of conditions:
  *
  * - A #GravitonNode that exposes the requested service is discovered
- * - A #GravitonNode that exposes the requested service is confirmed to be unreachable
+ * - A #GravitonNode that exposes the requested service is confirmed to be
+ *unreachable
  * - The initial set of #GravitonDiscoveryMethod objects loaded with the cloud's
  *   #GravitonNodeBrowser has finished the initial discovery and predicts that
  *   no future services will be discovered for now.
  */
-typedef void (*GravitonServiceBrowseCallback)(GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceInterface *iface, gpointer user_data);
+typedef void (*GravitonServiceBrowseCallback)(GravitonCloud *cloud,
+                                              GravitonServiceEvent event,
+                                              GravitonServiceInterface *iface,
+                                              gpointer user_data);
 
 GType graviton_cloud_get_type (void);
 
@@ -94,11 +107,17 @@ GravitonCloud *graviton_cloud_new_default_cloud ();
 
 GList *graviton_cloud_get_found_nodes (GravitonCloud *client);
 
-GravitonNode *graviton_cloud_find_node (GravitonCloud *cloud, const gchar *guid, GError **error);
+GravitonNode *graviton_cloud_find_node (GravitonCloud *cloud,
+                                        const gchar *guid,
+                                        GError **error);
 
-typedef struct _GravitonServiceBrowser      GravitonServiceBrowser;
-GravitonServiceBrowser* graviton_cloud_browse_services (GravitonCloud *cloud, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data);
-void graviton_cloud_destroy_service_browser (GravitonCloud *cloud, GravitonServiceBrowser* browser);
+typedef struct _GravitonServiceBrowser GravitonServiceBrowser;
+GravitonServiceBrowser*graviton_cloud_browse_services (GravitonCloud *cloud,
+                                                       const gchar *service_name,
+                                                       GravitonServiceBrowseCallback callback,
+                                                       gpointer user_data);
+void graviton_cloud_destroy_service_browser (GravitonCloud *cloud,
+                                             GravitonServiceBrowser*browser);
 
 const gchar *graviton_cloud_get_cloud_id (GravitonCloud *client);
 const gchar *graviton_cloud_get_cloud_name (GravitonCloud *client);

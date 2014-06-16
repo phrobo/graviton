@@ -23,12 +23,19 @@
 
 #include "node-transport.h"
 
-static void graviton_node_transport_class_init (GravitonNodeTransportClass *klass);
+static void graviton_node_transport_class_init (
+  GravitonNodeTransportClass *klass);
 static void graviton_node_transport_init       (GravitonNodeTransport *self);
 static void graviton_node_transport_dispose    (GObject *object);
 static void graviton_node_transport_finalize   (GObject *object);
-static void graviton_node_transport_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void graviton_node_transport_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
+static void graviton_node_transport_set_property (GObject *object,
+                                                  guint property_id,
+                                                  const GValue *value,
+                                                  GParamSpec *pspec);
+static void graviton_node_transport_get_property (GObject *object,
+                                                  guint property_id,
+                                                  GValue *value,
+                                                  GParamSpec *pspec);
 
 G_DEFINE_TYPE (GravitonNodeTransport, graviton_node_transport, G_TYPE_OBJECT);
 
@@ -72,34 +79,34 @@ graviton_node_transport_class_init (GravitonNodeTransportClass *klass)
                   G_TYPE_STRING,
                   G_TYPE_STRING,
                   G_TYPE_VARIANT);
-
 }
 
 static void
 graviton_node_transport_set_property (GObject *object,
-    guint property_id,
-    const GValue *value,
-    GParamSpec *pspec)
+                                      guint property_id,
+                                      const GValue *value,
+                                      GParamSpec *pspec)
 {
   switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 graviton_node_transport_get_property (GObject *object,
-    guint property_id,
-    GValue *value,
-    GParamSpec *pspec)
+                                      guint property_id,
+                                      GValue *value,
+                                      GParamSpec *pspec)
 {
   switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
+
 static void
 graviton_node_transport_init (GravitonNodeTransport *self)
 {
@@ -146,5 +153,6 @@ graviton_node_transport_emit_event (GravitonNodeTransport *self,
                                     GVariant *data)
 {
   g_debug ("Emitting a %s event for %s", name, node_id);
-  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (name), node_id, name, data);
+  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
+                   name), node_id, name, data);
 }

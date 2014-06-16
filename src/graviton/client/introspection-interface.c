@@ -22,10 +22,11 @@
 #endif
 
 #include "introspection-interface.h"
-#include "service-interface.h"
 #include "node.h"
+#include "service-interface.h"
 
-typedef struct _GravitonIntrospectionControlPrivate GravitonIntrospectionControlPrivate;
+typedef struct _GravitonIntrospectionControlPrivate
+  GravitonIntrospectionControlPrivate;
 
 struct _GravitonIntrospectionControlPrivate
 {
@@ -33,14 +34,19 @@ struct _GravitonIntrospectionControlPrivate
 };
 
 #define GRAVITON_INTROSPECTION_INTERFACE_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_INTROSPECTION_INTERFACE_TYPE, GravitonIntrospectionControlPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_INTROSPECTION_INTERFACE_TYPE, \
+                                GravitonIntrospectionControlPrivate))
 
-static void graviton_introspection_interface_class_init (GravitonIntrospectionControlClass *klass);
-static void graviton_introspection_interface_init       (GravitonIntrospectionControl *self);
+static void graviton_introspection_interface_class_init (
+  GravitonIntrospectionControlClass *klass);
+static void graviton_introspection_interface_init       (
+  GravitonIntrospectionControl *self);
 static void graviton_introspection_interface_dispose    (GObject *object);
 static void graviton_introspection_interface_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonIntrospectionControl, graviton_introspection_interface, GRAVITON_SERVICE_INTERFACE_TYPE);
+G_DEFINE_TYPE (GravitonIntrospectionControl,
+               graviton_introspection_interface,
+               GRAVITON_SERVICE_INTERFACE_TYPE);
 
 enum {
   PROP_0,
@@ -52,46 +58,50 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {NULL, };
 
 static void
 set_property (GObject *object,
-                     guint property_id,
-                     const GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
 {
-  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_INTERFACE (object);
+  GravitonIntrospectionControl *self =
+    GRAVITON_INTROSPECTION_INTERFACE (object);
   switch (property_id) {
-    case PROP_TARGET:
-      if (self->priv->target)
-        g_free (self->priv->target);
-      self->priv->target = g_value_dup_string (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_TARGET:
+    if (self->priv->target)
+      g_free (self->priv->target);
+    self->priv->target = g_value_dup_string (value);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 get_property (GObject *object,
-                     guint property_id,
-                     GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
 {
-  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_INTERFACE (object);
+  GravitonIntrospectionControl *self =
+    GRAVITON_INTROSPECTION_INTERFACE (object);
   switch (property_id) {
-    case PROP_TARGET:
-      g_value_set_string (value, self->priv->target);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_TARGET:
+    g_value_set_string (value, self->priv->target);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
-graviton_introspection_interface_class_init (GravitonIntrospectionControlClass *klass)
+graviton_introspection_interface_class_init (
+  GravitonIntrospectionControlClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (GravitonIntrospectionControlPrivate));
+  g_type_class_add_private (klass,
+                            sizeof (GravitonIntrospectionControlPrivate));
 
   object_class->dispose = graviton_introspection_interface_dispose;
   object_class->finalize = graviton_introspection_interface_finalize;
@@ -122,55 +132,78 @@ graviton_introspection_interface_init (GravitonIntrospectionControl *self)
 static void
 graviton_introspection_interface_dispose (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_introspection_interface_parent_class)->dispose (object);
+  G_OBJECT_CLASS (graviton_introspection_interface_parent_class)->dispose (
+    object);
 }
 
 static void
 graviton_introspection_interface_finalize (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_introspection_interface_parent_class)->finalize (object);
-  GravitonIntrospectionControl *self = GRAVITON_INTROSPECTION_INTERFACE (object);
+  G_OBJECT_CLASS (graviton_introspection_interface_parent_class)->finalize (
+    object);
+  GravitonIntrospectionControl *self =
+    GRAVITON_INTROSPECTION_INTERFACE (object);
   self->priv->target = NULL;
   self->priv = NULL;
 }
 
 GravitonIntrospectionControl *
-graviton_introspection_interface_new_from_interface (GravitonServiceInterface *service)
+graviton_introspection_interface_new_from_interface (
+  GravitonServiceInterface *service)
 {
-  return graviton_introspection_interface_new (graviton_service_interface_get_node (service), graviton_service_interface_get_name (service));
+  return graviton_introspection_interface_new (graviton_service_interface_get_node (
+                                                 service),
+                                               graviton_service_interface_get_name (
+                                                 service));
 }
 
 GravitonIntrospectionControl *
 graviton_introspection_interface_new (GravitonNode *node, const gchar *name)
 {
-  return g_object_new (GRAVITON_INTROSPECTION_INTERFACE_TYPE, "node", node, "name", "net:phrobo:graviton/introspection", "target", name, NULL);
+  return g_object_new (GRAVITON_INTROSPECTION_INTERFACE_TYPE,
+                       "node",
+                       node,
+                       "name",
+                       "net:phrobo:graviton/introspection",
+                       "target",
+                       name,
+                       NULL);
 }
 
 static GList *
-call_string_list_method (GravitonIntrospectionControl *self, const gchar *method, GError **err, ...)
+call_string_list_method (GravitonIntrospectionControl *self,
+                         const gchar *method,
+                         GError **err,
+                         ...)
 {
   va_list args;
   va_start (args, err);
 
-  GVariant *result = graviton_node_call_va (graviton_service_interface_get_node (GRAVITON_SERVICE_INTERFACE (self)),
-                                            method,
-                                            err,
-                                            args);
+  GVariant *result =
+    graviton_node_call_va (graviton_service_interface_get_node (
+                             GRAVITON_SERVICE_INTERFACE (
+                               self)),
+                           method,
+                           err,
+                           args);
   g_debug ("Got: %s", g_variant_print (result, TRUE));
   GList *ret = NULL;
   int i;
   if (result) {
-    for (i = 0;i < g_variant_n_children (result);i++) {
+    for (i = 0; i < g_variant_n_children (result); i++) {
       GVariant *idx = g_variant_get_child_value (result, i);
-      GVariant *strIdx = g_variant_get_variant (idx);
-      ret = g_list_prepend (ret, g_variant_dup_string (strIdx, NULL));
+      GVariant *str_idx = g_variant_get_variant (idx);
+      ret = g_list_prepend (ret, g_variant_dup_string (str_idx, NULL));
     }
     g_variant_unref (result);
   }
   return ret;
 }
 
-GList *graviton_introspection_interface_list_interfaces (GravitonIntrospectionControl *self, GError **err)
+GList *
+graviton_introspection_interface_list_interfaces (
+  GravitonIntrospectionControl *self,
+  GError **err)
 {
   GVariant *name = NULL;
   if (self->priv->target)
@@ -183,7 +216,10 @@ GList *graviton_introspection_interface_list_interfaces (GravitonIntrospectionCo
                                   NULL);
 }
 
-GList *graviton_introspection_interface_list_methods (GravitonIntrospectionControl *self, GError **err)
+GList *
+graviton_introspection_interface_list_methods (
+  GravitonIntrospectionControl *self,
+  GError **err)
 {
   GVariant *name = NULL;
   if (self->priv->target)
@@ -196,7 +232,10 @@ GList *graviton_introspection_interface_list_methods (GravitonIntrospectionContr
                                   NULL);
 }
 
-GList *graviton_introspection_interface_list_properties (GravitonIntrospectionControl *self, GError **err)
+GList *
+graviton_introspection_interface_list_properties (
+  GravitonIntrospectionControl *self,
+  GError **err)
 {
   GVariant *name = NULL;
   if (self->priv->target)
@@ -209,7 +248,10 @@ GList *graviton_introspection_interface_list_properties (GravitonIntrospectionCo
                                   NULL);
 }
 
-GList *graviton_introspection_interface_list_streams (GravitonIntrospectionControl *self, GError **err)
+GList *
+graviton_introspection_interface_list_streams (
+  GravitonIntrospectionControl *self,
+  GError **err)
 {
   GVariant *name = NULL;
   if (self->priv->target)

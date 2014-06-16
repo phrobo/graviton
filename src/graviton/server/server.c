@@ -19,18 +19,18 @@
 
 #include "server.h"
 
-#include "server-interface.h"
 #include "introspection-service.h"
 #include "root-service.h"
+#include "server-interface.h"
 #include "service.h"
 #include "stream.h"
 
-#include <libsoup/soup.h>
-#include <json-glib/json-glib.h>
-#include <string.h>
 #include <avahi-client/client.h>
 #include <avahi-client/publish.h>
 #include <avahi-glib/glib-watch.h>
+#include <json-glib/json-glib.h>
+#include <libsoup/soup.h>
+#include <string.h>
 #include <uuid/uuid.h>
 
 #include "config.h"
@@ -61,34 +61,36 @@
  * #include <graviton/server/server.h>
  * #include <graviton/server/service.h>
  * #include <glib.h>
- * 
+ *
  * static GVariant *
- * cb_ping(GravitonService *control, GHashTable *args, GError **error, gpointer user_data)
+ * cb_ping(GravitonService *control, GHashTable *args, GError **error, gpointer
+ *user_data)
  * {
  *   return g_variant_new_string ("pong");
  * }
- * 
+ *
  * int main(int argc, char** argv)
  * {
  *   GMainLoop *loop = NULL;
  *   GravitonServer *server = NULL;
- * 
+ *
  * #if !GLIB_CHECK_VERSION(2, 36, 0)
  *   g_type_init ();
  * #endif
- * 
+ *
  *   loop = g_main_loop_new (NULL, FALSE);
- * 
+ *
  *   server = graviton_server_new ();
  *   GravitonRootService *root = graviton_server_get_root_service (server);
- *   GravitonService *pingService = graviton_service_new ("net:phrobo:graviton:ping");
- *   graviton_service_add_subservice (GRAVITON_SERVICE (root), pingService);
- *   graviton_service_add_method (pingService, "ping", cb_ping, NULL, NULL);
- * 
+ *   GravitonService *ping_service = graviton_service_new
+ *("net:phrobo:graviton:ping");
+ *   graviton_service_add_subservice (GRAVITON_SERVICE (root), ping_service);
+ *   graviton_service_add_method (ping_service, "ping", cb_ping, NULL, NULL);
+ *
  *   graviton_server_run_async (server);
- * 
+ *
  *   g_main_loop_run (loop);
- * 
+ *
  *   return 0;
  * }
  * </programlisting>
@@ -139,7 +141,9 @@
  * magic.
  */
 
-#define GRAVITON_SERVER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_SERVER_TYPE, GravitonServerPrivate))
+#define GRAVITON_SERVER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), \
+                                                                       GRAVITON_SERVER_TYPE, \
+                                                                       GravitonServerPrivate))
 
 GQuark
 graviton_server_error_quark ()
@@ -188,7 +192,8 @@ typedef struct _StreamConnection
 } StreamConnection;
 
 static StreamConnection *
-new_stream (SoupMessage *message, GravitonStream *stream, GravitonServer *server)
+new_stream (SoupMessage *message, GravitonStream *stream,
+            GravitonServer *server)
 {
   StreamConnection *connection = g_new0 (StreamConnection, 1);
   connection->message = g_object_ref (message);
@@ -218,7 +223,9 @@ free_stream (StreamConnection *connection)
     g_free (connection->buf);
     connection->buf = 0;
   }
-  connection->server->priv->streams = g_list_remove (connection->server->priv->streams, connection);
+  connection->server->priv->streams = g_list_remove (
+    connection->server->priv->streams,
+    connection);
   g_object_unref (connection->server);
 }
 
@@ -231,7 +238,8 @@ cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
     free_stream (connection);
     return;
   }
-  gssize read_size = g_input_stream_read_finish (G_INPUT_STREAM (source), res, &error);
+  gssize read_size = g_input_stream_read_finish (G_INPUT_STREAM (
+                                                   source), res, &error);
   if (error) {
     g_debug ("Error while streaming: %s", error->message);
     free_stream (connection);
@@ -247,7 +255,8 @@ cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
   g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
   soup_message_body_append (body, SOUP_MEMORY_COPY, connection->buf, read_size);
   g_debug ("Read %li", read_size); //FIXME: Should use G_SSIZE_FORMAT
-  soup_server_unpause_message (connection->server->priv->server, connection->message);
+  soup_server_unpause_message (connection->server->priv->server,
+                               connection->message);
   g_input_stream_read_async (G_INPUT_STREAM (source),
                              connection->buf,
                              connection->bufsize,
@@ -266,7 +275,9 @@ static void
 create_avahi_services (AvahiClient *client, GravitonServer *server)
 {
   if (!server->priv->avahi_group)
-    server->priv->avahi_group = avahi_entry_group_new (client, cb_avahi_group, NULL);
+    server->priv->avahi_group = avahi_entry_group_new (client,
+                                                       cb_avahi_group,
+                                                       NULL);
 
   avahi_entry_group_reset (server->priv->avahi_group);
 
@@ -293,16 +304,16 @@ create_avahi_services (AvahiClient *client, GravitonServer *server)
                                     connection,
                                     "/",
                                     NULL);
-  gchar *busName = g_strdup_printf ("org.aether.graviton-%d", port);
+  gchar *bus_name = g_strdup_printf ("org.aether.graviton-%d", port);
   g_bus_own_name (G_BUS_TYPE_SESSION,
-                  busName, 
+                  bus_name,
                   G_BUS_NAME_OWNER_FLAGS_NONE,
                   NULL,
                   NULL,
                   NULL,
                   NULL,
                   NULL);
-  g_free (busName);
+  g_free (bus_name);
 }
 
 static void
@@ -320,9 +331,9 @@ set_property (GObject *object,
               GParamSpec *pspec)
 {
   switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -333,17 +344,17 @@ get_property (GObject *object,
               GParamSpec *pspec)
 {
   GravitonServer *self = GRAVITON_SERVER (object);
-  
+
   switch (property_id) {
-    case PROP_NODE_ID:
-      g_value_set_string (value, self->priv->node_id);
-      break;
-    case PROP_CLOUD_ID:
-      g_value_set_string (value, self->priv->cloud_id);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_NODE_ID:
+    g_value_set_string (value, self->priv->node_id);
+    break;
+  case PROP_CLOUD_ID:
+    g_value_set_string (value, self->priv->cloud_id);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -391,7 +402,9 @@ handle_rpc (GravitonServer *self, JsonObject *request)
   builder = json_builder_new ();
 
   request_id = json_object_get_string_member (request, "id");
-  rpc_method_name = g_strsplit (json_object_get_string_member (request, "method"), ".", 0);
+  rpc_method_name = g_strsplit (json_object_get_string_member (request,
+                                                               "method"), ".",
+                                0);
 
   service_name = g_strdup (rpc_method_name[0]);
   method_name = g_strdup (rpc_method_name[1]);
@@ -399,8 +412,9 @@ handle_rpc (GravitonServer *self, JsonObject *request)
 
   g_debug ("Looking for service %s", service_name);
 
-  service = graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
-                                             service_name);
+  service =
+    graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
+                                     service_name);
   if (!service) {
     g_set_error (&error,
                  GRAVITON_SERVER_ERROR,
@@ -425,7 +439,10 @@ handle_rpc (GravitonServer *self, JsonObject *request)
         GList *param = param_names;
         while (param) {
           GVariant *param_value;
-          param_value = json_gvariant_deserialize (json_object_get_member (param_obj, param->data), NULL, &error);
+          param_value =
+            json_gvariant_deserialize (json_object_get_member (param_obj,
+                                                               param->data), NULL,
+                                       &error);
           g_hash_table_replace (args, g_strdup (param->data), param_value);
           gchar *display = g_variant_print (param_value, TRUE);
           g_debug ("Setting param %s to %s", (gchar*)param->data, display);
@@ -435,7 +452,10 @@ handle_rpc (GravitonServer *self, JsonObject *request)
         g_list_free (param_names);
       }
     }
-    method_result = graviton_service_call_method (service, method_name, args, &error);
+    method_result = graviton_service_call_method (service,
+                                                  method_name,
+                                                  args,
+                                                  &error);
     g_hash_table_unref (args);
     if (method_result)
       g_variant_take_ref (method_result);
@@ -484,7 +504,7 @@ out:
   json_builder_end_object (builder);
   result = json_builder_get_root (builder);
   g_object_unref (builder);
-  
+
   if (service)
     g_object_unref (service);
   return result;
@@ -492,11 +512,11 @@ out:
 
 static void
 cb_handle_stream (SoupServer *server,
-         SoupMessage *msg,
-         const char *path,
-         GHashTable *query,
-         SoupClientContext *client,
-         gpointer user_data)
+                  SoupMessage *msg,
+                  const char *path,
+                  GHashTable *query,
+                  SoupClientContext *client,
+                  gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
   GravitonStream *stream = NULL;
@@ -514,8 +534,9 @@ cb_handle_stream (SoupServer *server,
   stream_name = g_strdup (stream_path[1]);
   g_strfreev (stream_path);
 
-  service = graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
-                                             service_name);
+  service =
+    graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
+                                     service_name);
 
   if (!service) {
     soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
@@ -535,7 +556,12 @@ cb_handle_stream (SoupServer *server,
     StreamConnection *connection;
     SoupMessageBody *body;
 
-    g_object_get (msg, SOUP_MESSAGE_RESPONSE_HEADERS, &headers, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+    g_object_get (msg,
+                  SOUP_MESSAGE_RESPONSE_HEADERS,
+                  &headers,
+                  SOUP_MESSAGE_RESPONSE_BODY,
+                  &body,
+                  NULL);
     soup_message_body_set_accumulate (body, FALSE);
 
     connection = new_stream (msg, stream, self);
@@ -566,7 +592,10 @@ cb_handle_stream (SoupServer *server,
 
     if (!success) {
       soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
-      g_debug ("Unsupported operation %s for %s.%s.", method, service_name, stream_name);
+      g_debug ("Unsupported operation %s for %s.%s.",
+               method,
+               service_name,
+               stream_name);
       if (error) {
         g_debug ("Associated error: %s", error->message);
       }
@@ -587,11 +616,11 @@ cb_handle_stream (SoupServer *server,
 
 static void
 cb_handle_events (SoupServer *server,
-         SoupMessage *msg,
-         const char *path,
-         GHashTable *query,
-         SoupClientContext *client,
-         gpointer user_data)
+                  SoupMessage *msg,
+                  const char *path,
+                  GHashTable *query,
+                  SoupClientContext *client,
+                  gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
   SoupMessageHeaders *headers;
@@ -605,17 +634,18 @@ cb_handle_events (SoupServer *server,
   soup_message_headers_set_content_type (headers, "text/json", NULL);
   soup_message_headers_append (headers, "Connection", "close");
 
-  self->priv->event_listeners = g_list_append (self->priv->event_listeners, msg);
+  self->priv->event_listeners =
+    g_list_append (self->priv->event_listeners, msg);
   g_debug ("New event listener");
 }
 
 static void
 cb_handle_rpc (SoupServer *server,
-         SoupMessage *msg,
-         const char *path,
-         GHashTable *query,
-         SoupClientContext *client,
-         gpointer user_data)
+               SoupMessage *msg,
+               const char *path,
+               GHashTable *query,
+               SoupClientContext *client,
+               gpointer user_data)
 {
   GError *error = NULL;
   GravitonServer *self = GRAVITON_SERVER (user_data);
@@ -689,30 +719,36 @@ out:
 
 //FIXME: What was this here for?
 /*static void
-broadcast_property_notify (GObject *object, GParamSpec *pspec, gpointer user_data)
-{
-  GravitonServer *self = GRAVITON_SERVER (user_data);
-  JsonBuilder *builder;
-  JsonNode *result = NULL;
-  GList *client = self->priv->event_listeners;
-  builder = json_builder_new ();
-  while (client) {
-    SoupMessageBody *body;
-    g_object_get (client->data, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
-    soup_message_body_append (body, SOUP_MEMORY_STATIC, "ping", strlen("ping"));
-    soup_server_unpause_message (self->priv->server, client->data);
-    client = g_list_next (client);
-    g_debug ("Sent ping");
-  }
-  return TRUE;
-}*/
+ *  broadcast_property_notify (GObject *object, GParamSpec *pspec, gpointer
+ * user_data)
+ *  {
+ *  GravitonServer *self = GRAVITON_SERVER (user_data);
+ *  JsonBuilder *builder;
+ *  JsonNode *result = NULL;
+ *  GList *client = self->priv->event_listeners;
+ *  builder = json_builder_new ();
+ *  while (client) {
+ *   SoupMessageBody *body;
+ *   g_object_get (client->data, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+ *   soup_message_body_append (body, SOUP_MEMORY_STATIC, "ping",
+ * strlen("ping"));
+ *   soup_server_unpause_message (self->priv->server, client->data);
+ *   client = g_list_next (client);
+ *   g_debug ("Sent ping");
+ *  }
+ *  return TRUE;
+ *  }*/
 
 static void
-cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext *client, gpointer user_data)
+cb_aborted_request (SoupServer *server,
+                    SoupMessage *message,
+                    SoupClientContext *client,
+                    gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
 
-  self->priv->event_listeners = g_list_remove (self->priv->event_listeners, message);
+  self->priv->event_listeners = g_list_remove (self->priv->event_listeners,
+                                               message);
 
   GList *cur = self->priv->streams;
   while (cur) {
@@ -725,12 +761,15 @@ cb_aborted_request (SoupServer *server, SoupMessage *message, SoupClientContext 
   }
 
   g_object_unref (G_OBJECT (message));
-  
+
   g_debug ("Aborted event stream");
 }
 
 static void
-cb_event (GravitonService *service, const gchar *name, GVariant *data, gpointer user_data)
+cb_event (GravitonService *service,
+          const gchar *name,
+          GVariant *data,
+          gpointer user_data)
 {
   GravitonServer *self = GRAVITON_SERVER (user_data);
   g_debug ("Event from a service: %s", name);
@@ -786,7 +825,7 @@ new_server (GravitonServer *self, SoupAddressFamily family)
     "interface", address,
     "server-header", "Graviton/" GRAVITON_VERSION " ",
     NULL
-  );
+    );
 
   g_object_unref (address);
 
@@ -825,7 +864,6 @@ graviton_server_init (GravitonServer *self)
   priv->server = new_server (self, SOUP_ADDRESS_FAMILY_IPV4);
   priv->server6 = new_server (self, SOUP_ADDRESS_FAMILY_IPV6);
 
-
   priv->dbus = graviton_dbus_server_skeleton_new ();
 
   g_signal_connect (priv->plugins,
@@ -834,10 +872,11 @@ graviton_server_init (GravitonServer *self)
                     self);
 
   graviton_service_add_subservice (GRAVITON_SERVICE (self->priv->plugins),
-                                   g_object_new (GRAVITON_INTROSPECTION_CONTROL_TYPE, 
-                                                 "server", self,
-                                                 "name", "net:phrobo:graviton",
-                                                 NULL));
+                                   g_object_new (
+                                     GRAVITON_INTROSPECTION_CONTROL_TYPE,
+                                     "server", self,
+                                     "name", "net:phrobo:graviton",
+                                     NULL));
 
   priv->avahi_poll_api = avahi_glib_poll_new (NULL, G_PRIORITY_DEFAULT);
   const AvahiPoll *poll_api = avahi_glib_poll_get (priv->avahi_poll_api);
@@ -846,7 +885,6 @@ graviton_server_init (GravitonServer *self)
                                   cb_avahi,
                                   self,
                                   NULL);
-
 }
 
 /**
@@ -856,7 +894,8 @@ graviton_server_init (GravitonServer *self)
  *
  * Returns: A new #GravitonServer
  */
-GravitonServer *graviton_server_new ()
+GravitonServer *
+graviton_server_new ()
 {
   return g_object_new (GRAVITON_SERVER_TYPE, NULL);
 }
@@ -870,7 +909,8 @@ GravitonServer *graviton_server_new ()
  * This runs in @server's #GMainContext. It will not perform any processing
  * unless the appropriate main loop is running.
  */
-void graviton_server_run_async (GravitonServer *self)
+void
+graviton_server_run_async (GravitonServer *self)
 {
   soup_server_run_async (self->priv->server);
   soup_server_run_async (self->priv->server6);

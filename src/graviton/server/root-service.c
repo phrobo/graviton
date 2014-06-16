@@ -23,9 +23,13 @@
 
 #include "config.h"
 
-#define GRAVITON_ROOT_SERVICE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_ROOT_SERVICE_TYPE, GravitonRootServicePrivate))
+#define GRAVITON_ROOT_SERVICE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE (( \
+                                                                               obj), \
+                                                                             GRAVITON_ROOT_SERVICE_TYPE, \
+                                                                             GravitonRootServicePrivate))
 
-G_DEFINE_TYPE (GravitonRootService, graviton_root_service, GRAVITON_SERVICE_TYPE);
+G_DEFINE_TYPE (GravitonRootService, graviton_root_service,
+               GRAVITON_SERVICE_TYPE);
 
 enum {
   SIGNAL_0,

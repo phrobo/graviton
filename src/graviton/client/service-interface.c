@@ -23,9 +23,9 @@
 
 #define G_LOG_DOMAIN "GravitonServiceInterface"
 
-#include "service-interface.h"
-#include "node.h"
 #include "node-stream.h"
+#include "node.h"
+#include "service-interface.h"
 
 #include <string.h>
 
@@ -38,14 +38,19 @@ struct _GravitonServiceInterfacePrivate
 };
 
 #define GRAVITON_SERVICE_INTERFACE_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_SERVICE_INTERFACE_TYPE, GravitonServiceInterfacePrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_SERVICE_INTERFACE_TYPE, \
+                                GravitonServiceInterfacePrivate))
 
-static void graviton_service_interface_class_init (GravitonServiceInterfaceClass *klass);
-static void graviton_service_interface_init       (GravitonServiceInterface *self);
+static void graviton_service_interface_class_init (
+  GravitonServiceInterfaceClass *klass);
+static void graviton_service_interface_init       (
+  GravitonServiceInterface *self);
 static void graviton_service_interface_dispose    (GObject *object);
 static void graviton_service_interface_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonServiceInterface, graviton_service_interface, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GravitonServiceInterface,
+               graviton_service_interface,
+               G_TYPE_OBJECT);
 
 enum {
   PROP_0,
@@ -65,12 +70,15 @@ enum {
 static int obj_signals[N_SIGNALS] = {0, };
 
 static void
-cb_dispatch_event (GravitonServiceInterface *self, const gchar *name, GVariant *value)
+cb_dispatch_event (GravitonServiceInterface *self,
+                   const gchar *name,
+                   GVariant *value)
 {
   gchar **event_name;
   event_name = g_strsplit (name, ".", 0);
   if (strcmp (event_name[0], self->priv->name) == 0) {
-    g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (event_name[1]), event_name[1], value);
+    g_signal_emit (self, obj_signals[SIGNAL_EVENT],
+                   g_quark_from_string (event_name[1]), event_name[1], value);
     g_debug ("Dispatching %s event", event_name[1]);
   }
   g_strfreev (event_name);
@@ -94,38 +102,38 @@ setup_node (GravitonServiceInterface *self, GravitonNode *node)
 
 static void
 set_property (GObject *object,
-                     guint property_id,
-                     const GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
 {
   GravitonServiceInterface *self = GRAVITON_SERVICE_INTERFACE (object);
   switch (property_id) {
-    case PROP_NAME:
-      self->priv->name = g_value_dup_string (value);
-      break;
-    case PROP_NODE:
-      setup_node (self, GRAVITON_NODE (g_value_dup_object (value)));
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_NAME:
+    self->priv->name = g_value_dup_string (value);
+    break;
+  case PROP_NODE:
+    setup_node (self, GRAVITON_NODE (g_value_dup_object (value)));
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 get_property (GObject *object,
-                     guint property_id,
-                     GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
 {
   GravitonServiceInterface *self = GRAVITON_SERVICE_INTERFACE (object);
   switch (property_id) {
-    case PROP_NAME:
-      g_value_set_string (value, self->priv->name);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_NAME:
+    g_value_set_string (value, self->priv->name);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -148,7 +156,7 @@ graviton_service_interface_class_init (GravitonServiceInterfaceClass *klass)
                          "Name of this service",
                          NULL,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
-  obj_properties [PROP_NODE] = 
+  obj_properties [PROP_NODE] =
     g_param_spec_object ("node",
                          "Node",
                          "The underlying GravitonNode",
@@ -212,7 +220,8 @@ graviton_service_interface_get_name (GravitonServiceInterface *self)
 }
 
 GravitonServiceInterface *
-graviton_service_interface_get_subservice (GravitonServiceInterface *self, const gchar *name)
+graviton_service_interface_get_subservice (GravitonServiceInterface *self,
+                                           const gchar *name)
 {
   gchar *full_name;
   if (self->priv->node) {
@@ -220,7 +229,13 @@ graviton_service_interface_get_subservice (GravitonServiceInterface *self, const
   } else {
     full_name = g_strdup (name);
   }
-  GravitonServiceInterface *ret = g_object_new (GRAVITON_SERVICE_INTERFACE_TYPE, "node", graviton_service_interface_get_node (self), "name", full_name, NULL);
+  GravitonServiceInterface *ret = g_object_new (GRAVITON_SERVICE_INTERFACE_TYPE,
+                                                "node",
+                                                graviton_service_interface_get_node (
+                                                  self),
+                                                "name",
+                                                full_name,
+                                                NULL);
   g_free (full_name);
   return ret;
 }
@@ -234,14 +249,19 @@ graviton_service_interface_get_node (GravitonServiceInterface *self)
 }
 
 GVariant *
-graviton_service_interface_get_property (GravitonServiceInterface *self, const gchar *property, GError **err)
+graviton_service_interface_get_property (GravitonServiceInterface *self,
+                                         const gchar *property,
+                                         GError **err)
 {
   GError *error = NULL;
-  GVariant *ret = graviton_node_call (graviton_service_interface_get_node (self),
+  GVariant *ret = graviton_node_call (graviton_service_interface_get_node (
+                                        self),
                                       "net:phrobo:graviton/introspection.getProperty",
                                       &error,
                                       "service",
-                                      g_variant_new_string (graviton_service_interface_get_name (self)),
+                                      g_variant_new_string (
+                                        graviton_service_interface_get_name (
+                                          self)),
                                       "property",
                                       g_variant_new_string (property),
                                       NULL);
@@ -253,20 +273,24 @@ graviton_service_interface_get_property (GravitonServiceInterface *self, const g
   return ret;
 }
 
-gchar *make_method_name (GravitonServiceInterface *service, const gchar *method)
+gchar *
+make_method_name (GravitonServiceInterface *service, const gchar *method)
 {
-  return g_strdup_printf ("%s.%s", graviton_service_interface_get_name (service), method);
+  return g_strdup_printf ("%s.%s", graviton_service_interface_get_name (
+                            service), method);
 }
 
 void
 graviton_service_interface_call_noref (GravitonServiceInterface *service,
-    const gchar *method,
-    GError **error, ...)
+                                       const gchar *method,
+                                       GError **error, ...)
 {
   va_list args;
   va_start (args, error);
   gchar *full_method = make_method_name (service, method);
-  GVariant *ret = graviton_node_call_va (graviton_service_interface_get_node (service), full_method, error, args);
+  GVariant *ret =
+    graviton_node_call_va (graviton_service_interface_get_node (
+                             service), full_method, error, args);
   va_end (args);
   g_free (full_method);
   g_variant_unref (ret);
@@ -274,20 +298,24 @@ graviton_service_interface_call_noref (GravitonServiceInterface *service,
 
 GVariant *
 graviton_service_interface_call (GravitonServiceInterface *service,
-    const gchar *method,
-    GError **error, ...)
+                                 const gchar *method,
+                                 GError **error, ...)
 {
   va_list args;
   va_start (args, error);
   gchar *full_method = make_method_name (service, method);
-  GVariant *ret = graviton_node_call_va (graviton_service_interface_get_node (service), full_method, error, args);
+  GVariant *ret =
+    graviton_node_call_va (graviton_service_interface_get_node (
+                             service), full_method, error, args);
   va_end (args);
   g_free (full_method);
   return ret;
 }
 
 GravitonNodeStream *
-graviton_service_interface_get_stream (GravitonServiceInterface *service, const gchar *name, GHashTable *args)
+graviton_service_interface_get_stream (GravitonServiceInterface *service,
+                                       const gchar *name,
+                                       GHashTable *args)
 {
   GravitonNodeStream *stream = graviton_node_stream_new (service, name, args);
   return stream;

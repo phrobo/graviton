@@ -54,7 +54,9 @@
  *
  */
 
-#define GRAVITON_SERVICE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_SERVICE_TYPE, GravitonServicePrivate))
+#define GRAVITON_SERVICE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), \
+                                                                        GRAVITON_SERVICE_TYPE, \
+                                                                        GravitonServicePrivate))
 
 GQuark
 graviton_service_error_quark ()
@@ -94,39 +96,41 @@ struct _GravitonServicePrivate
 
 static void graviton_service_dispose (GObject *object);
 static void graviton_service_finalize (GObject *object);
-static void cb_event_from_notify (GravitonService *self, GParamSpec *pspec, gpointer user_data);
+static void cb_event_from_notify (GravitonService *self,
+                                  GParamSpec *pspec,
+                                  gpointer user_data);
 
 static void
 set_property (GObject *object,
-                     guint property_id,
-                     const GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
 {
   GravitonService *self = GRAVITON_SERVICE (object);
   switch (property_id) {
-    case PROP_NAME:
-      self->priv->name = g_value_dup_string (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_NAME:
+    self->priv->name = g_value_dup_string (value);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 get_property (GObject *object,
-                     guint property_id,
-                     GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
 {
   GravitonService *self = GRAVITON_SERVICE (object);
   switch (property_id) {
-    case PROP_NAME:
-      g_value_set_string (value, self->priv->name);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_NAME:
+    g_value_set_string (value, self->priv->name);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -158,7 +162,7 @@ graviton_service_class_init (GravitonServiceClass *klass)
    * @data: The event data
    *
    * Emitted when graviton_service_emit_event() is called.
-   * 
+   *
    * In normal usage, this is handled by GravitonServer to dispatch events to
    * the cloud.
    */
@@ -188,9 +192,9 @@ graviton_service_init (GravitonService *self)
                                          g_free,
                                          NULL);
   priv->stream_data = g_hash_table_new_full (g_str_hash,
-                                         g_str_equal,
-                                         g_free,
-                                         NULL);
+                                             g_str_equal,
+                                             g_free,
+                                             NULL);
   priv->services = g_hash_table_new_full (g_str_hash,
                                           g_str_equal,
                                           g_free,
@@ -256,7 +260,8 @@ graviton_service_add_method (GravitonService *self,
 {
   g_hash_table_replace (self->priv->methods, g_strdup (name), func);
   g_hash_table_replace (self->priv->method_data, g_strdup (name), user_data);
-  g_hash_table_replace (self->priv->method_destroys, g_strdup (name), destroy_func);
+  g_hash_table_replace (self->priv->method_destroys, g_strdup (
+                          name), destroy_func);
 }
 
 /**
@@ -351,7 +356,9 @@ graviton_service_get_subservice (GravitonService *self,
 }
 
 static void
-cb_event_from_notify (GravitonService *self, GParamSpec *pspec, gpointer user_data)
+cb_event_from_notify (GravitonService *self,
+                      GParamSpec *pspec,
+                      gpointer user_data)
 {
   GVariant *property_data = NULL;
   GValue property_value = G_VALUE_INIT;
@@ -362,15 +369,21 @@ cb_event_from_notify (GravitonService *self, GParamSpec *pspec, gpointer user_da
   if (G_VALUE_HOLDS_STRING (&property_value))
     property_data = g_variant_new_string (g_value_get_string (&property_value));
 
+
   if (property_data) {
     graviton_service_emit_event (self, "property", property_data);
   } else {
-    g_warning ("Could not convert %s.%s to a GVariant!", self->priv->name, pspec->name);
+    g_warning ("Could not convert %s.%s to a GVariant!",
+               self->priv->name,
+               pspec->name);
   }
 }
 
 static void
-cb_propagate_event (GravitonService *subservice, const gchar *name, GVariant *data, gpointer user_data)
+cb_propagate_event (GravitonService *subservice,
+                    const gchar *name,
+                    GVariant *data,
+                    gpointer user_data)
 {
   GravitonService *self = GRAVITON_SERVICE (user_data);
   gchar *full_name;
@@ -379,7 +392,8 @@ cb_propagate_event (GravitonService *subservice, const gchar *name, GVariant *da
   } else {
     full_name = g_strdup (name);
   }
-  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (full_name), full_name, data);
+  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
+                   full_name), full_name, data);
 
   g_debug ("Propagating event: %s", full_name);
   g_free (full_name);
@@ -395,7 +409,7 @@ cb_propagate_event (GravitonService *subservice, const gchar *name, GVariant *da
  */
 void
 graviton_service_add_subservice (GravitonService *self,
-                                      GravitonService *service)
+                                 GravitonService *service)
 {
   g_object_ref (service);
   gchar *name;
@@ -413,7 +427,8 @@ graviton_service_add_subservice (GravitonService *self,
  *
  * Get a list of the names of available subservices.
  *
- * Returns: (element-type gchar*) (transfer full): the names of the available subservices
+ * Returns: (element-type gchar*) (transfer full): the names of the available
+ *subservices
  */
 GList *
 graviton_service_list_subservices (GravitonService *self)
@@ -462,9 +477,14 @@ graviton_service_list_streams (GravitonService *self)
  * @error: Return location for a #GError, or NULL
  */
 GravitonStream *
-graviton_service_get_stream (GravitonService *self, const gchar *name, GHashTable *args, GError **error)
+graviton_service_get_stream (GravitonService *self,
+                             const gchar *name,
+                             GHashTable *args,
+                             GError **error)
 {
-  GravitonServiceStreamGenerator func = g_hash_table_lookup (self->priv->streams, name);
+  GravitonServiceStreamGenerator func = g_hash_table_lookup (
+    self->priv->streams,
+    name);
   gpointer func_data = g_hash_table_lookup (self->priv->stream_data, name);
   if (func)
     return func(self, name, args, error, func_data);
@@ -473,25 +493,28 @@ graviton_service_get_stream (GravitonService *self, const gchar *name, GHashTabl
 
 /**
  * graviton_service_new:
- * @serviceName: Name of the service to use
+ * @service_name: Name of the service to use
  *
  * Creates a new #GravitonService with a service name
  *
- * Returns: A new #GravitonService that exposes the given @serviceName
+ * Returns: A new #GravitonService that exposes the given @service_name
  */
 GravitonService *
-graviton_service_new (const gchar *serviceName)
+graviton_service_new (const gchar *service_name)
 {
-  return g_object_new (GRAVITON_SERVICE_TYPE, "name", serviceName, NULL);
+  return g_object_new (GRAVITON_SERVICE_TYPE, "name", service_name, NULL);
 }
 
 void
-graviton_service_emit_event (GravitonService *self, const gchar *name, GVariant *data)
+graviton_service_emit_event (GravitonService *self,
+                             const gchar *name,
+                             GVariant *data)
 {
   gchar *full_name;
 
   full_name = g_strdup_printf ("%s.%s", self->priv->name, name);
-  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (full_name), full_name, data);
+  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
+                   full_name), full_name, data);
   g_debug ("Dispatch event: %s", full_name);
   g_free (full_name);
 }

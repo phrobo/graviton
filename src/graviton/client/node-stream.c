@@ -34,7 +34,8 @@ struct _GravitonNodeStreamPrivate
 };
 
 #define GRAVITON_NODE_STREAM_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_STREAM_TYPE, GravitonNodeStreamPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_STREAM_TYPE, \
+                                GravitonNodeStreamPrivate))
 
 static void graviton_node_stream_class_init (GravitonNodeStreamClass *klass);
 static void graviton_node_stream_init       (GravitonNodeStream *self);
@@ -55,41 +56,42 @@ static GParamSpec *obj_properties[N_PROPERTIES] = {NULL, };
 
 static void
 set_property (GObject *object,
-                     guint property_id,
-                     const GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              const GValue *value,
+              GParamSpec *pspec)
 {
   GravitonNodeStream *self = GRAVITON_NODE_STREAM (object);
   switch (property_id) {
-    case PROP_NAME:
-      self->priv->name = g_value_dup_string (value);
-      break;
-    case PROP_CONTROL:
-      self->priv->service = GRAVITON_SERVICE_INTERFACE (g_value_dup_object (value));
-      break;
-    case PROP_ARGS:
-      self->priv->args = g_value_get_pointer (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_NAME:
+    self->priv->name = g_value_dup_string (value);
+    break;
+  case PROP_CONTROL:
+    self->priv->service =
+      GRAVITON_SERVICE_INTERFACE (g_value_dup_object (value));
+    break;
+  case PROP_ARGS:
+    self->priv->args = g_value_get_pointer (value);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
 static void
 get_property (GObject *object,
-                     guint property_id,
-                     GValue *value,
-                     GParamSpec *pspec)
+              guint property_id,
+              GValue *value,
+              GParamSpec *pspec)
 {
   GravitonNodeStream *self = GRAVITON_NODE_STREAM (object);
   switch (property_id) {
-    case PROP_NAME:
-      g_value_set_string (value, self->priv->name);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_NAME:
+    g_value_set_string (value, self->priv->name);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -112,17 +114,17 @@ graviton_node_stream_class_init (GravitonNodeStreamClass *klass)
                          "Name of this service",
                          NULL,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
-  obj_properties [PROP_CONTROL] = 
+  obj_properties [PROP_CONTROL] =
     g_param_spec_object ("service",
                          "GravitonServiceInterface",
                          "The underlying GravitonServiceInterface",
                          GRAVITON_SERVICE_INTERFACE_TYPE,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
-  obj_properties [PROP_ARGS] = 
+  obj_properties [PROP_ARGS] =
     g_param_spec_pointer ("args",
-                         "Request arguments",
-                         "A GHashTable of strings for arguments",
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
+                          "Request arguments",
+                          "A GHashTable of strings for arguments",
+                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
                                      obj_properties);
@@ -154,16 +156,33 @@ graviton_node_stream_finalize (GObject *object)
 }
 
 GravitonNodeStream *
-graviton_node_stream_new (GravitonServiceInterface *service, const gchar *name, GHashTable *args)
+graviton_node_stream_new (GravitonServiceInterface *service,
+                          const gchar *name,
+                          GHashTable *args)
 {
-  return g_object_new (GRAVITON_NODE_STREAM_TYPE, "service", service, "name", name, "args", args, NULL);
+  return g_object_new (GRAVITON_NODE_STREAM_TYPE,
+                       "service",
+                       service,
+                       "name",
+                       name,
+                       "args",
+                       args,
+                       NULL);
 }
 
 GIOStream *
 graviton_node_stream_open (GravitonNodeStream *self)
 {
-  gchar *full_name = g_strdup_printf ("%s.%s", graviton_service_interface_get_name (self->priv->service), self->priv->name);
-  GIOStream *ret = graviton_node_open_stream (graviton_service_interface_get_node (self->priv->service), full_name, self->priv->args);
+  gchar *full_name = g_strdup_printf ("%s.%s",
+                                      graviton_service_interface_get_name (self
+                                                                           ->
+                                                                           priv
+  ->service),
+                                      self->priv->name);
+  GIOStream *ret = graviton_node_open_stream (graviton_service_interface_get_node (
+                                                self->priv->service),
+                                              full_name,
+                                              self->priv->args);
   g_free (full_name);
   return ret;
 }

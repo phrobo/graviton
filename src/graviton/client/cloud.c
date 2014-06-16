@@ -24,8 +24,8 @@
 #define G_LOG_DOMAIN "GravitonCloud"
 
 #include "cloud.h"
-#include "node.h"
 #include "node-browser.h"
+#include "node.h"
 #include <uuid/uuid.h>
 
 /**
@@ -40,7 +40,8 @@
  * The GravitonCloud class is the central interface to discovering services and,
  * to a lesser extent, individual nodes within a Graviton cloud.
  *
- * Conceptually speaking, a Graviton cloud is a set of all #GravitonNode objects that
+ * Conceptually speaking, a Graviton cloud is a set of all #GravitonNode objects
+ *that
  * share the same cloud ID.
  *
  * The fastest way to get started is to grab the default cloud as configured by
@@ -75,7 +76,8 @@
  *   loop = g_main_loop_new (NULL, 0);
  *   cloud = graviton_cloud_new_default_cloud ();
  *
- *   graviton_cloud_browse_services (cloud, "net:phrobo:graviton:ping", cb_browse, NULL);
+ *   graviton_cloud_browse_services (cloud, "net:phrobo:graviton:ping",
+ *cb_browse, NULL);
  *   g_main_loop_run (loop);
  * }
  *   </programlisting>
@@ -127,17 +129,17 @@ static void graviton_cloud_dispose    (GObject *object);
 static void graviton_cloud_finalize   (GObject *object);
 
 static void notify_all_service_callbacks_by_iface (GravitonCloud *cloud,
-                                          GravitonServiceEvent event,
-                                          GravitonServiceInterface *iface);
+                                                   GravitonServiceEvent event,
+                                                   GravitonServiceInterface *iface);
 static void notify_all_service_callbacks_by_node (GravitonCloud *cloud,
-                                          GravitonServiceEvent event,
-                                          GravitonNode *node);
+                                                  GravitonServiceEvent event,
+                                                  GravitonNode *node);
 static void notify_all_service_callbacks (GravitonCloud *cloud,
                                           GravitonServiceEvent event);
 static void notify_service_browser (GravitonCloud *cloud,
-                                     GravitonServiceBrowser *browser,
-                                     GravitonServiceEvent event,
-                                     GravitonServiceInterface *iface);
+                                    GravitonServiceBrowser *browser,
+                                    GravitonServiceEvent event,
+                                    GravitonServiceInterface *iface);
 static void free_browser (GravitonServiceBrowser *data);
 
 static void setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser);
@@ -162,16 +164,16 @@ set_property (GObject *object,
   GravitonCloud *self = GRAVITON_CLOUD (object);
 
   switch (property_id) {
-    case PROP_CLOUD_ID:
-      self->priv->cloud_id = g_value_dup_string (value);
-      g_debug ("Got new cloud id: %s", self->priv->cloud_id);
-      break;
-    case PROP_NODE_BROWSER:
-      setup_browser (self, g_value_dup_object (value));
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_CLOUD_ID:
+    self->priv->cloud_id = g_value_dup_string (value);
+    g_debug ("Got new cloud id: %s", self->priv->cloud_id);
+    break;
+  case PROP_NODE_BROWSER:
+    setup_browser (self, g_value_dup_object (value));
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -183,14 +185,13 @@ get_property (GObject *object,
 {
   GravitonCloud *self = GRAVITON_CLOUD (object);
 
-
   switch (property_id) {
-    case PROP_CLOUD_ID:
-      g_value_set_string (value, self->priv->cloud_id);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
+  case PROP_CLOUD_ID:
+    g_value_set_string (value, self->priv->cloud_id);
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    break;
   }
 }
 
@@ -212,14 +213,16 @@ graviton_cloud_class_init (GravitonCloudClass *klass)
                          "Cloud UUID",
                          "Universally Unique Cloud ID",
                          "",
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT |
+                         G_PARAM_STATIC_STRINGS);
 
-  obj_properties [PROP_NODE_BROWSER] = 
+  obj_properties [PROP_NODE_BROWSER] =
     g_param_spec_object ("browser",
                          "GravitonNodeBrowser",
                          "The underlying GravitonNodeBrowser",
                          GRAVITON_NODE_BROWSER_TYPE,
-                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
+                         G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
@@ -275,7 +278,8 @@ graviton_cloud_finalize (GObject *object)
 }
 
 GravitonNode *
-graviton_cloud_find_node (GravitonCloud *self, const gchar *guid, GError **error)
+graviton_cloud_find_node (GravitonCloud *self, const gchar *guid,
+                          GError **error)
 {
   g_error ("graviton_cloud_find_node_sync is not implemented");
 }
@@ -298,7 +302,9 @@ notify_all_service_callbacks (GravitonCloud *self, GravitonServiceEvent event)
 }
 
 static void
-notify_all_service_callbacks_by_iface (GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceInterface *iface)
+notify_all_service_callbacks_by_iface (GravitonCloud *cloud,
+                                       GravitonServiceEvent event,
+                                       GravitonServiceInterface *iface)
 {
   GList *cur;
   const gchar *service_name;
@@ -317,17 +323,22 @@ notify_all_service_callbacks_by_iface (GravitonCloud *cloud, GravitonServiceEven
 }
 
 static void
-notify_all_service_callbacks_by_node (GravitonCloud *self, GravitonServiceEvent event, GravitonNode *node)
+notify_all_service_callbacks_by_node (GravitonCloud *self,
+                                      GravitonServiceEvent event,
+                                      GravitonNode *node)
 {
   GError *error = NULL;
   GList *services = graviton_node_get_services (node, &error);
   GList *cur;
-  
+
   cur = services;
   if (cur) {
     g_debug ("Notifing callbacks about a node: %i", event);
     while (cur) {
-      GravitonServiceInterface *iface = graviton_node_get_service_interface (node, (gchar*)cur->data, NULL);
+      GravitonServiceInterface *iface = graviton_node_get_service_interface (
+        node,
+        (gchar*)cur->data,
+        NULL);
       notify_all_service_callbacks_by_iface (self, event, iface);
       g_object_unref (iface);
       cur = cur->next;
@@ -336,7 +347,10 @@ notify_all_service_callbacks_by_node (GravitonCloud *self, GravitonServiceEvent 
 }
 
 static void
-notify_service_browser (GravitonCloud *cloud, GravitonServiceBrowser *browser, GravitonServiceEvent event, GravitonServiceInterface *iface)
+notify_service_browser (GravitonCloud *cloud,
+                        GravitonServiceBrowser *browser,
+                        GravitonServiceEvent event,
+                        GravitonServiceInterface *iface)
 {
   g_debug ("FIRE");
   browser->callback (cloud, event, iface, browser->data);
@@ -355,7 +369,8 @@ free_browser (GravitonServiceBrowser *browser)
 /**
  * graviton_cloud_browse_services:
  * @cloud: A #GravitonCloud to query
- * @serviceName: A name of the service to locate, eg net:phrobo:graviton:introspection
+ * @service_name: A name of the service to locate, eg
+ *net:phrobo:graviton:introspection
  * @callback: Callback that will be called at certain times
  * @user_data: User data
  *
@@ -363,8 +378,11 @@ free_browser (GravitonServiceBrowser *browser)
  * particular service within a cloud. Check #GravitonServiceBrowseCallback for
  * more details.
  */
-GravitonServiceBrowser* 
-graviton_cloud_browse_services (GravitonCloud *cloud, const gchar *serviceName, GravitonServiceBrowseCallback callback, gpointer user_data)
+GravitonServiceBrowser*
+graviton_cloud_browse_services (GravitonCloud *cloud,
+                                const gchar *service_name,
+                                GravitonServiceBrowseCallback callback,
+                                gpointer user_data)
 {
   GravitonServiceBrowser *browser;
   GList *current_callbacks;
@@ -372,24 +390,32 @@ graviton_cloud_browse_services (GravitonCloud *cloud, const gchar *serviceName, 
   browser = g_new0 (GravitonServiceBrowser, 1);
   browser->callback = callback;
   browser->data = user_data;
-  browser->name = g_strdup (serviceName);
+  browser->name = g_strdup (service_name);
 
   g_mutex_lock (&cloud->priv->browse_lock);
-  current_callbacks = g_hash_table_lookup (cloud->priv->browse_callbacks, serviceName);
+  current_callbacks = g_hash_table_lookup (cloud->priv->browse_callbacks,
+                                           service_name);
   current_callbacks = g_list_prepend (current_callbacks, browser);
 
-  g_hash_table_replace (cloud->priv->browse_callbacks, g_strdup (serviceName), current_callbacks);
+  g_hash_table_replace (cloud->priv->browse_callbacks, g_strdup (
+                          service_name), current_callbacks);
 
-  g_debug ("Setting up browser for %s in %s", serviceName, cloud->priv->cloud_id);
+  g_debug ("Setting up browser for %s in %s", service_name,
+           cloud->priv->cloud_id);
 
-  GList *cur = graviton_node_browser_get_found_nodes (cloud->priv->browser, cloud->priv->cloud_id);
+  GList *cur = graviton_node_browser_get_found_nodes (cloud->priv->browser,
+                                                      cloud->priv->cloud_id);
   g_mutex_unlock (&cloud->priv->browse_lock);
 
   while (cur) {
     GError *error = NULL;
-    if (graviton_node_has_service (cur->data, serviceName, &error)) {
+    if (graviton_node_has_service (cur->data, service_name, &error)) {
       g_debug ("Hit!");
-      GravitonServiceInterface *service = graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (cur->data), serviceName);
+      GravitonServiceInterface *service =
+        graviton_service_interface_get_subservice (GRAVITON_SERVICE_INTERFACE (
+                                                     cur
+                                                     ->
+                                                     data), service_name);
       notify_service_browser (cloud, browser, GRAVITON_SERVICE_NEW, service);
     } else {
       if (error) {
@@ -411,14 +437,17 @@ graviton_cloud_browse_services (GravitonCloud *cloud, const gchar *serviceName, 
 }
 
 void
-graviton_cloud_destroy_service_browser (GravitonCloud *cloud, GravitonServiceBrowser *browser)
+graviton_cloud_destroy_service_browser (GravitonCloud *cloud,
+                                        GravitonServiceBrowser *browser)
 {
   GList *current_callbacks;
 
   g_mutex_lock (&cloud->priv->browse_lock);
-  current_callbacks = g_hash_table_lookup (cloud->priv->browse_callbacks, browser->name);
+  current_callbacks = g_hash_table_lookup (cloud->priv->browse_callbacks,
+                                           browser->name);
   current_callbacks = g_list_remove (current_callbacks, browser);
-  g_hash_table_replace (cloud->priv->browse_callbacks, g_strdup (browser->name), current_callbacks);
+  g_hash_table_replace (cloud->priv->browse_callbacks, g_strdup (
+                          browser->name), current_callbacks);
   g_mutex_unlock (&cloud->priv->browse_lock);
 
   free_browser( browser);
@@ -434,7 +463,8 @@ graviton_cloud_destroy_service_browser (GravitonCloud *cloud, GravitonServiceBro
 GList *
 graviton_cloud_get_found_nodes (GravitonCloud *self)
 {
-  return graviton_node_browser_get_found_nodes (self->priv->browser, self->priv->cloud_id);
+  return graviton_node_browser_get_found_nodes (self->priv->browser,
+                                                self->priv->cloud_id);
 }
 
 /**
@@ -452,8 +482,15 @@ graviton_cloud_new_default_cloud ()
   GravitonNodeBrowser *browser;
   GravitonCloud *cloud;
   GKeyFile *keyfile = g_key_file_new ();
-  g_key_file_load_from_data_dirs (keyfile, "gravitonrc", NULL, G_KEY_FILE_KEEP_COMMENTS, NULL);
-  gchar *cloud_id = g_key_file_get_string (keyfile, "graviton", "default-cloud-id", NULL);
+  g_key_file_load_from_data_dirs (keyfile,
+                                  "gravitonrc",
+                                  NULL,
+                                  G_KEY_FILE_KEEP_COMMENTS,
+                                  NULL);
+  gchar *cloud_id = g_key_file_get_string (keyfile,
+                                           "graviton",
+                                           "default-cloud-id",
+                                           NULL);
   //FIXME: Need to store/load cloud ids
   cloud_id = g_strdup ("3857E91C-BA9F-4CB9-B667-4BBB42C06FC3");
   if (cloud_id == NULL) {
@@ -504,7 +541,7 @@ cb_nodes_found (GravitonNodeBrowser *browser, gpointer data)
   GravitonCloud *self;
 
   self = GRAVITON_CLOUD (data);
-  
+
   self->priv->all_nodes_found_for_now = TRUE;
   g_debug ("Got all-nodes-found signal.");
   notify_all_service_callbacks (self, GRAVITON_SERVICE_ALL_FOR_NOW);
