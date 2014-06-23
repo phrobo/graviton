@@ -176,6 +176,7 @@ rebuild_uri (GravitonJsonrpcNodeTransport *self)
   self->priv->rpc_uri = soup_uri_new_with_base (base, "rpc");
   self->priv->event_uri = soup_uri_new_with_base (base, "events");
   self->priv->stream_uri = soup_uri_new_with_base (base, "stream/");
+
   soup_uri_free (base);
 
   g_free (ip_str);
@@ -304,8 +305,19 @@ open_stream (GravitonNodeTransport *trans_self,
 {
   GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (
     trans_self);
-  SoupURI *stream_uri = soup_uri_new_with_base (self->priv->stream_uri, name);
-  soup_uri_set_query_from_form (stream_uri, args);
+  gchar *new_name;
+  SoupURI *stream_uri;
+
+  // This needs done because otherwise foo:bar:service would look like an
+  // absolute URI to soup_uri_new_with_base
+  new_name = g_strdup_printf ("./%s", name);
+  stream_uri = soup_uri_new_with_base (self->priv->stream_uri, new_name);
+  g_debug ("Preparing jsonrpc stream for %s",
+           soup_uri_to_string (stream_uri, FALSE));
+  g_free (new_name);
+
+  if (args)
+    soup_uri_set_query_from_form (stream_uri, args);
   GIOStream *ret =
     G_IO_STREAM (graviton_jsonrpc_io_stream_new (stream_uri, self->priv->soup));
   soup_uri_free (stream_uri);
