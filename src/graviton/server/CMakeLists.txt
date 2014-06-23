@@ -3,6 +3,7 @@ set(libgraviton-server_SRCS
   root-service.c
   file-stream.c
   server.c
+  static-stream.c
   stream.c
   introspection-service.c
   ${CMAKE_CURRENT_BINARY_DIR}/server-interface.c
@@ -13,6 +14,7 @@ set(libgraviton-server_HEADERS
   file-stream.h
   root-service.h
   server.h
+  static-stream.h
   stream.h
 )
 
