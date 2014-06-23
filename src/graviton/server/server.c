@@ -214,7 +214,10 @@ free_stream (StreamConnection *connection)
 {
   g_object_unref (connection->cancellable);
   if (connection->message) {
-    //g_object_unref (connection->message);
+    SoupMessageBody *body;
+    g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+    soup_message_body_complete (body);
+    soup_server_unpause_message (connection->server->priv->server, connection->message);
     connection->message = 0;
   }
   if (connection->stream) {
@@ -235,13 +238,17 @@ static void
 cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
 {
   GError *error = NULL;
+  SoupMessageBody *body;
   StreamConnection *connection = (StreamConnection*)user_data;
+
   if (g_cancellable_set_error_if_cancelled (connection->cancellable, &error)) {
     free_stream (connection);
     return;
   }
+
   gssize read_size = g_input_stream_read_finish (G_INPUT_STREAM (
                                                    source), res, &error);
+
   if (error) {
     g_debug ("Error while streaming: %s", error->message);
     free_stream (connection);
@@ -253,7 +260,7 @@ cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
     free_stream (connection);
     return;
   }
-  SoupMessageBody *body;
+
   g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
   soup_message_body_append (body, SOUP_MEMORY_COPY, connection->buf, read_size);
   g_debug ("Read %li", read_size); //FIXME: Should use G_SSIZE_FORMAT
