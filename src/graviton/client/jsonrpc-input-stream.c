@@ -189,7 +189,7 @@ stream_read (GInputStream *stream,
     SoupURI *uri = graviton_jsonrpc_io_stream_get_uri (self->priv->stream);
     g_debug ("Opening jsonrpc input stream to %s",
              soup_uri_to_string (uri, FALSE));
-    self->priv->msg = soup_message_new_from_uri ( "GET", uri);
+    self->priv->msg = soup_message_new_from_uri ( "GET", uri );
     g_object_get (self->priv->msg, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
     soup_message_body_set_accumulate (body, FALSE);
     g_signal_connect (self->priv->msg, "got-chunk", G_CALLBACK (
