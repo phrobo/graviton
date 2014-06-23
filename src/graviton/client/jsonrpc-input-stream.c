@@ -21,15 +21,15 @@
 #include "config.h"
 #endif
 
-#include "node-input-stream.h"
-#include "node-io-stream.h"
+#include "jsonrpc-input-stream.h"
+#include "jsonrpc-io-stream.h"
 #include <string.h>
 
-typedef struct _GravitonNodeInputStreamPrivate GravitonNodeInputStreamPrivate;
+typedef struct _GravitonJsonrpcInputStreamPrivate GravitonJsonrpcInputStreamPrivate;
 
-struct _GravitonNodeInputStreamPrivate
+struct _GravitonJsonrpcInputStreamPrivate
 {
-  GravitonNodeIOStream *stream;
+  GravitonJsonrpcIOStream *stream;
   SoupMessage *msg;
   GQueue *buffers;
   GCond input_cond;
@@ -94,18 +94,18 @@ add_buffer (GQueue *queue, const void *buffer, gsize size)
   g_queue_push_tail (queue, buf);
 }
 
-#define GRAVITON_NODE_INPUT_STREAM_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_NODE_INPUT_STREAM_TYPE, \
-                                GravitonNodeInputStreamPrivate))
+#define GRAVITON_JSONRPC_INPUT_STREAM_GET_PRIVATE(o) \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_JSONRPC_INPUT_STREAM_TYPE, \
+                                GravitonJsonrpcInputStreamPrivate))
 
-static void graviton_node_input_stream_class_init (
-  GravitonNodeInputStreamClass *klass);
-static void graviton_node_input_stream_init       (GravitonNodeInputStream *self);
-static void graviton_node_input_stream_dispose    (GObject *object);
-static void graviton_node_input_stream_finalize   (GObject *object);
+static void graviton_jsonrpc_input_stream_class_init (
+  GravitonJsonrpcInputStreamClass *klass);
+static void graviton_jsonrpc_input_stream_init       (GravitonJsonrpcInputStream *self);
+static void graviton_jsonrpc_input_stream_dispose    (GObject *object);
+static void graviton_jsonrpc_input_stream_finalize   (GObject *object);
 
-G_DEFINE_TYPE (GravitonNodeInputStream,
-               graviton_node_input_stream,
+G_DEFINE_TYPE (GravitonJsonrpcInputStream,
+               graviton_jsonrpc_input_stream,
                G_TYPE_INPUT_STREAM);
 
 enum {
@@ -122,7 +122,7 @@ set_property (GObject *object,
               const GValue *value,
               GParamSpec *pspec)
 {
-  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (object);
+  GravitonJsonrpcInputStream *self = GRAVITON_JSONRPC_INPUT_STREAM (object);
   switch (property_id) {
   case PROP_IO_STREAM:
     self->priv->stream = g_value_dup_object (value);
@@ -139,7 +139,7 @@ get_property (GObject *object,
               GValue *value,
               GParamSpec *pspec)
 {
-  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (object);
+  GravitonJsonrpcInputStream *self = GRAVITON_JSONRPC_INPUT_STREAM (object);
   switch (property_id) {
   case PROP_IO_STREAM:
     g_value_set_object (value, self->priv->stream);
@@ -153,7 +153,7 @@ get_property (GObject *object,
 static void
 cb_finished (SoupMessage *msg, gpointer user_data)
 {
-  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (user_data);
+  GravitonJsonrpcInputStream *self = GRAVITON_JSONRPC_INPUT_STREAM (user_data);
   g_debug ("Finished with transmission.");
   g_mutex_lock (&self->priv->input_lock);
   add_buffer (self->priv->buffers, NULL, 0);
@@ -164,7 +164,7 @@ cb_finished (SoupMessage *msg, gpointer user_data)
 static void
 cb_chunk_ready (SoupMessage *msg, SoupBuffer *chunk, gpointer user_data)
 {
-  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (user_data);
+  GravitonJsonrpcInputStream *self = GRAVITON_JSONRPC_INPUT_STREAM (user_data);
   //g_debug ("Read in a chunk of %d bytes", chunk->length);
 
   g_mutex_lock (&self->priv->input_lock);
@@ -180,14 +180,14 @@ stream_read (GInputStream *stream,
              GCancellable *cancellable,
              GError **err)
 {
-  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (stream);
+  GravitonJsonrpcInputStream *self = GRAVITON_JSONRPC_INPUT_STREAM (stream);
   gssize read_size;
   g_assert (self->priv->stream);
   g_debug ("Reading stream");
   if (!self->priv->msg) {
     SoupMessageBody *body;
-    SoupURI *uri = graviton_node_io_stream_get_uri (self->priv->stream);
-    g_debug ("Opening node input stream to %s",
+    SoupURI *uri = graviton_jsonrpc_io_stream_get_uri (self->priv->stream);
+    g_debug ("Opening jsonrpc input stream to %s",
              soup_uri_to_string (uri, FALSE));
     self->priv->msg = soup_message_new_from_uri ( "GET", uri);
     g_object_get (self->priv->msg, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
@@ -196,7 +196,7 @@ stream_read (GInputStream *stream,
                         cb_chunk_ready), self);
     g_signal_connect (self->priv->msg, "finished", G_CALLBACK (
                         cb_finished), self);
-    soup_session_queue_message (graviton_node_io_stream_get_session (self->priv
+    soup_session_queue_message (graviton_jsonrpc_io_stream_get_session (self->priv
                                                                      ->stream), self->priv->msg, NULL,
                                 NULL);
   }
@@ -221,7 +221,7 @@ stream_skip (GInputStream *stream,
              GCancellable *cancellable,
              GError **err)
 {
-  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (stream);
+  GravitonJsonrpcInputStream *self = GRAVITON_JSONRPC_INPUT_STREAM (stream);
   g_assert (self->priv->stream);
 
   //FIXME: Resubmit the underlying HTTP request with proper ranges
@@ -233,11 +233,11 @@ stream_close (GInputStream *stream,
               GCancellable *cancellable,
               GError **err)
 {
-  GravitonNodeInputStream *self = GRAVITON_NODE_INPUT_STREAM (stream);
+  GravitonJsonrpcInputStream *self = GRAVITON_JSONRPC_INPUT_STREAM (stream);
   g_assert (self->priv->stream);
 
   if (self->priv->msg)
-    soup_session_cancel_message (graviton_node_io_stream_get_session (self->priv
+    soup_session_cancel_message (graviton_jsonrpc_io_stream_get_session (self->priv
                                                                       ->stream), self->priv->msg,
                                  SOUP_STATUS_CANCELLED);
 
@@ -247,14 +247,14 @@ stream_close (GInputStream *stream,
 }
 
 static void
-graviton_node_input_stream_class_init (GravitonNodeInputStreamClass *klass)
+graviton_jsonrpc_input_stream_class_init (GravitonJsonrpcInputStreamClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (GravitonNodeInputStreamPrivate));
+  g_type_class_add_private (klass, sizeof (GravitonJsonrpcInputStreamPrivate));
 
-  object_class->dispose = graviton_node_input_stream_dispose;
-  object_class->finalize = graviton_node_input_stream_finalize;
+  object_class->dispose = graviton_jsonrpc_input_stream_dispose;
+  object_class->finalize = graviton_jsonrpc_input_stream_finalize;
 
   GInputStreamClass *input_class = G_INPUT_STREAM_CLASS (klass);
   input_class->read_fn = stream_read;
@@ -266,9 +266,9 @@ graviton_node_input_stream_class_init (GravitonNodeInputStreamClass *klass)
 
   obj_properties [PROP_IO_STREAM] =
     g_param_spec_object ("io-stream",
-                         "GravitonNodeIOStream",
-                         "The underlying GravitonNodeIOStream",
-                         GRAVITON_NODE_IO_STREAM_TYPE,
+                         "GravitonJsonrpcIOStream",
+                         "The underlying GravitonJsonrpcIOStream",
+                         GRAVITON_JSONRPC_IO_STREAM_TYPE,
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY );
   g_object_class_install_properties (object_class,
                                      N_PROPERTIES,
@@ -276,31 +276,31 @@ graviton_node_input_stream_class_init (GravitonNodeInputStreamClass *klass)
 }
 
 static void
-graviton_node_input_stream_init (GravitonNodeInputStream *self)
+graviton_jsonrpc_input_stream_init (GravitonJsonrpcInputStream *self)
 {
-  GravitonNodeInputStreamPrivate *priv;
-  priv = self->priv = GRAVITON_NODE_INPUT_STREAM_GET_PRIVATE (self);
+  GravitonJsonrpcInputStreamPrivate *priv;
+  priv = self->priv = GRAVITON_JSONRPC_INPUT_STREAM_GET_PRIVATE (self);
   priv->buffers = g_queue_new ();
   g_mutex_init (&priv->input_lock);
   g_cond_init (&priv->input_cond);
 }
 
 static void
-graviton_node_input_stream_dispose (GObject *object)
+graviton_jsonrpc_input_stream_dispose (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_node_input_stream_parent_class)->dispose (object);
+  G_OBJECT_CLASS (graviton_jsonrpc_input_stream_parent_class)->dispose (object);
 }
 
 static void
-graviton_node_input_stream_finalize (GObject *object)
+graviton_jsonrpc_input_stream_finalize (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_node_input_stream_parent_class)->finalize (object);
+  G_OBJECT_CLASS (graviton_jsonrpc_input_stream_parent_class)->finalize (object);
 }
 
-GravitonNodeInputStream *
-graviton_node_input_stream_new (GravitonNodeIOStream *stream)
+GravitonJsonrpcInputStream *
+graviton_jsonrpc_input_stream_new (GravitonJsonrpcIOStream *stream)
 {
-  return g_object_new (GRAVITON_NODE_INPUT_STREAM_TYPE,
+  return g_object_new (GRAVITON_JSONRPC_INPUT_STREAM_TYPE,
                        "io-stream",
                        stream,
                        NULL);

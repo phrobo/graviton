@@ -22,7 +22,7 @@
 #endif
 
 #include "jsonrpc-node-transport.h"
-#include "node-io-stream.h"
+#include "jsonrpc-io-stream.h"
 #include "node.h"
 
 #include <json-glib/json-glib.h>
@@ -307,7 +307,7 @@ open_stream (GravitonNodeTransport *trans_self,
   SoupURI *stream_uri = soup_uri_new_with_base (self->priv->stream_uri, name);
   soup_uri_set_query_from_form (stream_uri, args);
   GIOStream *ret =
-    G_IO_STREAM (graviton_node_io_stream_new (stream_uri, self->priv->soup));
+    G_IO_STREAM (graviton_jsonrpc_io_stream_new (stream_uri, self->priv->soup));
   soup_uri_free (stream_uri);
   return ret;
 }

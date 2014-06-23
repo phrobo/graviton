@@ -4,8 +4,8 @@ set(libgraviton-client_SRCS
   introspection-interface.c
   node.c
   service-interface.c
-  node-io-stream.c
-  node-input-stream.c
+  jsonrpc-io-stream.c
+  jsonrpc-input-stream.c
   node-stream.c
   node-transport.c
   jsonrpc-node-transport.c
@@ -18,8 +18,8 @@ set(libgraviton-client_HEADERS
   introspection-interface.h
   node.h
   service-interface.h
-  node-input-stream.h
-  node-io-stream.h
+  jsonrpc-input-stream.h
+  jsonrpc-io-stream.h
   node-stream.h
   node-transport.h
   jsonrpc-node-transport.h
