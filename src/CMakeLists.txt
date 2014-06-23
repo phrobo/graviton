@@ -42,7 +42,6 @@ set(CMAKE_C_FLAGS
 )
 
 add_subdirectory(graviton)
-add_subdirectory(graviton-ping-server)
-add_subdirectory(graviton-ping-client)
+add_subdirectory(examples)
 add_subdirectory(plugins)
 add_subdirectory(graviton-cli)
