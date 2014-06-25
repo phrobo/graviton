@@ -90,5 +90,11 @@ graviton_stream_open_read (GravitonStream *self, GError **error)
 GOutputStream *
 graviton_stream_open_write (GravitonStream *self, GError **error)
 {
-  return GRAVITON_STREAM_GET_CLASS(self)->open_write (self, error);
+  if (GRAVITON_STREAM_GET_CLASS(self)->open_write)
+    return GRAVITON_STREAM_GET_CLASS(self)->open_write (self, error);
+  g_set_error (error,
+               G_IO_ERROR,
+               G_IO_ERROR_READ_ONLY,
+               "Stream is read only");
+  return NULL;
 }
