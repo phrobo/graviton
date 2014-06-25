@@ -65,11 +65,6 @@ GravitonStream *graviton_stream_new ();
 GInputStream *graviton_stream_open_read (GravitonStream *self, GError **error);
 GOutputStream *graviton_stream_open_write (GravitonStream *self,
                                            GError **error);
-GVariant *graviton_stream_get_metadata (GravitonStream *stream,
-                                        const gchar *name);
-void graviton_stream_set_metadata (GravitonStream *stream,
-                                   const gchar *name,
-                                   GVariant value);
 
 G_END_DECLS
 
