@@ -27,7 +27,7 @@ typedef struct _GravitonStreamPrivate GravitonStreamPrivate;
 
 struct _GravitonStreamPrivate
 {
-  gchar *name;
+  int foo;
 };
 
 #define GRAVITON_STREAM_GET_PRIVATE(o) \
@@ -76,16 +76,9 @@ graviton_stream_finalize (GObject *object)
 }
 
 GravitonStream *
-graviton_stream_new (const gchar *name)
+graviton_stream_new ()
 {
-  //FIXME: This is not actually ever set!
-  return g_object_new (GRAVITON_STREAM_TYPE, "name", name, NULL);
-}
-
-const gchar *
-graviton_stream_get_name (GravitonStream *self)
-{
-  return self->priv->name;
+  return g_object_new (GRAVITON_STREAM_TYPE, NULL);
 }
 
 GInputStream *

@@ -60,7 +60,7 @@ struct _GravitonStream
 
 GType graviton_stream_get_type (void);
 
-GravitonStream *graviton_stream_new (const gchar *name);
+GravitonStream *graviton_stream_new ();
 
 GInputStream *graviton_stream_open_read (GravitonStream *self, GError **error);
 GOutputStream *graviton_stream_open_write (GravitonStream *self,
@@ -70,7 +70,6 @@ GVariant *graviton_stream_get_metadata (GravitonStream *stream,
 void graviton_stream_set_metadata (GravitonStream *stream,
                                    const gchar *name,
                                    GVariant value);
-const gchar *graviton_stream_get_name (GravitonStream *self);
 
 G_END_DECLS
 
