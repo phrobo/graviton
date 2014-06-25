@@ -23,13 +23,6 @@
 
 #include "stream.h"
 
-typedef struct _GravitonStreamPrivate GravitonStreamPrivate;
-
-struct _GravitonStreamPrivate
-{
-  int foo;
-};
-
 #define GRAVITON_STREAM_GET_PRIVATE(o) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_STREAM_TYPE, \
                                 GravitonStreamPrivate))
@@ -46,8 +39,6 @@ graviton_stream_class_init (GravitonStreamClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (GravitonStreamPrivate));
-
   object_class->dispose = graviton_stream_dispose;
   object_class->finalize = graviton_stream_finalize;
 }
@@ -55,9 +46,6 @@ graviton_stream_class_init (GravitonStreamClass *klass)
 static void
 graviton_stream_init (GravitonStream *self)
 {
-  GravitonStreamPrivate *priv;
-  priv = self->priv = GRAVITON_STREAM_GET_PRIVATE (self);
-  priv->name = NULL;
 }
 
 static void
@@ -69,9 +57,6 @@ graviton_stream_dispose (GObject *object)
 static void
 graviton_stream_finalize (GObject *object)
 {
-  GravitonStream *self = GRAVITON_STREAM (object);
-  g_free (self->priv->name);
-
   G_OBJECT_CLASS (graviton_stream_parent_class)->finalize (object);
 }
 

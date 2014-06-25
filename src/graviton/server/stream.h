@@ -43,7 +43,6 @@ G_BEGIN_DECLS
 
 typedef struct _GravitonStream GravitonStream;
 typedef struct _GravitonStreamClass GravitonStreamClass;
-typedef struct _GravitonStreamPrivate GravitonStreamPrivate;
 
 struct _GravitonStreamClass
 {
@@ -55,7 +54,6 @@ struct _GravitonStreamClass
 struct _GravitonStream
 {
   GObject parent;
-  GravitonStreamPrivate *priv;
 };
 
 GType graviton_stream_get_type (void);
