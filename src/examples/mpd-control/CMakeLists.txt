@@ -1,0 +1,11 @@
+pkg_search_module(MPD libmpdclient)
+pkg_search_module(GIO_UNIX gio-unix-2.0)
+
+if (${MPD_FOUND})
+  include_directories(${MPD_INCLUDE_DIRS} ${GIO_UNIX_INCLUDE_DIRS})
+  add_executable(graviton-mpd-service server.c mpd-service.c)
+  add_executable(graviton-mpd-client client.c)
+  target_link_libraries(graviton-mpd-service graviton-server ${MPD_LIBRARIES} ${GIO_UNIX_LIBRARIES})
+  target_link_libraries(graviton-mpd-client graviton-client)
+  install(TARGETS graviton-mpd-service DESTINATION bin)
+endif()

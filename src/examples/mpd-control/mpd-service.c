@@ -1,12 +1,10 @@
-#include "mpd-plugin.h"
+#include "mpd-service.h"
 
 #include <json-glib/json-glib.h>
 #include <mpd/client.h>
 #include <gio/gunixinputstream.h>
 
-#include <graviton/control.h>
-
-#define GRAVITON_MPD_PLUGIN_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_TYPE_MPD_PLUGIN, GravitonMPDPluginPrivate))
+#define GRAVITON_MPD_SERVICE_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), GRAVITON_MPD_SERVICE_TYPE, GravitonMPDServicePrivate))
 
 GQuark
 graviton_mpd_error_quark ()
@@ -26,13 +24,13 @@ graviton_mpd_system_error_quark ()
   return g_quark_from_static_string ("graviton-mpd-system-error-quark");
 }
 
-GRAVITON_DEFINE_PLUGIN(GRAVITON_TYPE_MPD_PLUGIN, "mpd")
-
-G_DEFINE_TYPE (GravitonMPDPlugin, graviton_mpd_plugin, GRAVITON_TYPE_PLUGIN);
+G_DEFINE_TYPE (GravitonMPDService, graviton_mpd_service, GRAVITON_SERVICE_TYPE);
 
 enum
 {
   PROP_0,
+  PROP_ADDRESS,
+  PROP_PORT,
   PROP_STATE,
   PROP_QUEUE,
   N_PROPERTIES
@@ -40,8 +38,10 @@ enum
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
-struct _GravitonMPDPluginPrivate
+struct _GravitonMPDServicePrivate
 {
+  gchar *address;
+  guint port;
   struct mpd_connection *mpd;
   GPollableInputStream *mpd_stream;
   GSource *mpd_source;
@@ -54,6 +54,7 @@ set_mpd_error (GError **error, struct mpd_connection *connection)
 {
   enum mpd_error err = mpd_connection_get_error (connection);
   if (err != MPD_ERROR_SUCCESS) {
+    g_warning ("setting mpd error :(");
     if (err == MPD_ERROR_SERVER) {
       g_set_error (error,
                    GRAVITON_MPD_SERVER_ERROR,
@@ -74,7 +75,7 @@ set_mpd_error (GError **error, struct mpd_connection *connection)
 }
 
 static void
-update_status (GravitonMPDPlugin *self)
+update_status (GravitonMPDService *self)
 {
   if (self->priv->last_status)
     mpd_status_free (self->priv->last_status);
@@ -83,7 +84,7 @@ update_status (GravitonMPDPlugin *self)
 }
 
 static void
-update_queue (GravitonMPDPlugin *self)
+update_queue (GravitonMPDService *self)
 {
   if (self->priv->last_queue) {
     GList *cur = self->priv->last_queue;
@@ -106,9 +107,10 @@ update_queue (GravitonMPDPlugin *self)
 }
 
 static void
-parse_idle(GravitonMPDPlugin *self)
+parse_idle(GravitonMPDService *self)
 {
   enum mpd_idle idle_status;
+  g_debug ("recv idle");
   idle_status = mpd_recv_idle (self->priv->mpd, TRUE);
   g_debug ("Got idle!");
   if (idle_status & MPD_IDLE_PLAYER) {
@@ -136,24 +138,31 @@ parse_idle(GravitonMPDPlugin *self)
 static void
 cb_mpd_idle(GObject *stream, gpointer user_data)
 {
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (user_data);
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (user_data);
+  g_debug ("Catching an idle event!");
   parse_idle (self);
+  g_debug ("sending idle");
   mpd_send_idle (self->priv->mpd);
 }
 
-static void
-stop_mpd_idle (GravitonMPDPlugin *self)
+static gboolean
+stop_mpd_idle (GravitonMPDService *self)
 {
   g_assert (self->priv->mpd_source);
   g_source_destroy (self->priv->mpd_source);
   self->priv->mpd_source = NULL;
   g_debug ("Sending noidle");
-  mpd_send_noidle (self->priv->mpd);
+  if (!mpd_send_noidle (self->priv->mpd)) {
+    g_debug ("could not send noidle!");
+    return FALSE;
+  }
   parse_idle (self);
+  g_debug ("Idle has been stopped.");
+  return TRUE;
 }
 
 static void
-resume_mpd_idle (GravitonMPDPlugin *self)
+resume_mpd_idle (GravitonMPDService *self)
 {
   g_assert (self->priv->mpd_source == NULL);
   self->priv->mpd_source = g_pollable_input_stream_create_source (self->priv->mpd_stream, NULL);
@@ -161,23 +170,20 @@ resume_mpd_idle (GravitonMPDPlugin *self)
   g_source_attach (self->priv->mpd_source, NULL);
   g_debug ("Sending idle");
   mpd_send_idle (self->priv->mpd);
+  g_debug ("Idle has been resumed");
 }
 
 static enum mpd_error
-connect_to_mpd(GravitonMPDPlugin *self, GError **error)
+connect_to_mpd(GravitonMPDService *self, GError **error)
 {
   if (!self->priv->mpd) {
-    self->priv->mpd = mpd_connection_new ("10.2.0.6", 0, 0);
+    self->priv->mpd = mpd_connection_new (self->priv->address, self->priv->port, 0);
   }
   enum mpd_error err = mpd_connection_get_error (self->priv->mpd);
   if (err != MPD_ERROR_SUCCESS) {
     set_mpd_error (error, self->priv->mpd);
   } else {
     self->priv->mpd_stream = G_POLLABLE_INPUT_STREAM (g_unix_input_stream_new (mpd_connection_get_fd (self->priv->mpd), FALSE));
-    if (self->priv->last_status) {
-      mpd_status_free (self->priv->last_status);
-      self->priv->last_status = NULL;
-    }
   }
 
   return err;
@@ -185,7 +191,7 @@ connect_to_mpd(GravitonMPDPlugin *self, GError **error)
 
 
 static const gchar *
-mpd_state_string (GravitonMPDPlugin *self)
+mpd_state_string (GravitonMPDService *self)
 {
   if (self->priv->last_status) {
     switch (mpd_status_get_state(self->priv->last_status)) {
@@ -210,9 +216,16 @@ set_property (GObject *object,
               const GValue *value,
               GParamSpec *pspec)
 {
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (object);
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (object);
 
   switch (property_id) {
+    case PROP_ADDRESS:
+      g_free (self->priv->address);
+      self->priv->address = g_value_dup_string (value);
+      break;
+    case PROP_PORT:
+      self->priv->port = g_value_get_uint (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -220,7 +233,7 @@ set_property (GObject *object,
 }
 
 static GVariant *
-queue_to_variant (GravitonMPDPlugin *self)
+queue_to_variant (GravitonMPDService *self)
 {
   GVariantBuilder ret;
   g_variant_builder_init (&ret, (GVariantType*)"aa{s*}");
@@ -251,10 +264,16 @@ get_property (GObject *object,
               GValue *value,
               GParamSpec *pspec)
 {
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (object);
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (object);
   GVariant *v;
 
   switch (property_id) {
+    case PROP_PORT:
+      g_value_set_uint (value, self->priv->port);
+      break;
+    case PROP_ADDRESS:
+      g_value_set_string (value, self->priv->address);
+      break;
     case PROP_STATE:
       g_value_set_string (value, mpd_state_string (self));
       break;
@@ -269,46 +288,64 @@ get_property (GObject *object,
 }
 
 static void
-graviton_mpd_plugin_class_init (GravitonMPDPluginClass *klass)
+graviton_mpd_service_class_init (GravitonMPDServiceClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
   gobject_class->set_property = set_property;
   gobject_class->get_property = get_property;
-  g_type_class_add_private (klass, sizeof (GravitonMPDPluginPrivate));
+  g_type_class_add_private (klass, sizeof (GravitonMPDServicePrivate));
+
+  obj_properties[PROP_ADDRESS] =
+    g_param_spec_string ("address",
+                         "mpd address",
+                         "Address of the MPD server",
+                         "localhost",
+                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+  obj_properties[PROP_PORT] =
+    g_param_spec_uint ("port",
+                       "mpd port",
+                       "Address of the MPD server",
+                       0,
+                       65535,
+                       0,
+                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   obj_properties[PROP_STATE] =
     g_param_spec_string ("state", 
                          "playback state",
                          "Current MPD playback state",
                          "unknown",
-                         G_PARAM_READABLE);
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
   obj_properties[PROP_QUEUE] =
     g_param_spec_variant ("queue", 
                           "playback queue",
                           "Current MPD playback queue",
                           (GVariantType*)"aa{s*}",
                           NULL,
-                          G_PARAM_READABLE);
+                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_properties (gobject_class,
                                      N_PROPERTIES,
                                      obj_properties);
 }
 
 static JsonNode *
-cb_status(GravitonPlugin *plugin_self, const gchar *path, GError **error, gpointer user_data)
+cb_status(GravitonService *service_self, const gchar *path, GError **error, gpointer user_data)
 {
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN(plugin_self);
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE(service_self);
   JsonNode *node;
   JsonBuilder *builder = json_builder_new ();
 
   json_builder_begin_object (builder);
 
   if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
-    struct mpd_status *status;
-    status = mpd_run_status (self->priv->mpd);
+    stop_mpd_idle (self);
+    update_status (self);
+    resume_mpd_idle (self);
     json_builder_set_member_name (builder, "state");
-    switch (mpd_status_get_state(status)) {
+    switch (mpd_status_get_state(self->priv->last_status)) {
       case MPD_STATE_STOP:
         json_builder_add_string_value (builder, "stopped");
         break;
@@ -319,11 +356,9 @@ cb_status(GravitonPlugin *plugin_self, const gchar *path, GError **error, gpoint
         json_builder_add_string_value (builder, "paused");
         break;
       default:
-        g_warning ("Unknown MPD state: %d", mpd_status_get_state(status));
+        g_warning ("Unknown MPD state: %d", mpd_status_get_state(self->priv->last_status));
         json_builder_add_string_value (builder, "unknown");
     }
-
-    mpd_status_free (status);
   } else {
     json_builder_set_member_name (builder, "error");
     json_builder_add_string_value (builder, mpd_connection_get_error_message (self->priv->mpd));
@@ -337,9 +372,9 @@ cb_status(GravitonPlugin *plugin_self, const gchar *path, GError **error, gpoint
 }
 
 static JsonNode*
-cb_playlist(GravitonPlugin *plugin_self, const gchar *path, GError **error, gpointer user_data)
+cb_playlist(GravitonService *service_self, const gchar *path, GError **error, gpointer user_data)
 {
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN(plugin_self);
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE(service_self);
   JsonNode *node;
   JsonBuilder *builder = json_builder_new ();
 
@@ -356,11 +391,9 @@ cb_playlist(GravitonPlugin *plugin_self, const gchar *path, GError **error, gpoi
 }
 
 static GVariant *
-cb_previous (GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_previous (GravitonService *service, GHashTable *args, GError **error, gpointer user_data)
 {
-  GVariantBuilder ret;
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (user_data);
-  gboolean success;
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (service);
   if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
     if (mpd_run_previous (self->priv->mpd))
       return NULL;
@@ -371,26 +404,30 @@ cb_previous (GravitonControl *control, GHashTable *args, GError **error, gpointe
 }
 
 static GVariant *
-cb_next (GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_next (GravitonService *service, GHashTable *args, GError **error, gpointer user_data)
 {
-  GVariantBuilder ret;
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (user_data);
-  gboolean success;
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (service);
   if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
-    if (mpd_run_next (self->priv->mpd))
-      return NULL;
-    else
+    g_print ("Stopping idle\n");
+    if (!stop_mpd_idle (self)) {
       set_mpd_error (error, self->priv->mpd);
+      return NULL;
+    }
+    g_print ("Running next\n");
+    if (!mpd_run_next (self->priv->mpd)) {
+      set_mpd_error (error, self->priv->mpd);
+      return NULL;
+    }
+    g_debug ("Next has been performed");
+    resume_mpd_idle (self);
   }
   return NULL;
 }
 
 static GVariant *
-cb_pause (GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_pause (GravitonService *service, GHashTable *args, GError **error, gpointer user_data)
 {
-  GVariantBuilder ret;
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (user_data);
-  gboolean success;
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (service);
   if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
     stop_mpd_idle (self);
     if (!mpd_run_pause (self->priv->mpd, true))
@@ -401,11 +438,9 @@ cb_pause (GravitonControl *control, GHashTable *args, GError **error, gpointer u
 }
 
 static GVariant *
-cb_play (GravitonControl *control, GHashTable *args, GError **error, gpointer user_data)
+cb_play (GravitonService *service, GHashTable *args, GError **error, gpointer user_data)
 {
-  GVariantBuilder ret;
-  GravitonMPDPlugin *self = GRAVITON_MPD_PLUGIN (user_data);
-  gboolean success;
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (service);
   if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
     stop_mpd_idle (self);
     if (!mpd_run_play (self->priv->mpd))
@@ -416,10 +451,11 @@ cb_play (GravitonControl *control, GHashTable *args, GError **error, gpointer us
 }
 
 static void
-graviton_mpd_plugin_init (GravitonMPDPlugin *self)
+graviton_mpd_service_init (GravitonMPDService *self)
 {
-  GravitonMPDPluginPrivate *priv;
-  self->priv = priv = GRAVITON_MPD_PLUGIN_GET_PRIVATE (self);
+  GravitonService *self_service = GRAVITON_SERVICE (self);
+  GravitonMPDServicePrivate *priv;
+  self->priv = priv = GRAVITON_MPD_SERVICE_GET_PRIVATE (self);
   priv->mpd = NULL;
   priv->last_status = NULL;
   priv->last_queue = NULL;
@@ -430,35 +466,34 @@ graviton_mpd_plugin_init (GravitonMPDPlugin *self)
     resume_mpd_idle (self);
   }
 
-  GravitonControl* playback = g_object_new (GRAVITON_TYPE_CONTROL, "name", "playback", NULL);
-  graviton_control_add_method (playback,
+  graviton_service_add_method (self_service,
                                "play",
                                cb_play,
-                               0,
                                NULL,
-                               self,
                                NULL);
-  graviton_control_add_method (playback,
+  graviton_service_add_method (self_service,
                                "pause",
                                cb_pause,
-                               0,
                                NULL,
-                               self,
                                NULL);
-  graviton_control_add_method (playback,
+  graviton_service_add_method (self_service,
                                "next",
                                cb_next,
-                               0,
                                NULL,
-                               self,
                                NULL);
-  graviton_control_add_method (playback,
+  graviton_service_add_method (self_service,
                                "previous",
                                cb_previous,
-                               0,
                                NULL,
-                               self,
                                NULL);
- 
-  graviton_control_add_subcontrol (GRAVITON_CONTROL(self), playback);
+}
+
+GravitonMPDService *
+graviton_mpd_service_new (const gchar *address, guint port)
+{
+  return g_object_new (GRAVITON_MPD_SERVICE_TYPE,
+                      "name", "net:phrobo:graviton:examples:mpd",
+                      "address", address,
+                      "port", port,
+                      NULL);
 }
