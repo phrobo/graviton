@@ -293,7 +293,8 @@ graviton_service_interface_call_noref (GravitonServiceInterface *service,
                              service), full_method, error, args);
   va_end (args);
   g_free (full_method);
-  g_variant_unref (ret);
+  if (ret)
+    g_variant_unref (ret);
 }
 
 GVariant *
