@@ -831,11 +831,10 @@ cb_event (GravitonService *service,
     soup_message_body_complete (body);
     soup_server_unpause_message (self->priv->server, client->data);
     client = g_list_next (client);
-    g_debug ("Sent event: %s", (gchar*)data);
+    g_debug ("Sent event: %s", (gchar*)json);
   }
 
   g_free (full_data);
-  g_free (data);
 }
 
 SoupServer *
