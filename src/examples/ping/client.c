@@ -54,7 +54,7 @@ int main(int argc, char **argv)
   GMainLoop *loop = g_main_loop_new (NULL, 0);
   GravitonCloud *cloud = graviton_cloud_new_default_cloud ();
 
-  graviton_cloud_browse_services (cloud, "net:phrobo:graviton:ping", cb_services, loop);
+  graviton_cloud_browse_services (cloud, "net:phrobo:graviton:examples:ping", cb_services, loop);
 
   g_main_loop_run (loop);
 

@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 
   server = graviton_server_new ();
   GravitonRootService *root = graviton_server_get_root_service (server);
-  GravitonService *ping_service = graviton_service_new ("net:phrobo:graviton:ping");
+  GravitonService *ping_service = graviton_service_new ("net:phrobo:graviton:examples:ping");
   graviton_service_add_subservice (GRAVITON_SERVICE (root), ping_service);
 
   graviton_service_add_method (ping_service, "ping", cb_ping, NULL, NULL);
