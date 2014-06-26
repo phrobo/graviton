@@ -20,6 +20,8 @@
 #include "service.h"
 #include <string.h>
 
+#define G_LOG_DOMAIN "GravitonService"
+
 /**
  * SECTION:service
  * @short_description: An interface to expose services within a Graviton cloud
