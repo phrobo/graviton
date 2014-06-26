@@ -368,16 +368,19 @@ cb_event_from_notify (GravitonService *self,
   g_value_init (&property_value, pspec->value_type);
   g_object_get_property (G_OBJECT (self), pspec->name, &property_value);
 
-  if (G_VALUE_HOLDS_STRING (&property_value))
-    property_data = g_variant_new_string (g_value_get_string (&property_value));
-
+  if (G_VALUE_HOLDS_STRING (&property_value)) {
+    const gchar *v = g_value_get_string (&property_value);
+    if (v)
+      property_data = g_variant_new_string (v);
+  } else if (G_VALUE_HOLDS_UINT (&property_value))
+    property_data = g_variant_new_uint32 (g_value_get_uint (&property_value));
 
   if (property_data) {
     graviton_service_emit_event (self, "property", property_data);
   } else {
-    g_warning ("Could not convert %s.%s to a GVariant!",
-               self->priv->name,
-               pspec->name);
+    g_debug ("Could not convert %s.%s to a GVariant!",
+             self->priv->name,
+             pspec->name);
   }
 }
 
