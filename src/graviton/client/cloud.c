@@ -417,6 +417,7 @@ graviton_cloud_browse_services (GravitonCloud *cloud,
                                                      ->
                                                      data), service_name);
       notify_service_browser (cloud, browser, GRAVITON_SERVICE_NEW, service);
+      g_object_unref (service);
     } else {
       if (error) {
         g_debug ("Error while asking about service: %s", error->message);
