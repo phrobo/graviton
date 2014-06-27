@@ -288,13 +288,52 @@ get_property (GObject *object,
 }
 
 static void
+graviton_mpd_service_dispose (GObject *object)
+{
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (object);
+
+  if (self->priv->mpd_stream)
+    g_object_unref (self->priv->mpd_stream);
+  self->priv->mpd_stream = NULL;
+
+  if (self->priv->mpd_source)
+    g_source_destroy (self->priv->mpd_source);
+  self->priv->mpd_source = NULL;
+
+  G_OBJECT_CLASS (graviton_mpd_service_parent_class)->dispose (object);
+}
+
+static void
+graviton_mpd_service_finalize (GObject *object)
+{
+  GravitonMPDService *self = GRAVITON_MPD_SERVICE (object);
+
+  g_list_free_full (self->priv->last_queue, (GDestroyNotify)mpd_song_free);
+  self->priv->last_queue = NULL;
+
+  mpd_status_free (self->priv->last_status);
+  self->priv->last_status = NULL;
+
+  mpd_connection_free (self->priv->mpd);
+  self->priv->mpd = NULL;
+
+  g_free (self->priv->address);
+
+  G_OBJECT_CLASS (graviton_mpd_service_parent_class)->finalize (object);
+}
+
+static void
 graviton_mpd_service_class_init (GravitonMPDServiceClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
+  g_type_class_add_private (klass, sizeof (GravitonMPDServicePrivate));
+
   gobject_class->set_property = set_property;
   gobject_class->get_property = get_property;
-  g_type_class_add_private (klass, sizeof (GravitonMPDServicePrivate));
+  gobject_class->dispose = graviton_mpd_service_dispose;
+  gobject_class->finalize = graviton_mpd_service_finalize;
+
 
   obj_properties[PROP_ADDRESS] =
     g_param_spec_string ("address",
