@@ -370,65 +370,6 @@ graviton_mpd_service_class_init (GravitonMPDServiceClass *klass)
                                      obj_properties);
 }
 
-static JsonNode *
-cb_status(GravitonService *service_self, const gchar *path, GError **error, gpointer user_data)
-{
-  GravitonMPDService *self = GRAVITON_MPD_SERVICE(service_self);
-  JsonNode *node;
-  JsonBuilder *builder = json_builder_new ();
-
-  json_builder_begin_object (builder);
-
-  if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
-    stop_mpd_idle (self);
-    update_status (self);
-    resume_mpd_idle (self);
-    json_builder_set_member_name (builder, "state");
-    switch (mpd_status_get_state(self->priv->last_status)) {
-      case MPD_STATE_STOP:
-        json_builder_add_string_value (builder, "stopped");
-        break;
-      case MPD_STATE_PLAY:
-        json_builder_add_string_value (builder, "playing");
-        break;
-      case MPD_STATE_PAUSE:
-        json_builder_add_string_value (builder, "paused");
-        break;
-      default:
-        g_warning ("Unknown MPD state: %d", mpd_status_get_state(self->priv->last_status));
-        json_builder_add_string_value (builder, "unknown");
-    }
-  } else {
-    json_builder_set_member_name (builder, "error");
-    json_builder_add_string_value (builder, mpd_connection_get_error_message (self->priv->mpd));
-  }
-
-  json_builder_end_object (builder);
-  
-  node = json_builder_get_root (builder);
-  g_object_unref (builder);
-  return node;
-}
-
-static JsonNode*
-cb_playlist(GravitonService *service_self, const gchar *path, GError **error, gpointer user_data)
-{
-  GravitonMPDService *self = GRAVITON_MPD_SERVICE(service_self);
-  JsonNode *node;
-  JsonBuilder *builder = json_builder_new ();
-
-  json_builder_begin_object (builder);
-  if (connect_to_mpd (self, error) == MPD_ERROR_SUCCESS) {
-  }
-  json_builder_set_member_name (builder, "error");
-  json_builder_add_string_value (builder, mpd_connection_get_error_message (self->priv->mpd));
-  json_builder_end_object (builder);
-
-  node = json_builder_get_root (builder);
-  g_object_unref (builder);
-  return node;
-}
-
 static GVariant *
 cb_previous (GravitonService *service, GHashTable *args, GError **error, gpointer user_data)
 {
