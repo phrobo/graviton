@@ -98,6 +98,7 @@ cb_read_event (SoupSession *session, SoupMessage *msg, gpointer data)
   JsonParser *parser;
   GVariant *event_data = NULL;
   const gchar *event_name;
+  guint64 event_id;
 
   self = GRAVITON_JSONRPC_NODE_TRANSPORT (data);
   g_object_get (msg, SOUP_MESSAGE_RESPONSE_BODY, &response, NULL);
@@ -112,6 +113,7 @@ cb_read_event (SoupSession *session, SoupMessage *msg, gpointer data)
       JsonNode *response_json = json_parser_get_root (parser);
       if (JSON_NODE_HOLDS_OBJECT (response_json)) {
         JsonObject *response_obj = json_node_get_object (response_json);
+        event_id = json_object_get_int_member (response_obj, "id");
         event_name = json_object_get_string_member (response_obj, "name");
         JsonNode *result_node = json_object_get_member (response_obj, "data");
         event_data = json_gvariant_deserialize (result_node, NULL, &error);
@@ -126,7 +128,7 @@ cb_read_event (SoupSession *session, SoupMessage *msg, gpointer data)
     if (event_data) {
       graviton_node_transport_emit_event (GRAVITON_NODE_TRANSPORT (
                                             self), graviton_jsonrpc_node_transport_get_node_id (
-                                            self), event_name, event_data);
+                                            self), event_name, event_id, event_data);
     }
 
     g_object_unref (parser);

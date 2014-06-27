@@ -81,6 +81,7 @@ GIOStream *graviton_node_transport_open_stream (GravitonNodeTransport *self,
 void graviton_node_transport_emit_event (GravitonNodeTransport *self,
                                          const gchar *node_id,
                                          const gchar *name,
+                                         guint64 event_id,
                                          GVariant *data);
 
 G_END_DECLS

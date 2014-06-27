@@ -23,7 +23,6 @@
 
 #include "cloud.h"
 #include "introspection-interface.h"
-#include "node-io-stream.h"
 #include "node.h"
 
 #include <string.h>
@@ -36,6 +35,8 @@ struct _GravitonNodePrivate
   //FIXME: Replace with a hash table
   GPtrArray *transports;
   gchar *node_id;
+
+  guint64 last_event_id;
 };
 
 #define GRAVITON_NODE_GET_PRIVATE(o) \
@@ -79,7 +80,7 @@ unref_arg (GVariant *var)
 }
 
 static void
-set_property (GObject *object,
+graviton_node_set_property (GObject *object,
               guint property_id,
               const GValue *value,
               GParamSpec *pspec)
@@ -122,7 +123,7 @@ graviton_node_class_init (GravitonNodeClass *klass)
   object_class->dispose = graviton_node_dispose;
   object_class->finalize = graviton_node_finalize;
 
-  object_class->set_property = set_property;
+  object_class->set_property = graviton_node_set_property;
   object_class->get_property = get_property;
 
   obj_properties[PROP_NODE_ID] =
@@ -376,13 +377,19 @@ static void
 cb_transport_event (GravitonNodeTransport *transport,
                     const gchar *node_id,
                     const gchar *name,
+                    guint64 event_id,
                     GVariant *value,
                     gpointer data)
 {
   GravitonNode *self = GRAVITON_NODE (data);
-  if (strcmp (node_id, self->priv->node_id)) {
-    g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
-                     name), name, value);
+  if (strcmp (node_id, self->priv->node_id) == 0) {
+    if (event_id != self->priv->last_event_id) {
+      self->priv->last_event_id = event_id;
+      g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
+                       name), name, value);
+    } else {
+      g_debug ("Got a duplicate event, skipping");
+    }
   }
 }
 

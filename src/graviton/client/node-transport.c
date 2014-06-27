@@ -75,9 +75,10 @@ graviton_node_transport_class_init (GravitonNodeTransportClass *klass)
                   NULL,
                   g_cclosure_marshal_generic,
                   G_TYPE_NONE,
-                  3,
+                  4,
                   G_TYPE_STRING,
                   G_TYPE_STRING,
+                  G_TYPE_UINT64,
                   G_TYPE_VARIANT);
 }
 
@@ -150,9 +151,10 @@ void
 graviton_node_transport_emit_event (GravitonNodeTransport *self,
                                     const gchar *node_id,
                                     const gchar *name,
+                                    guint64 event_id,
                                     GVariant *data)
 {
   g_debug ("Emitting a %s event for %s", name, node_id);
   g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
-                   name), node_id, name, data);
+                   name), node_id, name, event_id, data);
 }
