@@ -180,6 +180,8 @@ struct _GravitonServerPrivate
   
   GMutex event_lock;
   GList *event_listeners;
+
+  guint64 last_event_id;
 };
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
@@ -798,6 +800,8 @@ cb_event (GravitonService *service,
 
   builder = json_builder_new ();
   json_builder_begin_object (builder);
+  json_builder_set_member_name (builder, "id");
+  json_builder_add_int_value (builder, self->priv->last_event_id++);
   json_builder_set_member_name (builder, "name");
   json_builder_add_string_value (builder, name);
   json_builder_set_member_name (builder, "data");
