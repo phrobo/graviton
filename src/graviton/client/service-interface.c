@@ -70,16 +70,18 @@ enum {
 static int obj_signals[N_SIGNALS] = {0, };
 
 static void
-cb_dispatch_event (GravitonServiceInterface *self,
+cb_dispatch_event (GravitonNode *node,
                    const gchar *name,
-                   GVariant *value)
+                   GVariant *value,
+                   GravitonServiceInterface *self)
 {
   gchar **event_name;
   event_name = g_strsplit (name, ".", 0);
-  if (strcmp (event_name[0], self->priv->name) == 0) {
+  g_debug ("Dispatching %s event within %s..?", name, self->priv->name);
+  if (self->priv->name != NULL && strcmp (event_name[0], self->priv->name) == 0) {
+    g_debug ("Dispatching %s event", event_name[1]);
     g_signal_emit (self, obj_signals[SIGNAL_EVENT],
                    g_quark_from_string (event_name[1]), event_name[1], value);
-    g_debug ("Dispatching %s event", event_name[1]);
   }
   g_strfreev (event_name);
 }
@@ -87,12 +89,22 @@ cb_dispatch_event (GravitonServiceInterface *self,
 static void
 setup_node (GravitonServiceInterface *self, GravitonNode *node)
 {
-  if (self->priv->node)
+  if (self->priv->node) {
+    g_signal_handlers_disconnect_matched (self->priv->node,
+                                          G_SIGNAL_MATCH_DATA,
+                                          0, 
+                                          0,
+                                          NULL,
+                                          cb_dispatch_event,
+                                          self);
     g_object_unref (self->priv->node);
+  }
 
   self->priv->node = node;
 
   if (node) {
+    g_object_ref (self->priv->node);
+    g_debug ("Connecting %s to service-event on node %p", self->priv->name, node);
     g_signal_connect (node,
                       "service-event",
                       G_CALLBACK (cb_dispatch_event),
@@ -101,7 +113,7 @@ setup_node (GravitonServiceInterface *self, GravitonNode *node)
 }
 
 static void
-set_property (GObject *object,
+graviton_service_interface_set_property (GObject *object,
               guint property_id,
               const GValue *value,
               GParamSpec *pspec)
@@ -147,7 +159,7 @@ graviton_service_interface_class_init (GravitonServiceInterfaceClass *klass)
   object_class->dispose = graviton_service_interface_dispose;
   object_class->finalize = graviton_service_interface_finalize;
 
-  object_class->set_property = set_property;
+  object_class->set_property = graviton_service_interface_set_property;
   object_class->get_property = get_property;
 
   obj_properties[PROP_NAME] =
@@ -198,19 +210,30 @@ graviton_service_interface_init (GravitonServiceInterface *self)
 static void
 graviton_service_interface_dispose (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_service_interface_parent_class)->dispose (object);
   GravitonServiceInterface *self = GRAVITON_SERVICE_INTERFACE (object);
-  g_object_unref (self->priv->node);
+
+  if (self->priv->node) {
+    g_signal_handlers_disconnect_matched (self->priv->node,
+                                          G_SIGNAL_MATCH_DATA,
+                                          0, 
+                                          0,
+                                          NULL,
+                                          cb_dispatch_event,
+                                          self);
+    g_object_unref (self->priv->node);
+  }
   self->priv->node = NULL;
+  G_OBJECT_CLASS (graviton_service_interface_parent_class)->dispose (object);
 }
 
 static void
 graviton_service_interface_finalize (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_service_interface_parent_class)->finalize (object);
   GravitonServiceInterface *self = GRAVITON_SERVICE_INTERFACE (object);
   g_free (self->priv->name);
   self->priv->name = NULL;
+
+  G_OBJECT_CLASS (graviton_service_interface_parent_class)->finalize (object);
 }
 
 const gchar*
