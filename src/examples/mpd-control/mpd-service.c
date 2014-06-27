@@ -173,6 +173,29 @@ resume_mpd_idle (GravitonMPDService *self)
   g_debug ("Idle has been resumed");
 }
 
+static void
+disconnect_from_mpd (GravitonMPDService *self)
+{
+  g_list_free_full (self->priv->last_queue, (GDestroyNotify)mpd_song_free);
+  self->priv->last_queue = NULL;
+
+  if (self->priv->last_status)
+    mpd_status_free (self->priv->last_status);
+  self->priv->last_status = NULL;
+
+  if (self->priv->mpd_stream)
+    g_object_unref (self->priv->mpd_stream);
+  self->priv->mpd_stream = NULL;
+
+  if (self->priv->mpd_source)
+    g_source_destroy (self->priv->mpd_source);
+  self->priv->mpd_source = NULL;
+
+  if (self->priv->mpd)
+    mpd_connection_free (self->priv->mpd);
+  self->priv->mpd = NULL;
+}
+
 static enum mpd_error
 connect_to_mpd(GravitonMPDService *self, GError **error)
 {
@@ -222,9 +245,11 @@ set_property (GObject *object,
     case PROP_ADDRESS:
       g_free (self->priv->address);
       self->priv->address = g_value_dup_string (value);
+      disconnect_from_mpd (self);
       break;
     case PROP_PORT:
       self->priv->port = g_value_get_uint (value);
+      disconnect_from_mpd (self);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -292,13 +317,8 @@ graviton_mpd_service_dispose (GObject *object)
 {
   GravitonMPDService *self = GRAVITON_MPD_SERVICE (object);
 
-  if (self->priv->mpd_stream)
-    g_object_unref (self->priv->mpd_stream);
-  self->priv->mpd_stream = NULL;
 
-  if (self->priv->mpd_source)
-    g_source_destroy (self->priv->mpd_source);
-  self->priv->mpd_source = NULL;
+  disconnect_from_mpd (self);
 
   G_OBJECT_CLASS (graviton_mpd_service_parent_class)->dispose (object);
 }
@@ -307,15 +327,6 @@ static void
 graviton_mpd_service_finalize (GObject *object)
 {
   GravitonMPDService *self = GRAVITON_MPD_SERVICE (object);
-
-  g_list_free_full (self->priv->last_queue, (GDestroyNotify)mpd_song_free);
-  self->priv->last_queue = NULL;
-
-  mpd_status_free (self->priv->last_status);
-  self->priv->last_status = NULL;
-
-  mpd_connection_free (self->priv->mpd);
-  self->priv->mpd = NULL;
 
   g_free (self->priv->address);
 
