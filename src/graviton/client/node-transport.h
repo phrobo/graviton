@@ -56,6 +56,8 @@ struct _GravitonNodeTransportClass
                          const gchar*method, GHashTable *args, GError **err);
   GIOStream *(*open_stream)(GravitonNodeTransport *self, GravitonNode *node,
                             const gchar *name, GHashTable *args, GError **err);
+  gboolean (*subscribe_events)(GravitonNodeTransport *self, GravitonNode *node, const gchar *name, GError **err);
+  gboolean (*unsubscribe_events)(GravitonNodeTransport *self, GravitonNode *node, const gchar *name, GError **err);
 };
 
 struct _GravitonNodeTransport
@@ -83,6 +85,15 @@ void graviton_node_transport_emit_event (GravitonNodeTransport *self,
                                          const gchar *name,
                                          guint64 event_id,
                                          GVariant *data);
+
+gboolean graviton_node_transport_subscribe_events (GravitonNodeTransport *transport,
+                                                   GravitonNode *node,
+                                                   const gchar *name,
+                                                   GError **error);
+gboolean graviton_node_transport_unsubscribe_events (GravitonNodeTransport *transport,
+                                                     GravitonNode *node,
+                                                     const gchar *name,
+                                                     GError **error);
 
 G_END_DECLS
 

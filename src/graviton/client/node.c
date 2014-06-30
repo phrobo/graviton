@@ -438,3 +438,33 @@ graviton_node_emit_event (GravitonNode *self,
   g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
                    name), name, value);
 }
+
+gboolean
+graviton_node_subscribe_events (GravitonNode *node,
+                                const gchar *name,
+                                GError **error)
+{
+  GravitonNodeTransport *transport;
+  gboolean ret;
+  
+  transport = graviton_node_get_default_transport (node);
+  ret = graviton_node_transport_subscribe_events (transport, node, name, error);
+  g_object_unref (transport);
+
+  return ret;
+}
+
+gboolean
+graviton_node_unsubscribe_events (GravitonNode *node,
+                                  const gchar *name,
+                                  GError **error)
+{
+  GravitonNodeTransport *transport;
+  gboolean ret;
+  
+  transport = graviton_node_get_default_transport (node);
+  ret = graviton_node_transport_unsubscribe_events (transport, node, name, error);
+  g_object_unref (transport);
+
+  return ret;
+}

@@ -150,6 +150,20 @@ open_event_stream (GravitonJsonrpcNodeTransport *self)
   }
 }
 
+static gboolean
+subscribe_events (GravitonNodeTransport *transport, GravitonNode *node, const gchar *name, GError **err)
+{
+  //FIXME: Implement this server-side. Currently all events are transmitted.
+  return TRUE;
+}
+
+static gboolean
+unsubscribe_events (GravitonNodeTransport *transport, GravitonNode *node, const gchar *name, GError **err)
+{
+  //FIXME: Implement this server-side. Currently all events are transmitted.
+  return TRUE;
+}
+
 static void
 rebuild_uri (GravitonJsonrpcNodeTransport *self)
 {
@@ -217,6 +231,8 @@ graviton_jsonrpc_node_transport_class_init (
     klass);
   transport_class->call_args = call_args;
   transport_class->open_stream = open_stream;
+  transport_class->subscribe_events = subscribe_events;
+  transport_class->unsubscribe_events = unsubscribe_events;
 }
 
 static void

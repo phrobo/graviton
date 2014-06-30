@@ -41,6 +41,7 @@ cb_services (GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceIn
   switch (event) {
     case GRAVITON_SERVICE_NEW:
       g_print ("Found a clock!\n");
+      graviton_service_interface_subscribe_events (iface, "tick", NULL);
       g_signal_connect (iface, "event::tick", G_CALLBACK (cb_tick), NULL);
       g_object_ref (iface);
       break;

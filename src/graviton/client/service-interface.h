@@ -106,6 +106,13 @@ GravitonNodeStream *graviton_service_interface_get_stream (
   const gchar *name,
   GHashTable *args);
 
+gboolean graviton_service_interface_subscribe_events (GravitonServiceInterface *service,
+                                                      const gchar *name,
+                                                      GError **error);
+gboolean graviton_service_interface_unsubscribe_events (GravitonServiceInterface *service,
+                                                        const gchar *name,
+                                                        GError **erro);
+
 G_END_DECLS
 
 #endif

@@ -116,6 +116,13 @@ void graviton_node_emit_event (GravitonNode *node,
                                const gchar *name,
                                GVariant *value);
 
+gboolean graviton_node_subscribe_events (GravitonNode *node,
+                                         const gchar *name,
+                                         GError **error);
+gboolean graviton_node_unsubscribe_events (GravitonNode *node,
+                                           const gchar *name,
+                                           GError **error);
+
 G_END_DECLS
 
 #endif

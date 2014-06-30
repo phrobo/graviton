@@ -103,7 +103,7 @@ setup_node (GravitonServiceInterface *self, GravitonNode *node)
   self->priv->node = node;
 
   if (node) {
-    g_object_ref (self->priv->node);
+    g_object_ref_sink (self->priv->node);
     g_debug ("Connecting %s to service-event on node %p", self->priv->name, node);
     g_signal_connect (node,
                       "service-event",
@@ -124,7 +124,7 @@ graviton_service_interface_set_property (GObject *object,
     self->priv->name = g_value_dup_string (value);
     break;
   case PROP_NODE:
-    setup_node (self, GRAVITON_NODE (g_value_dup_object (value)));
+    setup_node (self, GRAVITON_NODE (g_value_get_object (value)));
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -267,8 +267,8 @@ GravitonNode *
 graviton_service_interface_get_node (GravitonServiceInterface *self)
 {
   if (self->priv->node)
-    return self->priv->node;
-  return GRAVITON_NODE (self);
+    return g_object_ref (self->priv->node);
+  return g_object_ref (GRAVITON_NODE (self));
 }
 
 GVariant *
@@ -343,4 +343,34 @@ graviton_service_interface_get_stream (GravitonServiceInterface *service,
 {
   GravitonNodeStream *stream = graviton_node_stream_new (service, name, args);
   return stream;
+}
+
+gboolean
+graviton_service_interface_subscribe_events (GravitonServiceInterface *service,
+                                             const gchar *name,
+                                             GError **error)
+{
+  GravitonNode *node;
+  gboolean ret;
+  
+  node = graviton_service_interface_get_node (service);
+  ret = graviton_node_subscribe_events (node, name, error);
+  g_object_unref (node);
+
+  return ret;
+}
+
+gboolean
+graviton_service_interface_unsubscribe_events (GravitonServiceInterface *service,
+                                               const gchar *name,
+                                               GError **error)
+{
+  GravitonNode *node;
+  gboolean ret;
+  
+  node = graviton_service_interface_get_node (service);
+  ret = graviton_node_unsubscribe_events (node, name, error);
+  g_object_unref (node);
+
+  return ret;
 }
