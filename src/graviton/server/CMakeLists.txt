@@ -41,6 +41,7 @@ add_custom_command(
 add_library(graviton-server SHARED ${libgraviton-server_SRCS})
 
 target_link_libraries(graviton-server
+  graviton-common
   ${GLIB_LIBRARIES}
   ${SOUP_LIBRARIES}
   ${JSON_LIBRARIES}

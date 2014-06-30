@@ -28,6 +28,8 @@
 #include "node.h"
 #include <uuid/uuid.h>
 
+#include <graviton/common/configuration.h>
+
 /**
  * SECTION:cloud
  * @short_description: Core interface to discover services and nodes within a
@@ -493,7 +495,7 @@ graviton_cloud_new_default_cloud ()
                                            "default-cloud-id",
                                            NULL);
   //FIXME: Need to store/load cloud ids
-  cloud_id = g_strdup ("3857E91C-BA9F-4CB9-B667-4BBB42C06FC3");
+  cloud_id = g_strdup (graviton_config_get_default_cloud_id ());
   if (cloud_id == NULL) {
     cloud_id = g_new0 (gchar, 37);
     uuid_t uuid;

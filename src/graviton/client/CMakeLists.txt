@@ -33,6 +33,7 @@ include_directories(
 add_library(graviton-client SHARED ${libgraviton-client_SRCS})
 
 target_link_libraries(graviton-client
+  graviton-common
   ${GLIB_LIBRARIES}
   ${SOUP_LIBRARIES}
   ${JSON_LIBRARIES}

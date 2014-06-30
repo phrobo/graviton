@@ -35,6 +35,8 @@
 #include <string.h>
 #include <uuid/uuid.h>
 
+#include <graviton/common/configuration.h>
+
 #include "config.h"
 
 /**
@@ -870,15 +872,14 @@ graviton_server_init (GravitonServer *self)
 {
   GravitonServerPrivate *priv;
   self->priv = priv = GRAVITON_SERVER_GET_PRIVATE (self);
-
-  self->priv->node_id = g_new0(gchar, 37);
-  //FIXME: Need to store/load cloud ids
-  self->priv->cloud_id = g_strdup ("3857E91C-BA9F-4CB9-B667-4BBB42C06FC3");
-  //self->priv->cloud_id = g_new0(gchar, 37);
   uuid_t uuid;
-  uuid_generate (uuid);
+
+  self->priv->cloud_id = g_strdup (graviton_config_get_default_cloud_id ());
+
+  //self->priv->cloud_id = g_new0(gchar, 37);
   //uuid_unparse_upper (uuid, self->priv->cloud_id);
   uuid_generate (uuid);
+  self->priv->node_id = g_new0(gchar, 37);
   uuid_unparse_upper (uuid, self->priv->node_id);
 
   g_mutex_init (&priv->event_lock);
