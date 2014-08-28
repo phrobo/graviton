@@ -8,6 +8,10 @@ add_graviton_publish_plugin(NAME dbus SOURCES dbus-publish.c
 install(TARGETS graviton-publish-plugin-dbus DESTINATION
   ${GRAVITON_PUBLISH_PLUGIN_PATH})
 
+add_graviton_publish_plugin(NAME gdns SOURCES gdns-publish.c)
+install(TARGETS graviton-publish-plugin-gdns DESTINATION
+  ${GRAVITON_PUBLISH_PLUGIN_PATH})
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_custom_command(
