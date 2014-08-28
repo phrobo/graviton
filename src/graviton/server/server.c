@@ -23,13 +23,10 @@
 
 #include "introspection-service.h"
 #include "root-service.h"
-#include "server-interface.h"
+#include "server-publish-method.h"
 #include "service.h"
 #include "stream.h"
 
-#include <avahi-client/client.h>
-#include <avahi-client/publish.h>
-#include <avahi-glib/glib-watch.h>
 #include <json-glib/json-glib.h>
 #include <libsoup/soup.h>
 #include <string.h>
@@ -172,10 +169,7 @@ struct _GravitonServerPrivate
   GravitonRootService *plugins;
   GHashTable *plugin_names;
   GList *streams;
-  AvahiClient *avahi;
-  AvahiGLibPoll *avahi_poll_api;
-  AvahiEntryGroup *avahi_group;
-  GravitonDBusServer *dbus;
+  GList *publish_methods;
 
   gchar *cloud_id;
   gchar *node_id;
@@ -279,64 +273,6 @@ cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
                              connection->cancellable,
                              cb_read_stream,
                              connection);
-}
-
-static void
-cb_avahi_group (AvahiEntryGroup *g, AvahiEntryGroupState state, gpointer data)
-{
-}
-
-static void
-create_avahi_services (AvahiClient *client, GravitonServer *server)
-{
-  if (!server->priv->avahi_group)
-    server->priv->avahi_group = avahi_entry_group_new (client,
-                                                       cb_avahi_group,
-                                                       NULL);
-
-  avahi_entry_group_reset (server->priv->avahi_group);
-
-  SoupSocket *socket = soup_server_get_listener (server->priv->server);
-  SoupAddress *address = soup_socket_get_local_address (socket);
-  int port = soup_address_get_port (address);
-
-  avahi_entry_group_add_service (server->priv->avahi_group,
-                                 AVAHI_IF_UNSPEC,
-                                 AVAHI_PROTO_INET,
-                                 0,
-                                 server->priv->node_id,
-                                 "_graviton._tcp",
-                                 NULL,
-                                 NULL,
-                                 port,
-                                 NULL);
-  avahi_entry_group_commit (server->priv->avahi_group);
-  g_debug ("Created avahi services for port %d", port);
-  graviton_dbus_server_set_port (server->priv->dbus, port);
-
-  GDBusConnection *connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
-  g_dbus_interface_skeleton_export ((GDBusInterfaceSkeleton*)server->priv->dbus,
-                                    connection,
-                                    "/",
-                                    NULL);
-  gchar *bus_name = g_strdup_printf ("org.aether.graviton-%d", port);
-  g_bus_own_name (G_BUS_TYPE_SESSION,
-                  bus_name,
-                  G_BUS_NAME_OWNER_FLAGS_NONE,
-                  NULL,
-                  NULL,
-                  NULL,
-                  NULL,
-                  NULL);
-  g_free (bus_name);
-}
-
-static void
-cb_avahi (AvahiClient *client, AvahiClientState state, gpointer data)
-{
-  if (state == AVAHI_CLIENT_S_RUNNING) {
-    create_avahi_services (client, GRAVITON_SERVER(data));
-  }
 }
 
 static void
@@ -884,15 +820,11 @@ graviton_server_init (GravitonServer *self)
 
   g_mutex_init (&priv->event_lock);
 
-  priv->avahi_group = NULL;
-
   priv->plugins = graviton_root_service_new ();
   priv->event_listeners = NULL;
   priv->streams = NULL;
   priv->server = new_server (self, SOUP_ADDRESS_FAMILY_IPV4);
   priv->server6 = new_server (self, SOUP_ADDRESS_FAMILY_IPV6);
-
-  priv->dbus = graviton_dbus_server_skeleton_new ();
 
   g_signal_connect (priv->plugins,
                     "event",
@@ -906,13 +838,6 @@ graviton_server_init (GravitonServer *self)
                                      "name", "net:phrobo:graviton",
                                      NULL));
 
-  priv->avahi_poll_api = avahi_glib_poll_new (NULL, G_PRIORITY_DEFAULT);
-  const AvahiPoll *poll_api = avahi_glib_poll_get (priv->avahi_poll_api);
-  priv->avahi = avahi_client_new (poll_api,
-                                  0,
-                                  cb_avahi,
-                                  self,
-                                  NULL);
 }
 
 /**
@@ -940,6 +865,7 @@ graviton_server_new ()
 void
 graviton_server_run_async (GravitonServer *self)
 {
+  graviton_server_load_publish_plugins (self);
   soup_server_run_async (self->priv->server);
   soup_server_run_async (self->priv->server6);
 }
@@ -1000,10 +926,95 @@ graviton_server_get_cloud_id (GravitonServer *server)
 int
 graviton_server_get_port (GravitonServer *server)
 {
-  SoupSocket *socket = soup_server_get_listener (server->priv->server);
-  SoupAddress *address = soup_socket_get_local_address (socket);
-  int port = soup_address_get_port (address);
-  g_object_unref (address);
-  g_object_unref (socket);
-  return port;
+  return soup_server_get_port (server->priv->server);
+}
+
+void
+graviton_server_load_publish_plugins (GravitonServer *self)
+{
+  int i;
+  GArray *plugins;
+
+  plugins = graviton_server_find_publish_plugins (self);
+  for (i = 0; i < plugins->len; i++) {
+    GravitonServerPublishMethodLoaderFunc factory = g_array_index (plugins,
+                                                                    GravitonServerPublishMethodLoaderFunc,
+                                                                    i);
+    GravitonServerPublishMethod *method = factory(self);
+    graviton_server_add_publish_method (self, method);
+    g_object_unref (method);
+    graviton_server_publish_method_start (method);
+  }
+
+  g_array_unref (plugins);
+  g_debug ("loaded %i publish plugins", i);
+}
+
+void
+graviton_server_add_publish_method (GravitonServer *self,
+                                    GravitonServerPublishMethod *method)
+{
+  g_object_ref_sink (method);
+  self->priv->publish_methods = g_list_append (self->priv->publish_methods,
+                                               method);
+}
+
+GArray*
+graviton_server_find_publish_plugins (GravitonServer *self)
+{
+  GArray *plugin_list =
+    g_array_new(FALSE, FALSE, sizeof (GravitonServerPublishMethodLoaderFunc));
+  const gchar *plugin_path = g_getenv("GRAVITON_PUBLISH_PLUGIN_PATH");
+  if (!plugin_path)
+    plugin_path = GRAVITON_DEFAULT_PUBLISH_PLUGIN_PATH;
+  g_debug ("Searching %s for plugins\n", plugin_path);
+  GDir *plugin_dir = g_dir_open (plugin_path, 0, NULL);
+  if (!plugin_dir) {
+    g_debug ("Plugin path not found: %s", plugin_path);
+    return plugin_list;
+  }
+  const gchar *entry = g_dir_read_name (plugin_dir);
+  while (entry) {
+    gchar *entry_path = g_build_path ("/", plugin_path, entry, NULL);
+    if (!g_str_has_suffix (entry_path, ".so"))
+      goto next_plugin;
+    g_debug ("Attempting to load plugin %s", entry_path);
+    GModule *module = g_module_open (entry_path, G_MODULE_BIND_LOCAL);
+    GravitonServerPublishMethodLoaderFunc loader = NULL;
+    if (!module) {
+      g_warning ("Can't open plugin %s: %s", entry_path, g_module_error ());
+      goto next_plugin;
+    }
+
+    if (!g_module_symbol (module, "make_graviton_publish_plugin",
+                          (gpointer *)&loader)) {
+      g_warning ("Can't find make_graviton_publish_plugin symbol in %s: %s",
+                 entry_path,
+                 g_module_error ());
+      goto bad_plugin;
+    }
+
+    if (loader == NULL) {
+      g_warning ("make_graviton_publish_plugin symbol is NULL in %s: %s",
+                 entry_path,
+                 g_module_error ());
+      goto bad_plugin;
+    }
+
+    g_module_make_resident (module);
+    g_array_append_val (plugin_list, loader);
+
+    goto next_plugin;
+
+bad_plugin:
+    g_module_close (module);
+
+next_plugin:
+    g_free (entry_path);
+    entry = g_dir_read_name (plugin_dir);
+  }
+
+  g_dir_close (plugin_dir);
+
+  return plugin_list;
 }

@@ -2,11 +2,11 @@ set(libgraviton-server_SRCS
   service.c
   root-service.c
   file-stream.c
+  server-publish-method.c
   server.c
   static-stream.c
   stream.c
   introspection-service.c
-  ${CMAKE_CURRENT_BINARY_DIR}/server-interface.c
 )
 
 set(libgraviton-server_HEADERS
@@ -20,22 +20,6 @@ set(libgraviton-server_HEADERS
 
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
-)
-
-add_custom_command(
-  OUTPUT
-    ${CMAKE_CURRENT_BINARY_DIR}/server-interface.c
-    ${CMAKE_CURRENT_BINARY_DIR}/server-interface.h
-  COMMAND
-    gdbus-codegen 
-      --generate-c-code server-interface
-      --c-namespace GravitonDBus
-      --interface-prefix org.aether.graviton
-      ${CMAKE_CURRENT_SOURCE_DIR}/org.aether.graviton.Server.xml
-  DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/org.aether.graviton.Server.xml
-  WORKING_DIRECTORY
-    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_library(graviton-server SHARED ${libgraviton-server_SRCS})

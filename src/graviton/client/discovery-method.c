@@ -338,6 +338,7 @@ graviton_discovery_method_get_property (GObject *object,
   switch (property_id) {
   case PROP_NODE_BROWSER:
     g_value_set_object (value, self->priv->browser);
+    break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     break;

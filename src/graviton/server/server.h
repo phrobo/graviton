@@ -21,6 +21,7 @@
 #define GRAVITON_SERVER_H
 
 #include "root-service.h"
+#include "server-publish-method.h"
 #include <glib-object.h>
 
 /**
@@ -137,5 +138,9 @@ GravitonRootService *graviton_server_get_root_service (GravitonServer *server);
 const gchar *graviton_server_get_cloud_id (GravitonServer *server);
 const gchar *graviton_server_get_node_id (GravitonServer *server);
 int graviton_server_get_port (GravitonServer *server);
+void graviton_server_load_publish_plugins (GravitonServer *self);
+GArray* graviton_server_find_publish_plugins (GravitonServer *self);
+void graviton_server_add_publish_method (GravitonServer *self,
+                                         GravitonServerPublishMethod *method);
 
 #endif // GRAVITON_SERVER_H

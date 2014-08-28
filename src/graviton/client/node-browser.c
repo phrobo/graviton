@@ -364,7 +364,7 @@ graviton_node_browser_load_discovery_plugins (GravitonNodeBrowser *self)
     graviton_discovery_method_start (method);
   }
   g_array_unref (plugins);
-  g_debug ("loaded %i plugins", i);
+  g_debug ("loaded %i discovery plugins", i);
 }
 
 GArray*
