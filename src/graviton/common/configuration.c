@@ -20,19 +20,31 @@
 #include "configuration.h"
 #include <uuid/uuid.h>
 
-const gchar *
-graviton_config_get_default_cloud_id ()
+//FIXME: Need GErrors
+void
+graviton_config_save_user (GKeyFile *config)
 {
-  static gchar *cloud_id = NULL;
+    gchar *user_config;
+    gchar *config_data;
+
+    user_config = g_strdup_printf ("%s/%s", g_get_user_config_dir (), "graviton.cfg");
+    g_debug ("Writing new cloud id to %s", user_config);
+    config_data = g_key_file_to_data (config, NULL, NULL);
+
+    g_file_set_contents (user_config, config_data, -1, NULL);
+
+    g_free (config_data);
+    g_free (user_config);
+}
+
+GKeyFile *
+graviton_config_load_default ()
+{
   GKeyFile *config;
-  uuid_t uuid;
   const gchar ** config_paths;
   guint num_sys_config_paths;
   const gchar *const *sys_config_paths;
   int i;
-
-  if (cloud_id)
-    return cloud_id;
 
   sys_config_paths = g_get_system_config_dirs ();
   num_sys_config_paths = g_strv_length ((gchar**)sys_config_paths);
@@ -45,6 +57,22 @@ graviton_config_get_default_cloud_id ()
 
   config = g_key_file_new ();
   g_key_file_load_from_dirs (config, "graviton.cfg", config_paths, NULL, G_KEY_FILE_KEEP_COMMENTS, NULL);
+  g_free (config_paths);
+
+  return config;
+}
+
+const gchar *
+graviton_config_get_default_cloud_id ()
+{
+  static gchar *cloud_id = NULL;
+  GKeyFile *config;
+  uuid_t uuid;
+
+  if (cloud_id)
+    return cloud_id;
+
+  config = graviton_config_load_default ();
 
   cloud_id = g_key_file_get_string (config, "general", "cloud-id", NULL);
 
@@ -56,24 +84,11 @@ graviton_config_get_default_cloud_id ()
   }
 
   if (cloud_id == NULL) {
-    gchar *user_config;
-    gchar *config_data;
-
-    user_config = g_strdup_printf ("%s/%s", g_get_user_config_dir (), "graviton.cfg");
-    g_debug ("Writing new cloud id to %s", user_config);
     uuid_generate (uuid);
     cloud_id = g_new0(gchar, 37);
     uuid_unparse_upper (uuid, cloud_id);
     g_key_file_set_string (config, "general", "cloud-id", cloud_id);
-    config_data = g_key_file_to_data (config, NULL, NULL);
-
-    g_file_set_contents (user_config, config_data, -1, NULL);
-
-    g_free (config_data);
-    g_free (user_config);
   }
-
-  g_free (config_paths);
 
   return cloud_id;
 }

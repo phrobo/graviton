@@ -24,4 +24,7 @@
 
 const gchar *graviton_config_get_default_cloud_id ();
 
+GKeyFile * graviton_config_load_default ();
+void graviton_config_save_user (GKeyFile *config);
+
 #endif // GRAVITON_CONFIG_H
