@@ -17,6 +17,7 @@ typedef struct _GravitonGdnsPublishMethodPrivate GravitonGdnsPublishMethodPrivat
 struct _GravitonGdnsPublishMethodPrivate
 {
   SoupSession *session;
+  SoupSession *probeSession;
   GUPnPSimpleIgd *igd;
   guint external_port;
 };
@@ -75,19 +76,54 @@ new_jsonrpc_call (const gchar *method)
   json_builder_set_member_name (builder, "params");
   json_builder_begin_object (builder);
 
+  return builder;
+}
+
+static void
+cb_build_probe (SoupSession *session, SoupMessage *msg, SoupSocket *socket, GravitonGdnsPublishMethod *self)
+{
+  const gchar *node_id;
+  JsonBuilder *builder;
+  const gchar *cloud_id;
+  GravitonServer *server;
+  JsonNode *root = NULL;
+  JsonGenerator *generator;
+  SoupAddress *addr = NULL;
+
+  guint port;
+  g_object_get (socket, "local-address", &addr, NULL);
+  g_object_get (addr, "port", &port, NULL);
+  g_object_unref (addr);
+
+  server = graviton_server_publish_method_get_server (GRAVITON_SERVER_PUBLISH_METHOD (self));
+  cloud_id = graviton_server_get_cloud_id (server);
+  node_id = graviton_server_get_node_id (server);
+  g_object_unref (server);
+
+  builder = new_jsonrpc_call ("natProbe");
+
   json_builder_set_member_name (builder, "node");
   json_builder_add_string_value (builder, node_id);
 
   json_builder_set_member_name (builder, "cloud");
   json_builder_add_string_value (builder, cloud_id);
 
-  json_builder_set_member_name (builder, "port");
+  json_builder_set_member_name (builder, "innerPort");
   json_builder_add_int_value (builder, port);
 
   json_builder_end_object (builder);
   json_builder_end_object (builder);
 
   root = json_builder_get_root (builder);
+  generator = json_generator_new ();
+  json_generator_set_root (generator, root);
+  gsize length;
+  gchar *data = json_generator_to_data (generator, &length);
+  g_object_unref (generator);
+  json_node_free (root);
+
+  g_debug ("Setting message: %s", data);
+  soup_message_set_request (msg, "text/json", SOUP_MEMORY_TAKE, data, length);
   g_object_unref (builder);
 }
 
@@ -113,6 +149,28 @@ send_json (GravitonGdnsPublishMethod *self, SoupURI *uri, JsonBuilder *builder)
 
   soup_message_set_request (msg, "text/json", SOUP_MEMORY_TAKE, data, length);
   soup_session_queue_message (self->priv->session, msg, NULL, NULL);
+}
+
+static gboolean
+queue_spitzer_probe (gpointer user_data)
+{
+  GravitonGdnsPublishMethod *self = GRAVITON_GDNS_PUBLISH_METHOD (user_data);
+  SoupMessage *msg;
+  SoupURI *uri;
+
+  uri = get_uri ();
+  if (uri == NULL) {
+    g_debug ("No spitzer URI configured. Not sending NAT punch probes.");
+    return FALSE;
+  }
+
+  msg = soup_message_new_from_uri ("POST", uri);
+
+  gchar *uriStr = soup_uri_to_string (uri, FALSE);
+  g_debug ("Sending a TCP nat punch probe to %s", uriStr);
+
+  soup_session_queue_message (self->priv->probeSession, msg, NULL, NULL);
+  return TRUE;
 }
 
 static void
@@ -211,6 +269,8 @@ start_publish (GravitonServerPublishMethod *method)
 
   if (ifAddrStruct != NULL)
     freeifaddrs (ifAddrStruct);
+
+  g_timeout_add_full (G_PRIORITY_DEFAULT, 100, queue_spitzer_probe, self, NULL);
 }
 
 static void
@@ -277,6 +337,11 @@ graviton_gdns_publish_method_init (GravitonGdnsPublishMethod *self)
   g_signal_connect (priv->igd,
                     "mapped-external-port",
                     G_CALLBACK (cb_port_mapped),
+                    self);
+
+  g_signal_connect (priv->probeSession,
+                    "request-started",
+                    G_CALLBACK (cb_build_probe),
                     self);
 }
 
