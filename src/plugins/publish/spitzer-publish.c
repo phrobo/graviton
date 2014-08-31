@@ -2,7 +2,7 @@
 #include "config.h"
 #endif
 
-#include "gdns-publish.h"
+#include "spitzer-publish.h"
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 #include <graviton/server/server.h>
@@ -12,9 +12,9 @@
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 
-typedef struct _GravitonGdnsPublishMethodPrivate GravitonGdnsPublishMethodPrivate;
+typedef struct _GravitonSpitzerPublishMethodPrivate GravitonSpitzerPublishMethodPrivate;
 
-struct _GravitonGdnsPublishMethodPrivate
+struct _GravitonSpitzerPublishMethodPrivate
 {
   SoupSession *session;
   SoupSession *probeSession;
@@ -22,19 +22,19 @@ struct _GravitonGdnsPublishMethodPrivate
   guint external_port;
 };
 
-#define GRAVITON_GDNS_PUBLISH_METHOD_GET_PRIVATE(o) \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_GDNS_PUBLISH_METHOD_TYPE, GravitonGdnsPublishMethodPrivate))
+#define GRAVITON_SPITZER_PUBLISH_METHOD_GET_PRIVATE(o) \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), GRAVITON_SPITZER_PUBLISH_METHOD_TYPE, GravitonSpitzerPublishMethodPrivate))
 
-static void graviton_gdns_publish_method_class_init (GravitonGdnsPublishMethodClass *klass);
-static void graviton_gdns_publish_method_init       (GravitonGdnsPublishMethod *self);
-static void graviton_gdns_publish_method_dispose    (GObject *object);
-static void graviton_gdns_publish_method_finalize   (GObject *object);
-static void graviton_gdns_publish_method_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void graviton_gdns_publish_method_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
+static void graviton_spitzer_publish_method_class_init (GravitonSpitzerPublishMethodClass *klass);
+static void graviton_spitzer_publish_method_init       (GravitonSpitzerPublishMethod *self);
+static void graviton_spitzer_publish_method_dispose    (GObject *object);
+static void graviton_spitzer_publish_method_finalize   (GObject *object);
+static void graviton_spitzer_publish_method_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
+static void graviton_spitzer_publish_method_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
 
-G_DEFINE_TYPE (GravitonGdnsPublishMethod, graviton_gdns_publish_method, GRAVITON_SERVER_PUBLISH_METHOD_TYPE);
+G_DEFINE_TYPE (GravitonSpitzerPublishMethod, graviton_spitzer_publish_method, GRAVITON_SERVER_PUBLISH_METHOD_TYPE);
 
-GRAVITON_DEFINE_PUBLISH_PLUGIN (GRAVITON_GDNS_PUBLISH_METHOD_TYPE)
+GRAVITON_DEFINE_PUBLISH_PLUGIN (GRAVITON_SPITZER_PUBLISH_METHOD_TYPE)
 
 static SoupURI *
 get_uri ()
@@ -80,7 +80,7 @@ new_jsonrpc_call (const gchar *method)
 }
 
 static void
-cb_build_probe (SoupSession *session, SoupMessage *msg, SoupSocket *socket, GravitonGdnsPublishMethod *self)
+cb_build_probe (SoupSession *session, SoupMessage *msg, SoupSocket *socket, GravitonSpitzerPublishMethod *self)
 {
   const gchar *node_id;
   JsonBuilder *builder;
@@ -128,7 +128,7 @@ cb_build_probe (SoupSession *session, SoupMessage *msg, SoupSocket *socket, Grav
 }
 
 static void
-send_json (GravitonGdnsPublishMethod *self, SoupURI *uri, JsonBuilder *builder)
+send_json (GravitonSpitzerPublishMethod *self, SoupURI *uri, JsonBuilder *builder)
 {
   SoupMessage *msg;
   JsonGenerator *generator;
@@ -154,7 +154,7 @@ send_json (GravitonGdnsPublishMethod *self, SoupURI *uri, JsonBuilder *builder)
 static gboolean
 queue_spitzer_probe (gpointer user_data)
 {
-  GravitonGdnsPublishMethod *self = GRAVITON_GDNS_PUBLISH_METHOD (user_data);
+  GravitonSpitzerPublishMethod *self = GRAVITON_SPITZER_PUBLISH_METHOD (user_data);
   SoupMessage *msg;
   SoupURI *uri;
 
@@ -174,7 +174,7 @@ queue_spitzer_probe (gpointer user_data)
 }
 
 static void
-publish_to_gdns (GravitonGdnsPublishMethod *self, guint port)
+publish_to_spitzer (GravitonSpitzerPublishMethod *self, guint port)
 {
   JsonBuilder *builder;
   const gchar *node_id;
@@ -204,7 +204,7 @@ publish_to_gdns (GravitonGdnsPublishMethod *self, guint port)
   json_builder_set_member_name (builder, "port");
   json_builder_add_int_value (builder, (int)port);
 
-  g_debug ("Poking gdns.phrobo.net API with an update");
+  g_debug ("Poking spitzer.phrobo.net API with an update");
   send_json (self, uri, builder);
 }
 
@@ -219,15 +219,15 @@ cb_port_mapped (GUPnPSimpleIgd *igd,
                 gchar *description,
                 gpointer user_data)
 {
-  GravitonGdnsPublishMethod *self = GRAVITON_GDNS_PUBLISH_METHOD (user_data);
+  GravitonSpitzerPublishMethod *self = GRAVITON_SPITZER_PUBLISH_METHOD (user_data);
   g_debug ("Got port mapped!");
 
   //FIXME: We might end up with multiple ports!!!
   self->priv->external_port = external_port;
 
-  //FIXME: Run publish_to_gdns periodically, whenever our external address
+  //FIXME: Run publish_to_spitzer periodically, whenever our external address
   //changes or any remap
-  publish_to_gdns (self, self->priv->external_port);
+  publish_to_spitzer (self, self->priv->external_port);
 
   //TODO: Publish with a port of -1 after a short period to indicate TCP nat
   //punching is required
@@ -237,7 +237,7 @@ cb_port_mapped (GUPnPSimpleIgd *igd,
 static void
 start_publish (GravitonServerPublishMethod *method)
 {
-  GravitonGdnsPublishMethod *self = GRAVITON_GDNS_PUBLISH_METHOD (method);
+  GravitonSpitzerPublishMethod *self = GRAVITON_SPITZER_PUBLISH_METHOD (method);
   GravitonServer *server;
   guint port;
   struct ifaddrs *ifAddrStruct;
@@ -276,21 +276,21 @@ start_publish (GravitonServerPublishMethod *method)
 static void
 stop_publish (GravitonServerPublishMethod *method)
 {
-  GravitonGdnsPublishMethod *self = GRAVITON_GDNS_PUBLISH_METHOD (method);
+  GravitonSpitzerPublishMethod *self = GRAVITON_SPITZER_PUBLISH_METHOD (method);
   gupnp_simple_igd_remove_port (self->priv->igd, "TCP", self->priv->external_port);
 }
 
 static void
-graviton_gdns_publish_method_class_init (GravitonGdnsPublishMethodClass *klass)
+graviton_spitzer_publish_method_class_init (GravitonSpitzerPublishMethodClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (GravitonGdnsPublishMethodPrivate));
+  g_type_class_add_private (klass, sizeof (GravitonSpitzerPublishMethodPrivate));
 
-  object_class->dispose = graviton_gdns_publish_method_dispose;
-  object_class->finalize = graviton_gdns_publish_method_finalize;
-  object_class->set_property =  graviton_gdns_publish_method_set_property;
-  object_class->get_property =  graviton_gdns_publish_method_get_property;
+  object_class->dispose = graviton_spitzer_publish_method_dispose;
+  object_class->finalize = graviton_spitzer_publish_method_finalize;
+  object_class->set_property =  graviton_spitzer_publish_method_set_property;
+  object_class->get_property =  graviton_spitzer_publish_method_get_property;
 
   GravitonServerPublishMethodClass *method_class = GRAVITON_SERVER_PUBLISH_METHOD_CLASS (
       klass);
@@ -299,12 +299,12 @@ graviton_gdns_publish_method_class_init (GravitonGdnsPublishMethodClass *klass)
 }
 
 static void
-graviton_gdns_publish_method_set_property (GObject *object,
+graviton_spitzer_publish_method_set_property (GObject *object,
     guint property_id,
     const GValue *value,
     GParamSpec *pspec)
 {
-  //GravitonGdnsPublishMethod *self = GRAVITON_GDNS_PUBLISH_METHOD (object);
+  //GravitonSpitzerPublishMethod *self = GRAVITON_SPITZER_PUBLISH_METHOD (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -313,12 +313,12 @@ graviton_gdns_publish_method_set_property (GObject *object,
 }
 
 static void
-graviton_gdns_publish_method_get_property (GObject *object,
+graviton_spitzer_publish_method_get_property (GObject *object,
     guint property_id,
     GValue *value,
     GParamSpec *pspec)
 {
-  //GravitonGdnsPublishMethod *self = GRAVITON_GDNS_PUBLISH_METHOD (object);
+  //GravitonSpitzerPublishMethod *self = GRAVITON_SPITZER_PUBLISH_METHOD (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -327,10 +327,10 @@ graviton_gdns_publish_method_get_property (GObject *object,
 }
 
 static void
-graviton_gdns_publish_method_init (GravitonGdnsPublishMethod *self)
+graviton_spitzer_publish_method_init (GravitonSpitzerPublishMethod *self)
 {
-  GravitonGdnsPublishMethodPrivate *priv;
-  priv = self->priv = GRAVITON_GDNS_PUBLISH_METHOD_GET_PRIVATE (self);
+  GravitonSpitzerPublishMethodPrivate *priv;
+  priv = self->priv = GRAVITON_SPITZER_PUBLISH_METHOD_GET_PRIVATE (self);
   priv->session = soup_session_new ();
   priv->probeSession = soup_session_new ();
   priv->igd = gupnp_simple_igd_new ();
@@ -346,16 +346,16 @@ graviton_gdns_publish_method_init (GravitonGdnsPublishMethod *self)
 }
 
 static void
-graviton_gdns_publish_method_dispose (GObject *object)
+graviton_spitzer_publish_method_dispose (GObject *object)
 {
-  GravitonGdnsPublishMethod *self = GRAVITON_GDNS_PUBLISH_METHOD (object);
-  G_OBJECT_CLASS (graviton_gdns_publish_method_parent_class)->dispose (object);
+  GravitonSpitzerPublishMethod *self = GRAVITON_SPITZER_PUBLISH_METHOD (object);
+  G_OBJECT_CLASS (graviton_spitzer_publish_method_parent_class)->dispose (object);
 
   g_object_unref (self->priv->session);
 }
 
 static void
-graviton_gdns_publish_method_finalize (GObject *object)
+graviton_spitzer_publish_method_finalize (GObject *object)
 {
-  G_OBJECT_CLASS (graviton_gdns_publish_method_parent_class)->finalize (object);
+  G_OBJECT_CLASS (graviton_spitzer_publish_method_parent_class)->finalize (object);
 }

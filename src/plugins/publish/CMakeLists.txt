@@ -15,11 +15,11 @@ install(TARGETS graviton-publish-plugin-dbus DESTINATION
   ${GRAVITON_PUBLISH_PLUGIN_PATH})
 
 pkg_search_module(GUPNP_IGD REQUIRED gupnp-igd-1.0)
-add_graviton_publish_plugin(NAME gdns SOURCES gdns-publish.c)
-install(TARGETS graviton-publish-plugin-gdns DESTINATION
+add_graviton_publish_plugin(NAME spitzer SOURCES spitzer-publish.c)
+install(TARGETS graviton-publish-plugin-spitzer DESTINATION
   ${GRAVITON_PUBLISH_PLUGIN_PATH})
 
-target_link_libraries(graviton-publish-plugin-gdns
+target_link_libraries(graviton-publish-plugin-spitzer
   ${GUPNP_IGD_LIBRARIES})
 
 include_directories(
