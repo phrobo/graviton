@@ -173,7 +173,7 @@ struct _GravitonServerPrivate
 
   gchar *cloud_id;
   gchar *node_id;
-  
+
   GMutex event_lock;
   GList *event_listeners;
 
