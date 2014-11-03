@@ -14,6 +14,7 @@ set(libgraviton-server_HEADERS
   file-stream.h
   root-service.h
   server.h
+  server-publish-method.h
   static-stream.h
   stream.h
 )
