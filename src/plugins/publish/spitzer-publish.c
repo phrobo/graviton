@@ -20,6 +20,7 @@ struct _GravitonSpitzerPublishMethodPrivate
   SoupSession *probeSession;
   GUPnPSimpleIgd *igd;
   guint external_port;
+  int punch_count;
 };
 
 #define GRAVITON_SPITZER_PUBLISH_METHOD_GET_PRIVATE(o) \
@@ -170,7 +171,12 @@ queue_spitzer_probe (gpointer user_data)
   g_debug ("Sending a TCP nat punch probe to %s", uriStr);
 
   soup_session_queue_message (self->priv->probeSession, msg, NULL, NULL);
-  return TRUE;
+  if (self->priv->p {unch_count++ < 3)
+    return TRUE;
+  }
+
+  g_debug ("Cancelling spitzer probes");
+  return FALSE;
 }
 
 static void
@@ -343,6 +349,8 @@ graviton_spitzer_publish_method_init (GravitonSpitzerPublishMethod *self)
                     "request-started",
                     G_CALLBACK (cb_build_probe),
                     self);
+
+  priv->punch_count = 0;
 }
 
 static void
