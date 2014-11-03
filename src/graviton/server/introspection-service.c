@@ -295,6 +295,10 @@ cb_get_property (GravitonService *service,
     } else if (G_VALUE_HOLDS_VARIANT (&property_value)) {
       converted_variant = g_value_get_variant (&property_value);
       g_variant_ref (converted_variant);
+    } else if (G_VALUE_HOLDS_INT (&property_value)) {
+      converted_variant =
+        g_variant_new_int32 (g_value_get_int (&property_value));
+      g_variant_ref (converted_variant);
     } else {
       g_debug ("Unsupported value type: %s",
                G_VALUE_TYPE_NAME (&property_value));
