@@ -8,7 +8,7 @@
   <bookinfo>
     <title>Graviton Reference Manual</title>
     <releaseinfo>
-    for Graviton @GRAVITON_VERSION_MAJOR@.@GRAVITON_VERSION_MINOR@.@GRAVITON_VERSION_PATCH@
+    This documentation is for Graviton @GRAVITON_VERSION_MAJOR@.@GRAVITON_VERSION_MINOR@.@GRAVITON_VERSION_PATCH@
       The latest version of this documentation can be found on-line at
       <ulink role="online-location" url="http://docs.phrobo.net/graviton/index.html">http://docs.phrobo.net/graviton/latest/</ulink>.
     </releaseinfo>
@@ -29,8 +29,6 @@
     <xi:include href="xml/jsonrpc-node-transport.xml"/>
     <xi:include href="xml/node.xml"/>
     <xi:include href="xml/node-browser.xml"/>
-    <xi:include href="xml/node-input-stream.xml"/>
-    <xi:include href="xml/node-io-stream.xml"/>
     <xi:include href="xml/node-stream.xml"/>
     <xi:include href="xml/node-transport.xml"/>
     <xi:include href="xml/root-service.xml"/>

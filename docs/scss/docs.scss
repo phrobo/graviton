@@ -1,0 +1,27 @@
+@import "settings";
+@import "foundation";
+
+h3.title {
+  background-color: #222;
+}
+
+@font-face {
+  font-family: EdenMills;
+  src: url(../fonts/eden.ttf);
+}
+
+footer {
+  font-family: EdenMills;
+  background-color: #111;
+  padding: 2em;
+  margin-top: 3em;
+}
+footer a {
+  color: #fff;
+}
+header {
+  font-family: EdenMills;
+}
+body {
+  background-image: url(../img/noise.png);
+}

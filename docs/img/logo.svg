@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="200"
+   height="323.60681"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   inkscape:export-filename="/tmp/logo-transparent.png"
+   inkscape:export-xdpi="134.88591"
+   inkscape:export-ydpi="134.88591"
+   sodipodi:docname="New document 1">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.4928528"
+     inkscape:cx="40.926852"
+     inkscape:cy="163.78836"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="1366"
+     inkscape:window-height="682"
+     inkscape:window-x="-2"
+     inkscape:window-y="-3"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-728.75537)">
+    <rect
+       style="fill:#000000"
+       id="rect2985"
+       width="200"
+       height="323.60681"
+       x="0"
+       y="728.75537" />
+    <text
+       xml:space="preserve"
+       style="font-size:49.01417542px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Eden Mills;-inkscape-font-specification:Eden Mills"
+       x="101.287"
+       y="960.58704"
+       id="text2987-9"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989-3"
+         x="101.287"
+         y="960.58704"
+         style="text-align:center;text-anchor:middle">Phong</tspan><tspan
+         sodipodi:role="line"
+         x="101.287"
+         y="1021.8547"
+         id="tspan3016"
+         style="text-align:center;text-anchor:middle">Robotics</tspan></text>
+    <path
+       sodipodi:type="arc"
+       style="fill:none;stroke:#ffffff;stroke-width:10;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="path3018"
+       sodipodi:cx="93.110321"
+       sodipodi:cy="814.56244"
+       sodipodi:rx="63.636551"
+       sodipodi:ry="63.636551"
+       d="m 156.74687,814.56244 c 0,35.1455 -28.49105,63.63655 -63.636549,63.63655 -35.145497,0 -63.636551,-28.49105 -63.636551,-63.63655 0,-35.1455 28.491054,-63.63655 63.636551,-63.63655 35.145499,0 63.636549,28.49105 63.636549,63.63655 z"
+       transform="translate(6.889679,0)" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       id="path3788"
+       sodipodi:cx="26.794336"
+       sodipodi:cy="815.90216"
+       sodipodi:rx="25.45462"
+       sodipodi:ry="25.45462"
+       d="m 52.248957,815.90216 c 0,14.0582 -11.396422,25.45462 -25.454621,25.45462 -14.058198,0 -25.45462,-11.39642 -25.45462,-25.45462 0,-14.0582 11.396422,-25.45462 25.45462,-25.45462 14.058199,0 25.454621,11.39642 25.454621,25.45462 z"
+       transform="translate(131.9621,0)" />
+  </g>
+</svg>
