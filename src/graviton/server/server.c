@@ -345,23 +345,18 @@ handle_rpc (GravitonServer *self, JsonObject *request)
   GError *error = NULL;
   const gchar *request_id;
   GravitonService *service;
-  gchar **rpc_method_name;
-  gchar *method_name;
+  const gchar *method_name;
   gchar *service_name;
   GVariant *method_result;
 
   builder = json_builder_new ();
 
   request_id = json_object_get_string_member (request, "id");
-  rpc_method_name = g_strsplit (json_object_get_string_member (request,
-                                                               "method"), ".",
-                                0);
+  service_name = strdup (json_object_get_string_member (request, "method"));
+  g_debug ("Looking to call %s", service_name);
+  method_name = strchr (service_name, '.') + 1;
+  service_name[method_name - service_name - 1] = 0;
 
-  service_name = g_strdup (rpc_method_name[0]);
-  method_name = g_strdup (rpc_method_name[1]);
-  g_strfreev (rpc_method_name);
-
-  g_debug ("Looking for service %s", service_name);
 
   service =
     graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
@@ -395,9 +390,6 @@ handle_rpc (GravitonServer *self, JsonObject *request)
                                                                param->data), NULL,
                                        &error);
           g_hash_table_replace (args, g_strdup (param->data), param_value);
-          gchar *display = g_variant_print (param_value, TRUE);
-          g_debug ("Setting param %s to %s", (gchar*)param->data, display);
-          g_free (display);
           param = g_list_next (param);
         }
         g_list_free (param_names);
@@ -419,7 +411,6 @@ handle_rpc (GravitonServer *self, JsonObject *request)
   }
 
 out:
-  g_free (method_name);
   g_free (service_name);
   builder = json_builder_new ();
   json_builder_begin_object (builder);
