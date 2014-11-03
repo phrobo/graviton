@@ -4,22 +4,22 @@ include_directories(
   ${AVAHI_GLIB_INCLUDE_DIRS}
   ${AVAHI_CLIENT_INCLUDE_DIRS}
 )
-add_graviton_publish_plugin(NAME avahi SOURCES avahi-publish.c)
-install(TARGETS graviton-publish-plugin-avahi DESTINATION
+add_graviton_publish_plugin(NAME avahi-publish SOURCES avahi-publish.c)
+install(TARGETS avahi-publish DESTINATION
   ${GRAVITON_PUBLISH_PLUGIN_PATH})
-target_link_libraries(graviton-publish-plugin-avahi avahi-client avahi-glib)
+target_link_libraries(avahi-publish avahi-client avahi-glib)
 
-add_graviton_publish_plugin(NAME dbus SOURCES dbus-publish.c
+add_graviton_publish_plugin(NAME dbus-publish SOURCES dbus-publish.c
   ${CMAKE_CURRENT_BINARY_DIR}/server-interface.c)
-install(TARGETS graviton-publish-plugin-dbus DESTINATION
+install(TARGETS dbus-publish DESTINATION
   ${GRAVITON_PUBLISH_PLUGIN_PATH})
 
 pkg_search_module(GUPNP_IGD REQUIRED gupnp-igd-1.0)
-add_graviton_publish_plugin(NAME spitzer SOURCES spitzer-publish.c)
-install(TARGETS graviton-publish-plugin-spitzer DESTINATION
+add_graviton_publish_plugin(NAME spitzer-publish SOURCES spitzer-publish.c)
+install(TARGETS spitzer-publish DESTINATION
   ${GRAVITON_PUBLISH_PLUGIN_PATH})
 
-target_link_libraries(graviton-publish-plugin-spitzer
+target_link_libraries(spitzer-publish
   ${GUPNP_IGD_LIBRARIES})
 
 include_directories(
