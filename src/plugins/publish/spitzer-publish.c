@@ -171,7 +171,7 @@ queue_spitzer_probe (gpointer user_data)
   g_debug ("Sending a TCP nat punch probe to %s", uriStr);
 
   soup_session_queue_message (self->priv->probeSession, msg, NULL, NULL);
-  if (self->priv->p {unch_count++ < 3)
+  if (self->priv->punch_count++ < 3) {
     return TRUE;
   }
 
