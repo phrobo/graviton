@@ -21,8 +21,7 @@
  * SOFTWARE.
  */
 
-#include <graviton/server/server.h>
-#include <graviton/server/service.h>
+#include <graviton/server/quickserver.h>
 
 #include <glib.h>
 
@@ -36,31 +35,26 @@ cb_ping(GravitonService *control, GHashTable *args, GError **error, gpointer use
 
 int main(int argc, char** argv)
 {
-  GMainLoop *loop = NULL;
-  GravitonServer *server = NULL;
+  GravitonQuickserver *server = NULL;
 
 #if !GLIB_CHECK_VERSION(2, 36, 0)
   g_type_init ();
 #endif
 
-  loop = g_main_loop_new (NULL, FALSE);
-
-  server = graviton_server_new ();
-  GravitonRootService *root = graviton_server_get_root_service (server);
-  GravitonService *ping_service = graviton_service_new ("net:phrobo:graviton:examples:ping");
-  graviton_service_add_subservice (GRAVITON_SERVICE (root), ping_service);
-
-  graviton_service_add_method (ping_service, "ping", cb_ping, NULL, NULL);
+  server = graviton_quickserver_new ();
+  graviton_quickserver_add_method (server,
+                                   "net:phrobo:graviton:examples:ping",
+                                   "ping",
+                                   cb_ping,
+                                   NULL,
+                                   NULL);
 
   const gchar *cloud_id = graviton_server_get_cloud_id (server);
   const gchar *node_id = graviton_server_get_node_id (server);
   
   g_print ("Echo server running at %s:%s\n", cloud_id, node_id);
 
-  graviton_server_run_async (server);
+  graviton_quickserver_run (server);
 
-  g_main_loop_run (loop);
-
-  g_object_unref (server);
   return 0;
 }
