@@ -101,6 +101,9 @@ typedef void (*GravitonServiceBrowseCallback)(GravitonCloud *cloud,
                                               GravitonServiceInterface *iface,
                                               gpointer user_data);
 
+typedef void (*GravitonForeachServiceCallback)(GravitonServiceInterface *iface,
+                                               gpointer user_data);
+
 GType graviton_cloud_get_type (void);
 
 GravitonCloud *graviton_cloud_new_default_cloud ();
@@ -121,6 +124,11 @@ void graviton_cloud_destroy_service_browser (GravitonCloud *cloud,
 
 const gchar *graviton_cloud_get_cloud_id (GravitonCloud *client);
 const gchar *graviton_cloud_get_cloud_name (GravitonCloud *client);
+
+void graviton_cloud_foreach_service (GravitonCloud *cloud,
+                                     const gchar *service_name,
+                                     GravitonForeachServiceCallback callback,
+                                     gpointer user_data);
 
 G_END_DECLS
 

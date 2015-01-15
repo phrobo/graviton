@@ -568,3 +568,43 @@ setup_browser (GravitonCloud *self, GravitonNodeBrowser *browser)
                     G_CALLBACK (cb_nodes_found),
                     self);
 }
+
+typedef struct _foreach_data {
+  GMainLoop *loop;
+  GravitonForeachServiceCallback callback;
+  gpointer user_data;
+} foreach_data;
+
+static void
+cb_foreach_services (GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceInterface *iface, gpointer user_data)
+{
+  foreach_data *data = (foreach_data*)user_data;
+  switch (event) {
+    case GRAVITON_SERVICE_NEW:
+      data->callback (iface, data->user_data);
+      break;
+    case GRAVITON_SERVICE_ALL_FOR_NOW:
+      g_main_loop_quit (data->loop);
+      break;
+    default:
+      break;
+  }
+}
+
+void
+graviton_cloud_foreach_service (GravitonCloud *cloud,
+                                const gchar *service_name,
+                                GravitonForeachServiceCallback callback,
+                                gpointer user_data)
+{
+  GMainLoop *loop = g_main_loop_new (NULL, 0);
+  foreach_data data = {
+    .loop = loop,
+    .callback = callback,
+    .user_data = user_data
+  };
+
+  graviton_cloud_browse_services (cloud, service_name, cb_foreach_services, &data);
+
+  g_main_loop_run (loop);
+}
