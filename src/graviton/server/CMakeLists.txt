@@ -7,6 +7,7 @@ set(libgraviton-server_SRCS
   static-stream.c
   stream.c
   introspection-service.c
+  quickserver.c
 )
 
 set(libgraviton-server_HEADERS
@@ -17,6 +18,7 @@ set(libgraviton-server_HEADERS
   server-publish-method.h
   static-stream.h
   stream.h
+  quickserver.h
 )
 
 include_directories(
