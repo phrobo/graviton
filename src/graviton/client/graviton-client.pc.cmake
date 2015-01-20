@@ -7,5 +7,5 @@ Name: graviton-client
 Description: graviton client library
 Version: @GRAVITON_VERSION@
 Requires: glib-2.0 gobject-2.0
-Libs: -L${libdir} -lgraviton-client
+Libs: -L${libdir} -lgraviton-client -lgraviton-common
 Cflags: -I${includedir}

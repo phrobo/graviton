@@ -7,5 +7,5 @@ Name: graviton-server
 Description: graviton server library
 Version: @GRAVITON_VERSION@
 Requires: glib-2.0 gobject-2.0
-Libs: -L${libdir} -lgraviton-server
+Libs: -L${libdir} -lgraviton-server -lgraviton-common
 Cflags: -I${includedir}
