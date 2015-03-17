@@ -2,6 +2,8 @@ find_package(GtkDoc)
 
 if (GTKDOC_FOUND)
 
+  message(STATUS "gtk-goc found. Documentation will be built.")
+
   add_custom_command(
     OUTPUT
       ${CMAKE_CURRENT_BINARY_DIR}/Graviton-docs.xml
@@ -91,8 +93,16 @@ if (GTKDOC_FOUND)
       ${CMAKE_CURRENT_BINARY_DIR}/html/index.html
   )
 
+  add_custom_target(
+    docs
+    DEPENDS
+      docs_html
+  )
+
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html/)
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/xml/book/)
 
+else()
+  message(WARNING "gtk-goc is missing. Documentation will not be built.")
 endif()
 
