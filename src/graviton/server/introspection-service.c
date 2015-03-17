@@ -18,10 +18,14 @@
  */
 
 #include "config.h"
-#include "file-stream.h"
 #include "introspection-service.h"
 #include "server.h"
 #include "service.h"
+
+#ifdef GRAVITON_ENABLE_STREAMS
+#include "file-stream.h"
+#endif // GRAVITON_ENABLE_STREAMS
+
 #include <json-glib/json-glib.h>
 
 #define GRAVITON_INTROSPECTION_CONTROL_GET_PRIVATE(obj) ( \
@@ -186,47 +190,6 @@ graviton_internal_plugin_class_init (GravitonIntrospectionControlClass *klass)
   g_object_class_install_properties (gobject_class,
                                      N_PROPERTIES,
                                      obj_properties);
-}
-
-static GravitonStream *
-cb_stream_zero (GravitonService *self,
-                const gchar *name,
-                GHashTable *args,
-                GError **error,
-                gpointer user_data)
-{
-  GFile *dev = g_file_new_for_path ("/dev/zero");
-  GravitonStream *ret = GRAVITON_STREAM (graviton_file_stream_new (dev));
-  g_object_unref (dev);
-  return ret;
-}
-
-static GVariant *
-cb_streams(GravitonService *service,
-           GHashTable *args,
-           GError **error,
-           gpointer user_data)
-{
-  GVariantBuilder ret;
-  GravitonService *subservice;
-  GravitonIntrospectionControl *self =
-    GRAVITON_INTROSPECTION_CONTROL (user_data);
-
-  subservice = grab_service_arg (self, args, error);
-
-  if (!subservice)
-    return NULL;
-
-  g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
-  GList *streams = graviton_service_list_streams (subservice);
-  GList *cur = streams;
-  while (cur) {
-    g_variant_builder_add (&ret, "s", cur->data);
-    cur = cur->next;
-  }
-  g_object_unref (subservice);
-
-  return g_variant_builder_end (&ret);
 }
 
 static GVariant *
@@ -420,11 +383,6 @@ graviton_internal_plugin_init (GravitonIntrospectionControl *self)
                                self,
                                NULL);
   graviton_service_add_method (introspection,
-                               "listStreams",
-                               cb_streams,
-                               self,
-                               NULL);
-  graviton_service_add_method (introspection,
                                "listNodes",
                                cb_nodes,
                                self,
@@ -439,10 +397,61 @@ graviton_internal_plugin_init (GravitonIntrospectionControl *self)
                                cb_get_property,
                                self,
                                NULL);
+
+#ifdef GRAVITON_ENABLE_STREAMS
+  graviton_service_add_method (introspection,
+                               "listStreams",
+                               cb_streams,
+                               self,
+                               NULL);
   graviton_service_add_stream (introspection,
                                "zero",
                                cb_stream_zero,
                                self);
+#endif // GRAVITON_ENABLE_STREAMS
 
   graviton_service_add_subservice (GRAVITON_SERVICE (self), introspection);
 }
+
+#ifdef GRAVITON_ENABLE_STREAMS
+static GravitonStream *
+cb_stream_zero (GravitonService *self,
+                const gchar *name,
+                GHashTable *args,
+                GError **error,
+                gpointer user_data)
+{
+  GFile *dev = g_file_new_for_path ("/dev/zero");
+  GravitonStream *ret = GRAVITON_STREAM (graviton_file_stream_new (dev));
+  g_object_unref (dev);
+  return ret;
+}
+
+static GVariant *
+cb_streams(GravitonService *service,
+           GHashTable *args,
+           GError **error,
+           gpointer user_data)
+{
+  GVariantBuilder ret;
+  GravitonService *subservice;
+  GravitonIntrospectionControl *self =
+    GRAVITON_INTROSPECTION_CONTROL (user_data);
+
+  subservice = grab_service_arg (self, args, error);
+
+  if (!subservice)
+    return NULL;
+
+  g_variant_builder_init (&ret, G_VARIANT_TYPE_STRING_ARRAY);
+  GList *streams = graviton_service_list_streams (subservice);
+  GList *cur = streams;
+  while (cur) {
+    g_variant_builder_add (&ret, "s", cur->data);
+    cur = cur->next;
+  }
+  g_object_unref (subservice);
+
+  return g_variant_builder_end (&ret);
+}
+#endif // GRAVITON_ENABLE_STREAMS

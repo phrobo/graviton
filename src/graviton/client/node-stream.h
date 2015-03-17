@@ -17,6 +17,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#ifndef GRAVITON_ENABLE_STREAMS
+#error "Streams are not enabled."
+#endif
+
 #ifndef __GRAVITON_NODE_STREAM_H__
 #define __GRAVITON_NODE_STREAM_H__
 

@@ -1,25 +1,37 @@
 set(libgraviton-server_SRCS
   service.c
   root-service.c
-  file-stream.c
   server-publish-method.c
   server.c
-  static-stream.c
-  stream.c
   introspection-service.c
   quickserver.c
 )
 
+set(stream_SRCS
+  file-stream.c
+  static-stream.c
+  stream.c
+)
+
 set(libgraviton-server_HEADERS
   service.h
-  file-stream.h
   root-service.h
   server.h
   server-publish-method.h
-  static-stream.h
-  stream.h
   quickserver.h
 )
+
+set(stream_HEADERS
+  file-stream.h
+  static-stream.h
+  stream.h
+)
+
+if (GRAVITON_ENABLE_STREAMS)
+  message(STATUS "Streams API enabled in server.")
+  list(libgraviton-server_SRCS ${stream_SRCS})
+  list(libgraviton-server_HEADERS ${stream_HEADERS})
+endif()
 
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}

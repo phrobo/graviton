@@ -23,9 +23,12 @@
 
 #define G_LOG_DOMAIN "GravitonServiceInterface"
 
-#include "node-stream.h"
 #include "node.h"
 #include "service-interface.h"
+
+#ifdef GRAVITON_ENABLE_STREAMS
+#include "node-stream.h"
+#endif // GRAVITON_ENABLE_STREAMS
 
 #include <string.h>
 
@@ -336,15 +339,6 @@ graviton_service_interface_call (GravitonServiceInterface *service,
   return ret;
 }
 
-GravitonNodeStream *
-graviton_service_interface_get_stream (GravitonServiceInterface *service,
-                                       const gchar *name,
-                                       GHashTable *args)
-{
-  GravitonNodeStream *stream = graviton_node_stream_new (service, name, args);
-  return stream;
-}
-
 gboolean
 graviton_service_interface_subscribe_events (GravitonServiceInterface *service,
                                              const gchar *name,
@@ -374,3 +368,14 @@ graviton_service_interface_unsubscribe_events (GravitonServiceInterface *service
 
   return ret;
 }
+
+#ifdef GRAVITON_ENABLE_STREAMS
+GravitonNodeStream *
+graviton_service_interface_get_stream (GravitonServiceInterface *service,
+                                       const gchar *name,
+                                       GHashTable *args)
+{
+  GravitonNodeStream *stream = graviton_node_stream_new (service, name, args);
+  return stream;
+}
+#endif // GRAVITON_ENABLE_STREAMS

@@ -22,9 +22,9 @@
 #endif
 
 #include "jsonrpc-node-transport.h"
-#include "jsonrpc-io-stream.h"
 #include "node.h"
 
+#include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 
 typedef struct _GravitonJsonrpcNodeTransportPrivate
@@ -64,11 +64,6 @@ static void graviton_jsonrpc_node_transport_get_property (GObject *object,
                                                           guint property_id,
                                                           GValue *value,
                                                           GParamSpec *pspec);
-static GIOStream *open_stream (GravitonNodeTransport *trans_self,
-                               GravitonNode *node,
-                               const gchar *name,
-                               GHashTable *args,
-                               GError **error);
 static GVariant*call_args (GravitonNodeTransport *trans_self,
                            GravitonNode *node,
                            const gchar *method,
@@ -76,6 +71,16 @@ static GVariant*call_args (GravitonNodeTransport *trans_self,
                            GError **err);
 
 static void open_event_stream (GravitonJsonrpcNodeTransport *self);
+
+#ifdef GRAVITON_ENABLE_STREAMS
+
+#include "jsonrpc-io-stream.h"
+static GIOStream *open_stream (GravitonNodeTransport *trans_self,
+                               GravitonNode *node,
+                               const gchar *name,
+                               GHashTable *args,
+                               GError **error);
+#endif // GRAVITON_ENABLE_STREAMS
 
 G_DEFINE_TYPE (GravitonJsonrpcNodeTransport,
                graviton_jsonrpc_node_transport,
@@ -230,9 +235,12 @@ graviton_jsonrpc_node_transport_class_init (
   GravitonNodeTransportClass *transport_class = GRAVITON_NODE_TRANSPORT_CLASS (
     klass);
   transport_class->call_args = call_args;
-  transport_class->open_stream = open_stream;
   transport_class->subscribe_events = subscribe_events;
   transport_class->unsubscribe_events = unsubscribe_events;
+
+#ifdef GRAVITON_ENABLE_STREAMS
+  transport_class->open_stream = open_stream;
+#endif // GRAVITON_ENABLE_STREAMS
 }
 
 static void
@@ -315,34 +323,6 @@ graviton_jsonrpc_node_transport_finalize (GObject *object)
     g_free (self->priv->rpc_uri);
   if (self->priv->event_uri)
     g_free (self->priv->event_uri);
-}
-
-static GIOStream *
-open_stream (GravitonNodeTransport *trans_self,
-             GravitonNode *node,
-             const gchar *name,
-             GHashTable *args,
-             GError **error)
-{
-  GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (
-    trans_self);
-  gchar *new_name;
-  SoupURI *stream_uri;
-
-  // This needs done because otherwise foo:bar:service would look like an
-  // absolute URI to soup_uri_new_with_base
-  new_name = g_strdup_printf ("./%s", name);
-  stream_uri = soup_uri_new_with_base (self->priv->stream_uri, new_name);
-  g_debug ("Preparing jsonrpc stream for %s",
-           soup_uri_to_string (stream_uri, FALSE));
-  g_free (new_name);
-
-  if (args)
-    soup_uri_set_query_from_form (stream_uri, args);
-  GIOStream *ret =
-    G_IO_STREAM (graviton_jsonrpc_io_stream_new (stream_uri, self->priv->soup));
-  soup_uri_free (stream_uri);
-  return ret;
 }
 
 static GVariant*
@@ -545,3 +525,34 @@ graviton_jsonrpc_node_transport_get_node_id (
   }
   return transport->priv->endpoint_node_id;
 }
+
+#ifdef GRAVITON_ENABLE_STREAMS
+static GIOStream *
+open_stream (GravitonNodeTransport *trans_self,
+             GravitonNode *node,
+             const gchar *name,
+             GHashTable *args,
+             GError **error)
+{
+  GravitonJsonrpcNodeTransport *self = GRAVITON_JSONRPC_NODE_TRANSPORT (
+    trans_self);
+  gchar *new_name;
+  SoupURI *stream_uri;
+
+  // This needs done because otherwise foo:bar:service would look like an
+  // absolute URI to soup_uri_new_with_base
+  new_name = g_strdup_printf ("./%s", name);
+  stream_uri = soup_uri_new_with_base (self->priv->stream_uri, new_name);
+  g_debug ("Preparing jsonrpc stream for %s",
+           soup_uri_to_string (stream_uri, FALSE));
+  g_free (new_name);
+
+  if (args)
+    soup_uri_set_query_from_form (stream_uri, args);
+  GIOStream *ret =
+    G_IO_STREAM (graviton_jsonrpc_io_stream_new (stream_uri, self->priv->soup));
+  soup_uri_free (stream_uri);
+  return ret;
+}
+#endif // GRAVITON_ENABLE_STREAMS
+

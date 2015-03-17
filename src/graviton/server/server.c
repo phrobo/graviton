@@ -25,7 +25,10 @@
 #include "root-service.h"
 #include "server-publish-method.h"
 #include "service.h"
+
+#ifdef GRAVITON_ENABLE_STREAMS
 #include "stream.h"
+#endif // GRAVITON_ENABLE_STREAMS
 
 #include <json-glib/json-glib.h>
 #include <libsoup/soup.h>
@@ -453,110 +456,6 @@ out:
 }
 
 static void
-cb_handle_stream (SoupServer *server,
-                  SoupMessage *msg,
-                  const char *path,
-                  GHashTable *query,
-                  SoupClientContext *client,
-                  gpointer user_data)
-{
-  GravitonServer *self = GRAVITON_SERVER (user_data);
-  GravitonStream *stream = NULL;
-  GravitonService *service = NULL;
-  GError *error = NULL;
-  gchar **stream_path;
-  gchar *service_name;
-  gchar *stream_name;
-
-  const gchar *path_start = &path[strlen("/stream/")];
-
-  stream_path = g_strsplit (path_start, ".", 0);
-
-  service_name = g_strdup (stream_path[0]);
-  stream_name = g_strdup (stream_path[1]);
-  g_strfreev (stream_path);
-
-  service =
-    graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
-                                     service_name);
-
-  if (!service) {
-    soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
-    g_debug ("Couldn't find service %s for streaming", service_name);
-    return;
-  }
-
-  stream = graviton_service_get_stream (service, stream_name, query, &error);
-
-  if (error) {
-    g_debug ("Error getting stream: %s", error->message);
-    return;
-  }
-
-  if (stream) {
-    SoupMessageHeaders *headers;
-    StreamConnection *connection;
-    SoupMessageBody *body;
-
-    g_object_get (msg,
-                  SOUP_MESSAGE_RESPONSE_HEADERS,
-                  &headers,
-                  SOUP_MESSAGE_RESPONSE_BODY,
-                  &body,
-                  NULL);
-    soup_message_body_set_accumulate (body, FALSE);
-
-    connection = new_stream (msg, stream, self);
-
-    self->priv->streams = g_list_append (self->priv->streams, connection);
-
-    soup_message_set_status (msg, SOUP_STATUS_OK);
-    soup_message_headers_set_encoding (headers, SOUP_ENCODING_CHUNKED);
-    soup_message_headers_append (headers, "Connection", "close");
-
-    gboolean success = FALSE;
-    gchar *method;
-    g_object_get (msg, SOUP_MESSAGE_METHOD, &method, NULL);
-
-    if (strcmp (method, "GET") == 0) {
-      GInputStream *input = graviton_stream_open_read (stream, &error);
-      if (input) {
-        success = TRUE;
-        g_input_stream_read_async (input,
-                                   connection->buf,
-                                   connection->bufsize,
-                                   G_PRIORITY_DEFAULT,
-                                   connection->cancellable,
-                                   cb_read_stream,
-                                   connection);
-      }
-    }
-
-    if (!success) {
-      soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
-      g_debug ("Unsupported operation %s for %s.%s.",
-               method,
-               service_name,
-               stream_name);
-      if (error) {
-        g_debug ("Associated error: %s", error->message);
-      }
-      free_stream (connection);
-    }
-
-    g_free (method);
-
-    g_debug ("Now streaming: %s", path_start);
-  } else {
-    soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
-    g_debug ("Couldn't find stream %s for %s: ", stream_name, service_name);
-  }
-
-  g_free (service_name);
-  g_free (stream_name);
-}
-
-static void
 cb_handle_events (SoupServer *server,
                   SoupMessage *msg,
                   const char *path,
@@ -790,7 +689,11 @@ new_server (GravitonServer *self, SoupAddressFamily family)
 
   soup_server_add_handler (server, "/rpc", cb_handle_rpc, self, NULL);
   soup_server_add_handler (server, "/events", cb_handle_events, self, NULL);
+
+#ifdef GRAVITON_ENABLE_STREAMS
   soup_server_add_handler (server, "/stream", cb_handle_stream, self, NULL);
+#endif // GRAVITON_ENABLE_STREAMS
+
   return server;
 }
 
@@ -1009,3 +912,109 @@ next_plugin:
 
   return plugin_list;
 }
+
+#ifdef GRAVITON_ENABLE_STREAMS
+static void
+cb_handle_stream (SoupServer *server,
+                  SoupMessage *msg,
+                  const char *path,
+                  GHashTable *query,
+                  SoupClientContext *client,
+                  gpointer user_data)
+{
+  GravitonServer *self = GRAVITON_SERVER (user_data);
+  GravitonStream *stream = NULL;
+  GravitonService *service = NULL;
+  GError *error = NULL;
+  gchar **stream_path;
+  gchar *service_name;
+  gchar *stream_name;
+
+  const gchar *path_start = &path[strlen("/stream/")];
+
+  stream_path = g_strsplit (path_start, ".", 0);
+
+  service_name = g_strdup (stream_path[0]);
+  stream_name = g_strdup (stream_path[1]);
+  g_strfreev (stream_path);
+
+  service =
+    graviton_service_get_subservice (GRAVITON_SERVICE (self->priv->plugins),
+                                     service_name);
+
+  if (!service) {
+    soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
+    g_debug ("Couldn't find service %s for streaming", service_name);
+    return;
+  }
+
+  stream = graviton_service_get_stream (service, stream_name, query, &error);
+
+  if (error) {
+    g_debug ("Error getting stream: %s", error->message);
+    return;
+  }
+
+  if (stream) {
+    SoupMessageHeaders *headers;
+    StreamConnection *connection;
+    SoupMessageBody *body;
+
+    g_object_get (msg,
+                  SOUP_MESSAGE_RESPONSE_HEADERS,
+                  &headers,
+                  SOUP_MESSAGE_RESPONSE_BODY,
+                  &body,
+                  NULL);
+    soup_message_body_set_accumulate (body, FALSE);
+
+    connection = new_stream (msg, stream, self);
+
+    self->priv->streams = g_list_append (self->priv->streams, connection);
+
+    soup_message_set_status (msg, SOUP_STATUS_OK);
+    soup_message_headers_set_encoding (headers, SOUP_ENCODING_CHUNKED);
+    soup_message_headers_append (headers, "Connection", "close");
+
+    gboolean success = FALSE;
+    gchar *method;
+    g_object_get (msg, SOUP_MESSAGE_METHOD, &method, NULL);
+
+    if (strcmp (method, "GET") == 0) {
+      GInputStream *input = graviton_stream_open_read (stream, &error);
+      if (input) {
+        success = TRUE;
+        g_input_stream_read_async (input,
+                                   connection->buf,
+                                   connection->bufsize,
+                                   G_PRIORITY_DEFAULT,
+                                   connection->cancellable,
+                                   cb_read_stream,
+                                   connection);
+      }
+    }
+
+    if (!success) {
+      soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+      g_debug ("Unsupported operation %s for %s.%s.",
+               method,
+               service_name,
+               stream_name);
+      if (error) {
+        g_debug ("Associated error: %s", error->message);
+      }
+      free_stream (connection);
+    }
+
+    g_free (method);
+
+    g_debug ("Now streaming: %s", path_start);
+  } else {
+    soup_message_set_status (msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+    g_debug ("Couldn't find stream %s for %s: ", stream_name, service_name);
+  }
+
+  g_free (service_name);
+  g_free (stream_name);
+}
+#endif // GRAVITON_ENABLE_STREAMS

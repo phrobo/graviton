@@ -101,17 +101,20 @@ GVariant *graviton_service_interface_call_va (GravitonServiceInterface *service,
                                               GError **error,
                                               va_list args);
 
-GravitonNodeStream *graviton_service_interface_get_stream (
-  GravitonServiceInterface *service,
-  const gchar *name,
-  GHashTable *args);
-
 gboolean graviton_service_interface_subscribe_events (GravitonServiceInterface *service,
                                                       const gchar *name,
                                                       GError **error);
 gboolean graviton_service_interface_unsubscribe_events (GravitonServiceInterface *service,
                                                         const gchar *name,
                                                         GError **erro);
+
+#ifdef GRAVITON_ENABLE_STREAMS
+GravitonNodeStream *graviton_service_interface_get_stream (
+  GravitonServiceInterface *service,
+  const gchar *name,
+  GHashTable *args);
+#endif // GRAVITON_ENABLE_STREAMS
+
 
 G_END_DECLS
 

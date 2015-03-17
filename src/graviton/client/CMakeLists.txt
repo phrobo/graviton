@@ -4,12 +4,15 @@ set(libgraviton-client_SRCS
   introspection-interface.c
   node.c
   service-interface.c
-  jsonrpc-io-stream.c
-  jsonrpc-input-stream.c
-  node-stream.c
   node-transport.c
   jsonrpc-node-transport.c
   node-browser.c
+)
+
+set(stream_SRCS
+  jsonrpc-io-stream.c
+  jsonrpc-input-stream.c
+  node-stream.c
 )
 
 set(libgraviton-client_HEADERS
@@ -18,13 +21,22 @@ set(libgraviton-client_HEADERS
   introspection-interface.h
   node.h
   service-interface.h
-  jsonrpc-input-stream.h
-  jsonrpc-io-stream.h
-  node-stream.h
   node-transport.h
   jsonrpc-node-transport.h
   node-browser.h
 )
+
+set(stream_HEADERS
+  jsonrpc-input-stream.h
+  jsonrpc-io-stream.h
+  node-stream.h
+)
+
+if (GRAVITON_ENABLE_STREAMS)
+  message(STATUS "Streams API enabled in client.")
+  list(APPEND libgraviton-client_SRCS ${stream_SRCS})
+  list(APPEND libgraviton-client_HEADERS ${stream_HEADERS})
+endif()
 
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
