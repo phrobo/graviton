@@ -21,24 +21,22 @@
   </chapter>
   <chapter>
   <title>Graviton API</title>
-    <xi:include href="xml/cloud.xml"/>
-    <xi:include href="xml/discovery-method.xml"/>
-    <xi:include href="xml/file-stream.xml"/>
-    <xi:include href="xml/introspection-interface.xml"/>
-    <xi:include href="xml/introspection-service.xml"/>
-    <xi:include href="xml/jsonrpc-node-transport.xml"/>
-    <xi:include href="xml/node.xml"/>
-    <xi:include href="xml/node-browser.xml"/>
-    <xi:include href="xml/node-input-stream.xml"/>
-    <xi:include href="xml/node-io-stream.xml"/>
-    <xi:include href="xml/node-stream.xml"/>
-    <xi:include href="xml/node-transport.xml"/>
-    <xi:include href="xml/root-service.xml"/>
-    <xi:include href="xml/server.xml"/>
-    <xi:include href="xml/service.xml"/>
-    <xi:include href="xml/service-interface.xml"/>
-    <xi:include href="xml/stream.xml"/>
-
+    <section>
+      <title>Server</title>
+      @server_DOCS_XML@
+    </section>
+    <section>
+      <title>Client</title>
+      @client_DOCS_XML@
+    </section>
+    <section>
+      <title>Introspection</title>
+      @introspection_DOCS_XML@
+    </section>
+    <section>
+      <title>Transports</title>
+      @transports_DOCS_XML@
+    </section>
   </chapter>
   <index id="api-index-full">
     <title>API Index</title>

@@ -1,5 +1,13 @@
 find_package(GtkDoc)
 
+macro(make_xml prefix)
+  set(_args "${ARGN}")
+  foreach(_xml ${_args})
+    set(_v "${prefix}_DOCS_XML")
+    list(APPEND ${_v} "<xi:include href=\"${_xml}\" />")
+  endforeach()
+endmacro()
+
 if (GTKDOC_FOUND)
 
   message(STATUS "gtk-goc found. Documentation will be built.")
@@ -18,6 +26,45 @@ if (GTKDOC_FOUND)
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_BINARY_DIR}
   )
+
+  make_xml(client
+    xml/cloud.xml
+    xml/discovery-method.xml
+    xml/node.xml
+    xml/node-transport.xml
+    xml/service-interface.xml
+  )
+
+  make_xml(server
+    xml/node-browser.xml
+    xml/root-service.xml
+    xml/server.xml
+    xml/service.xml
+  )
+
+  make_xml(introspection
+    xml/introspection-interface.xml
+    xml/introspection-service.xml
+  )
+
+  make_xml(transports
+    xml/jsonrpc-node-transport.xml
+  )
+
+  if (GRAVITON_ENABLE_STREAMS)
+    make_xml(client_streams
+      xml/file-stream.xml
+      xml/node-input-stream.xml
+      xml/node-io-stream.xml
+      xml/node-stream.xml
+      xml/stream.xml
+    )
+  endif()
+
+  foreach(_xml IN LISTS client_DOCS)
+    set(client_DOCS_XML "<xi:include href=\"${_xml}\" />")
+  endforeach()
+
 
   configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Graviton-docs.xml.cmake
