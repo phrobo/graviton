@@ -1,0 +1,25 @@
+dependencies:
+  pre:
+    - sudo apt-add-repository -y ppa:smspillaz/cmake-2.8.12
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq libjson-glib-dev libsoup2.4-dev libavahi-glib-dev libgupnp-igd-1.0-dev gtk-doc-tools cmake
+    - sudo pip install awscli
+  post:
+    - cmake -DCMAKE_BUILD_TYPE=Debug .
+test:
+  pre:
+    - make
+  override:
+    - ctest
+  post:
+    - make docs
+deployment:
+  docs:
+    branch: circleci
+    commands:
+      - aws s3 sync docs/html/ s3://docs.phrobo.net/graviton/$CIRCLE_SHA1/
+      - aws s3 sync docs/html/ s3://docs.phrobo.net/graviton/$CIRCLE_BRANCH/
+  latest_docs:
+    branch: master
+    commands:
+      - aws s3 sync docs/html/ s3://docs.phrobo.net/graviton/latest/
