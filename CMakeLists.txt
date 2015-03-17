@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(graviton)
 
+enable_testing()
+
 set(GRAVITON_VERSION_MAJOR 0)
 set(GRAVITON_VERSION_MINOR 0)
 set(GRAVITON_VERSION_PATCH 1)
