@@ -442,6 +442,35 @@ graviton_service_list_subservices (GravitonService *self)
 }
 
 /**
+ * graviton_service_new:
+ * @service_name: Name of the service to use
+ *
+ * Creates a new #GravitonService with a service name
+ *
+ * Returns: A new #GravitonService that exposes the given @service_name
+ */
+GravitonService *
+graviton_service_new (const gchar *service_name)
+{
+  return g_object_new (GRAVITON_SERVICE_TYPE, "name", service_name, NULL);
+}
+
+void
+graviton_service_emit_event (GravitonService *self,
+                             const gchar *name,
+                             GVariant *data)
+{
+  gchar *full_name;
+
+  full_name = g_strdup_printf ("%s.%s", self->priv->name, name);
+  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
+                   full_name), full_name, data);
+  g_debug ("Dispatch event: %s", full_name);
+  g_free (full_name);
+}
+
+#ifdef GRAVITON_ENABLE_STREAMS
+/**
  * graviton_service_add_stream:
  * @self: The #GravitonService
  * @name: String name of the stream to add
@@ -495,31 +524,4 @@ graviton_service_get_stream (GravitonService *self,
     return func(self, name, args, error, func_data);
   return NULL;
 }
-
-/**
- * graviton_service_new:
- * @service_name: Name of the service to use
- *
- * Creates a new #GravitonService with a service name
- *
- * Returns: A new #GravitonService that exposes the given @service_name
- */
-GravitonService *
-graviton_service_new (const gchar *service_name)
-{
-  return g_object_new (GRAVITON_SERVICE_TYPE, "name", service_name, NULL);
-}
-
-void
-graviton_service_emit_event (GravitonService *self,
-                             const gchar *name,
-                             GVariant *data)
-{
-  gchar *full_name;
-
-  full_name = g_strdup_printf ("%s.%s", self->priv->name, name);
-  g_signal_emit (self, obj_signals[SIGNAL_EVENT], g_quark_from_string (
-                   full_name), full_name, data);
-  g_debug ("Dispatch event: %s", full_name);
-  g_free (full_name);
-}
+#endif // GRAVITON_ENABLE_STREAMS

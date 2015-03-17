@@ -23,6 +23,7 @@
 #include <graviton/client/introspection-interface.h>
 #include <graviton/client/jsonrpc-node-transport.h>
 
+#ifdef GRAVITON_ENABLE_STREAMS
 void
 print_streams (GravitonServiceInterface *service)
 {
@@ -44,6 +45,7 @@ print_streams (GravitonServiceInterface *service)
 
   g_object_unref (inspect);
 }
+#endif // GRAVITON_ENABLE_STREAMS
 
 void
 print_properties (GravitonServiceInterface *service)
@@ -84,8 +86,11 @@ print_services (GravitonServiceInterface *service)
     g_print ("%s:\n", graviton_service_interface_get_name (service));
     g_print ("\tProperties: \n");
     print_properties (service);
+
+#ifdef GRAVITON_ENABLE_STREAMS
     g_print ("\tStreams:\n");
     print_streams (service);
+#endif // GRAVITON_ENABLE_STREAMS
   }
   GravitonIntrospectionControl *inspect = graviton_introspection_interface_new_from_interface (service);
   GList *services = graviton_introspection_interface_list_interfaces (inspect, &error);

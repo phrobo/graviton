@@ -54,10 +54,13 @@ struct _GravitonNodeTransportClass
   GObjectClass parent_class;
   GVariant *(*call_args)(GravitonNodeTransport *self, GravitonNode *node,
                          const gchar*method, GHashTable *args, GError **err);
-  GIOStream *(*open_stream)(GravitonNodeTransport *self, GravitonNode *node,
-                            const gchar *name, GHashTable *args, GError **err);
   gboolean (*subscribe_events)(GravitonNodeTransport *self, GravitonNode *node, const gchar *name, GError **err);
   gboolean (*unsubscribe_events)(GravitonNodeTransport *self, GravitonNode *node, const gchar *name, GError **err);
+
+#ifdef GRAVITON_ENABLE_STREAMS
+  GIOStream *(*open_stream)(GravitonNodeTransport *self, GravitonNode *node,
+                            const gchar *name, GHashTable *args, GError **err);
+#endif // GRAVITON_ENABLE_STREAMS
 };
 
 struct _GravitonNodeTransport
@@ -74,11 +77,6 @@ GVariant *graviton_node_transport_call_args (GravitonNodeTransport *self,
                                              const gchar *method,
                                              GHashTable *args,
                                              GError **error);
-GIOStream *graviton_node_transport_open_stream (GravitonNodeTransport *self,
-                                                GravitonNode *node,
-                                                const gchar *name,
-                                                GHashTable *args,
-                                                GError **error);
 
 void graviton_node_transport_emit_event (GravitonNodeTransport *self,
                                          const gchar *node_id,
@@ -94,6 +92,14 @@ gboolean graviton_node_transport_unsubscribe_events (GravitonNodeTransport *tran
                                                      GravitonNode *node,
                                                      const gchar *name,
                                                      GError **error);
+
+#ifdef GRAVITON_ENABLE_STREAMS
+GIOStream *graviton_node_transport_open_stream (GravitonNodeTransport *self,
+                                                GravitonNode *node,
+                                                const gchar *name,
+                                                GHashTable *args,
+                                                GError **error);
+#endif // GRAVITON_ENABLE_STREAMS
 
 G_END_DECLS
 

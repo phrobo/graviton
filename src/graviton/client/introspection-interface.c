@@ -248,6 +248,7 @@ graviton_introspection_interface_list_properties (
                                   NULL);
 }
 
+#ifdef GRAVITON_ENABLE_STREAMS
 GList *
 graviton_introspection_interface_list_streams (
   GravitonIntrospectionControl *self,
@@ -263,3 +264,4 @@ graviton_introspection_interface_list_streams (
                                   name,
                                   NULL);
 }
+#endif // GRAVITON_ENABLE_STREAMS

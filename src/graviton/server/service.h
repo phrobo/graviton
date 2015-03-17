@@ -122,10 +122,6 @@ typedef GravitonStream *(*GravitonServiceStreamGenerator)(GravitonService *self,
                                                           GError **error,
 gpointer user_data);
 
-void graviton_service_add_stream (GravitonService *self,
-                                  const gchar *name,
-                                  GravitonServiceStreamGenerator func,
-                                  gpointer user_data);
 
 GList *graviton_service_list_streams (GravitonService *self);
 GravitonStream *graviton_service_get_stream (GravitonService *self,
@@ -138,5 +134,12 @@ GravitonService *graviton_service_new (const gchar *service_name);
 void graviton_service_emit_event (GravitonService *self,
                                   const gchar *name,
                                   GVariant *data);
+
+#ifdef GRAVITON_ENABLE_STREAMS
+void graviton_service_add_stream (GravitonService *self,
+                                  const gchar *name,
+                                  GravitonServiceStreamGenerator func,
+                                  gpointer user_data);
+#endif // GRAVITON_ENABLE_STREAMS
 
 #endif // GRAVITON_SERVICE_H

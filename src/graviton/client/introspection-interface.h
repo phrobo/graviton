@@ -68,9 +68,6 @@ GList *graviton_introspection_interface_list_interfaces (
 GList *graviton_introspection_interface_list_properties (
   GravitonIntrospectionControl *self,
   GError **error);
-GList *graviton_introspection_interface_list_streams (
-  GravitonIntrospectionControl *self,
-  GError **error);
 GList *graviton_introspection_interface_list_methods (
   GravitonIntrospectionControl *self,
   GError **error);
@@ -80,6 +77,12 @@ graviton_introspection_interface_new_from_interface (
 GravitonIntrospectionControl *graviton_introspection_interface_new (
   GravitonNode *node,
   const gchar *name);
+
+#ifdef GRAVITON_ENABLE_STREAMS
+GList *graviton_introspection_interface_list_streams (
+  GravitonIntrospectionControl *self,
+  GError **error);
+#endif // GRAVITON_ENABLE_STREAMS
 
 G_END_DECLS
 

@@ -99,13 +99,6 @@ GVariant *graviton_node_call_va (GravitonNode *node,
                                  GError **error,
                                  va_list args);
 
-GIOStream *graviton_node_open_stream (GravitonNode *node,
-                                      const gchar *name,
-                                      GHashTable *args);                                        //FIXME:
-                                                                                                // Needs
-                                                                                                // a
-                                                                                                // GError
-
 void graviton_node_add_transport (GravitonNode *node,
                                   GravitonNodeTransport *transport,
                                   int priority);
@@ -122,6 +115,15 @@ gboolean graviton_node_subscribe_events (GravitonNode *node,
 gboolean graviton_node_unsubscribe_events (GravitonNode *node,
                                            const gchar *name,
                                            GError **error);
+
+#ifdef GRAVITON_ENABLE_STREAMS
+GIOStream *graviton_node_open_stream (GravitonNode *node,
+                                      const gchar *name,
+                                      GHashTable *args);                                        //FIXME:
+                                                                                                // Needs
+                                                                                                // a
+                                                                                                // GError
+#endif // GRAVITON_ENABLE_STREAMS
 
 G_END_DECLS
 

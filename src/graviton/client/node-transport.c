@@ -125,17 +125,6 @@ graviton_node_transport_finalize (GObject *object)
   G_OBJECT_CLASS (graviton_node_transport_parent_class)->finalize (object);
 }
 
-GIOStream *
-graviton_node_transport_open_stream (GravitonNodeTransport *self,
-                                     GravitonNode *node,
-                                     const gchar *name,
-                                     GHashTable *args,
-                                     GError **error)
-{
-  GravitonNodeTransportClass *klass = GRAVITON_NODE_TRANSPORT_GET_CLASS (self);
-  return klass->open_stream (self, node, name, args, error);
-}
-
 GVariant *
 graviton_node_transport_call_args (GravitonNodeTransport *self,
                                    GravitonNode *node,
@@ -178,3 +167,16 @@ graviton_node_transport_unsubscribe_events (GravitonNodeTransport *transport,
   GravitonNodeTransportClass *klass = GRAVITON_NODE_TRANSPORT_GET_CLASS (transport);
   return klass->unsubscribe_events (transport, node, name, error);
 }
+
+#ifdef GRAVITON_ENABLE_STREAMS
+GIOStream *
+graviton_node_transport_open_stream (GravitonNodeTransport *self,
+                                     GravitonNode *node,
+                                     const gchar *name,
+                                     GHashTable *args,
+                                     GError **error)
+{
+  GravitonNodeTransportClass *klass = GRAVITON_NODE_TRANSPORT_GET_CLASS (self);
+  return klass->open_stream (self, node, name, args, error);
+}
+#endif // GRAVITON_ENABLE_STREAMS

@@ -358,21 +358,6 @@ graviton_node_call_args (GravitonNode *self,
   return graviton_node_transport_call_args (transport, self, method, args, err);
 }
 
-GIOStream *
-graviton_node_open_stream (GravitonNode *self,
-                           const gchar *name,
-                           GHashTable *args)
-{
-  GravitonNodeTransport *transport = graviton_node_get_default_transport (self);
-  GIOStream *ret = graviton_node_transport_open_stream (transport,
-                                                        self,
-                                                        name,
-                                                        args,
-                                                        NULL);
-  g_object_unref (transport);
-  return ret;
-}
-
 static void
 cb_transport_event (GravitonNodeTransport *transport,
                     const gchar *node_id,
@@ -468,3 +453,20 @@ graviton_node_unsubscribe_events (GravitonNode *node,
 
   return ret;
 }
+
+#ifdef GRAVITON_ENABLE_STREAMS
+GIOStream *
+graviton_node_open_stream (GravitonNode *self,
+                           const gchar *name,
+                           GHashTable *args)
+{
+  GravitonNodeTransport *transport = graviton_node_get_default_transport (self);
+  GIOStream *ret = graviton_node_transport_open_stream (transport,
+                                                        self,
+                                                        name,
+                                                        args,
+                                                        NULL);
+  g_object_unref (transport);
+  return ret;
+}
+#endif // GRAVITON_ENABLE_STREAMS
