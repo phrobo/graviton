@@ -119,8 +119,8 @@ if (GTKDOC_FOUND)
       ${GTKDOC_SCANGOBJ_EXE}
         --module=Graviton
         --cflags=\"${GLIB_CFLAGS}\"
-        --ldflags=\"${GLIB_LDFLAGS} -lgobject-2.0 -L../src/graviton/client
-        -L../src/graviton/server -lgraviton-client -lgraviton-server\"
+        --ldflags=\"${GLIB_LDFLAGS} -lgobject-2.0 -L${CMAKE_BINARY_DIR}/src/graviton/client
+        -L${CMAKE_BINARY_DIR}/src/graviton/server -lgraviton-client -lgraviton-server\"
     DEPENDS
       ${libgraviton_SRCS}
     WORKING_DIRECTORY
