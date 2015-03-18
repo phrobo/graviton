@@ -23,6 +23,7 @@ if (GTKDOC_FOUND)
         --source-dir=${CMAKE_SOURCE_DIR}/src/graviton/
     DEPENDS
       ${CMAKE_CURRENT_BINARY_DIR}/Graviton-decl.txt
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton.hiearchy
     WORKING_DIRECTORY
       ${CMAKE_CURRENT_BINARY_DIR}
   )
@@ -104,6 +105,28 @@ if (GTKDOC_FOUND)
       ${CMAKE_CURRENT_BINARY_DIR}/
   )
 
+  file(
+    COPY
+      ${CMAKE_CURRENT_SOURCE_DIR}/Graviton.types
+    DESTINATION
+      ${CMAKE_CURRENT_BINARY_DIR}/
+  )
+
+  add_custom_command(
+    OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/Graviton.hiearchy
+    COMMAND
+      ${GTKDOC_SCANGOBJ_EXE}
+        --module=Graviton
+        --cflags=\"${GLIB_CFLAGS}\"
+        --ldflags=\"${GLIB_LDFLAGS} -lgobject-2.0 -L../src/graviton/client
+        -L../src/graviton/server -lgraviton-client -lgraviton-server\"
+    DEPENDS
+      ${libgraviton_SRCS}
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
   add_custom_command(
     OUTPUT
       ${CMAKE_CURRENT_BINARY_DIR}/Graviton-decl.txt
@@ -111,7 +134,6 @@ if (GTKDOC_FOUND)
       ${GTKDOC_SCAN_EXE}
         --module=Graviton
         --source-dir=${CMAKE_SOURCE_DIR}/src/graviton/
-        --rebuild-types
     DEPENDS
       ${libgraviton_SRCS}
       ${libgraviton_HEADERS}
