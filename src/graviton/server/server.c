@@ -185,99 +185,6 @@ struct _GravitonServerPrivate
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
-typedef struct _StreamConnection
-{
-  GravitonStream *stream;
-  SoupMessage *message;
-  gchar *buf;
-  gsize bufsize;
-  GCancellable *cancellable;
-  GravitonServer *server;
-  gint refcount;
-} StreamConnection;
-
-static StreamConnection *
-new_stream (SoupMessage *message, GravitonStream *stream,
-            GravitonServer *server)
-{
-  StreamConnection *connection = g_new0 (StreamConnection, 1);
-  connection->message = g_object_ref (message);
-  connection->stream = g_object_ref (stream);
-  connection->server = g_object_ref (server);
-  connection->cancellable = g_cancellable_new ();
-
-  connection->bufsize = 8192;
-  connection->buf = g_new0 (gchar, connection->bufsize);
-
-  return connection;
-}
-
-static void
-free_stream (StreamConnection *connection)
-{
-  g_object_unref (connection->cancellable);
-  if (connection->message) {
-    SoupMessageBody *body;
-    g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
-    soup_message_body_complete (body);
-    soup_server_unpause_message (connection->server->priv->server, connection->message);
-    connection->message = 0;
-  }
-  if (connection->stream) {
-    g_object_unref (connection->stream);
-    connection->stream = 0;
-  }
-  if (connection->buf) {
-    g_free (connection->buf);
-    connection->buf = 0;
-  }
-  connection->server->priv->streams = g_list_remove (
-    connection->server->priv->streams,
-    connection);
-  g_object_unref (connection->server);
-}
-
-static void
-cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
-{
-  GError *error = NULL;
-  SoupMessageBody *body;
-  StreamConnection *connection = (StreamConnection*)user_data;
-
-  if (g_cancellable_set_error_if_cancelled (connection->cancellable, &error)) {
-    free_stream (connection);
-    return;
-  }
-
-  gssize read_size = g_input_stream_read_finish (G_INPUT_STREAM (
-                                                   source), res, &error);
-
-  if (error) {
-    g_debug ("Error while streaming: %s", error->message);
-    free_stream (connection);
-    return;
-  }
-
-  if (read_size == 0) {
-    g_debug ("End of stream.");
-    free_stream (connection);
-    return;
-  }
-
-  g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
-  soup_message_body_append (body, SOUP_MEMORY_COPY, connection->buf, read_size);
-  g_debug ("Read %li", read_size); //FIXME: Should use G_SSIZE_FORMAT
-  soup_server_unpause_message (connection->server->priv->server,
-                               connection->message);
-  g_input_stream_read_async (G_INPUT_STREAM (source),
-                             connection->buf,
-                             connection->bufsize,
-                             G_PRIORITY_DEFAULT,
-                             connection->cancellable,
-                             cb_read_stream,
-                             connection);
-}
-
 static void
 set_property (GObject *object,
               guint property_id,
@@ -560,28 +467,6 @@ out:
   g_object_unref (generator);
 }
 
-//FIXME: What was this here for?
-/*static void
- *  broadcast_property_notify (GObject *object, GParamSpec *pspec, gpointer
- * user_data)
- *  {
- *  GravitonServer *self = GRAVITON_SERVER (user_data);
- *  JsonBuilder *builder;
- *  JsonNode *result = NULL;
- *  GList *client = self->priv->event_listeners;
- *  builder = json_builder_new ();
- *  while (client) {
- *   SoupMessageBody *body;
- *   g_object_get (client->data, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
- *   soup_message_body_append (body, SOUP_MEMORY_STATIC, "ping",
- * strlen("ping"));
- *   soup_server_unpause_message (self->priv->server, client->data);
- *   client = g_list_next (client);
- *   g_debug ("Sent ping");
- *  }
- *  return TRUE;
- *  }*/
-
 static void
 cb_aborted_request (SoupServer *server,
                     SoupMessage *message,
@@ -595,6 +480,7 @@ cb_aborted_request (SoupServer *server,
                                                message);
   g_mutex_unlock (&self->priv->event_lock);
 
+#ifdef GRAVITON_ENABLE_STREAMS
   GList *cur = self->priv->streams;
   while (cur) {
     StreamConnection *conn = (StreamConnection*)cur->data;
@@ -604,6 +490,7 @@ cb_aborted_request (SoupServer *server,
     }
     cur = cur->next;
   }
+#endif // GRAVITON_ENABLE_STREAMS
 
   g_object_unref (G_OBJECT (message));
 
@@ -914,6 +801,99 @@ next_plugin:
 }
 
 #ifdef GRAVITON_ENABLE_STREAMS
+typedef struct _StreamConnection
+{
+  GravitonStream *stream;
+  SoupMessage *message;
+  gchar *buf;
+  gsize bufsize;
+  GCancellable *cancellable;
+  GravitonServer *server;
+  gint refcount;
+} StreamConnection;
+
+static StreamConnection *
+new_stream (SoupMessage *message, GravitonStream *stream,
+            GravitonServer *server)
+{
+  StreamConnection *connection = g_new0 (StreamConnection, 1);
+  connection->message = g_object_ref (message);
+  connection->stream = g_object_ref (stream);
+  connection->server = g_object_ref (server);
+  connection->cancellable = g_cancellable_new ();
+
+  connection->bufsize = 8192;
+  connection->buf = g_new0 (gchar, connection->bufsize);
+
+  return connection;
+}
+
+static void
+free_stream (StreamConnection *connection)
+{
+  g_object_unref (connection->cancellable);
+  if (connection->message) {
+    SoupMessageBody *body;
+    g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+    soup_message_body_complete (body);
+    soup_server_unpause_message (connection->server->priv->server, connection->message);
+    connection->message = 0;
+  }
+  if (connection->stream) {
+    g_object_unref (connection->stream);
+    connection->stream = 0;
+  }
+  if (connection->buf) {
+    g_free (connection->buf);
+    connection->buf = 0;
+  }
+  connection->server->priv->streams = g_list_remove (
+    connection->server->priv->streams,
+    connection);
+  g_object_unref (connection->server);
+}
+
+static void
+cb_read_stream (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  GError *error = NULL;
+  SoupMessageBody *body;
+  StreamConnection *connection = (StreamConnection*)user_data;
+
+  if (g_cancellable_set_error_if_cancelled (connection->cancellable, &error)) {
+    free_stream (connection);
+    return;
+  }
+
+  gssize read_size = g_input_stream_read_finish (G_INPUT_STREAM (
+                                                   source), res, &error);
+
+  if (error) {
+    g_debug ("Error while streaming: %s", error->message);
+    free_stream (connection);
+    return;
+  }
+
+  if (read_size == 0) {
+    g_debug ("End of stream.");
+    free_stream (connection);
+    return;
+  }
+
+  g_object_get (connection->message, SOUP_MESSAGE_RESPONSE_BODY, &body, NULL);
+  soup_message_body_append (body, SOUP_MEMORY_COPY, connection->buf, read_size);
+  g_debug ("Read %li", read_size); //FIXME: Should use G_SSIZE_FORMAT
+  soup_server_unpause_message (connection->server->priv->server,
+                               connection->message);
+  g_input_stream_read_async (G_INPUT_STREAM (source),
+                             connection->buf,
+                             connection->bufsize,
+                             G_PRIORITY_DEFAULT,
+                             connection->cancellable,
+                             cb_read_stream,
+                             connection);
+}
+
 static void
 cb_handle_stream (SoupServer *server,
                   SoupMessage *msg,
