@@ -42,10 +42,6 @@ enum {
   N_SIGNALS
 };
 
-static int obj_signals[N_SIGNALS] = { 0, };
-
-static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
-
 static void
 cb_avahi_group (AvahiEntryGroup *g, AvahiEntryGroupState state, gpointer data)
 {
@@ -131,7 +127,6 @@ graviton_avahi_server_publish_method_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec)
 {
-  GravitonAvahiServerPublishMethod *self = GRAVITON_AVAHI_SERVER_PUBLISH_METHOD (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -145,7 +140,6 @@ graviton_avahi_server_publish_method_get_property (GObject *object,
     GValue *value,
     GParamSpec *pspec)
 {
-  GravitonAvahiServerPublishMethod *self = GRAVITON_AVAHI_SERVER_PUBLISH_METHOD (object);
   switch (property_id) {
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

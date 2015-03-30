@@ -17,10 +17,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#define G_LOG_DOMAIN "GravitonService"
+
 #include "service.h"
 #include <string.h>
-
-#define G_LOG_DOMAIN "GravitonService"
 
 /**
  * SECTION:service
