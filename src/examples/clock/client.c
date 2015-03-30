@@ -45,6 +45,9 @@ cb_services (GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceIn
       g_signal_connect (iface, "event::tick", G_CALLBACK (cb_tick), NULL);
       g_object_ref (iface);
       break;
+    case GRAVITON_SERVICE_LOST:
+      g_print ("A clock has died :(\n");
+      break;
     case GRAVITON_SERVICE_ALL_FOR_NOW:
       g_print ("Found all the clocks.\n");
       break;

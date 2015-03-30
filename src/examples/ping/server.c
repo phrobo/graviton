@@ -49,8 +49,8 @@ int main(int argc, char** argv)
                                    NULL,
                                    NULL);
 
-  const gchar *cloud_id = graviton_server_get_cloud_id (server);
-  const gchar *node_id = graviton_server_get_node_id (server);
+  const gchar *cloud_id = graviton_server_get_cloud_id (GRAVITON_SERVER (server));
+  const gchar *node_id = graviton_server_get_node_id (GRAVITON_SERVER (server));
   
   g_print ("Echo server running at %s:%s\n", cloud_id, node_id);
 

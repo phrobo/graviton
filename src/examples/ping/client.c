@@ -23,7 +23,7 @@
 
 #include <graviton/client/cloud.h>
 #include <graviton/client/service-interface.h>
-#include <unistd.h>
+#include <stdlib.h>
 
 static void
 cb_services (GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceInterface *iface, gpointer user_data)
@@ -37,8 +37,11 @@ cb_services (GravitonCloud *cloud, GravitonServiceEvent event, GravitonServiceIn
       g_print ("Calling ping on %s\n", graviton_node_get_id (node, &error));
       graviton_service_interface_call_noref (iface, "ping", &error, NULL);
       break;
+    case GRAVITON_SERVICE_LOST:
+      g_print ("Ping service has vanished!\n");
+      break;
     case GRAVITON_SERVICE_ALL_FOR_NOW:
-      exit(0);
+      exit (0);
       g_main_loop_quit (loop);
       break;
   }
