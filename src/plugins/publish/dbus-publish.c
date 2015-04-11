@@ -52,6 +52,10 @@ start_publish (GravitonServerPublishMethod *method)
   graviton_dbus_server_set_port (self->priv->dbus, port);
 
   GDBusConnection *connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
+
+  if (!connection) {
+    return;
+  }
   g_dbus_interface_skeleton_export ((GDBusInterfaceSkeleton*)self->priv->dbus,
                                     connection,
                                     "/",

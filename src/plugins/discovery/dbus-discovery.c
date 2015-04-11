@@ -56,6 +56,10 @@ start_browse (GravitonDiscoveryMethod *method)
   g_debug ("Starting browsing dbus");
 
   GDBusConnection *bus = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, NULL);
+  if (!bus) {
+    graviton_discovery_method_finished (GRAVITON_DISCOVERY_METHOD (self));
+    return;
+  }
   GVariant *bus_name_list;
   GVariant *bus_name_list_reply = g_dbus_connection_call_sync (bus,
                                                                "org.freedesktop.DBus",
