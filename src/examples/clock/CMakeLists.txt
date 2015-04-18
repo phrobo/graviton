@@ -21,3 +21,5 @@ target_link_libraries(graviton-clock-server
 )
 
 install(TARGETS graviton-clock-server DESTINATION bin)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/graviton-clock-server.service
+  DESTINATION /lib/systemd/system/)

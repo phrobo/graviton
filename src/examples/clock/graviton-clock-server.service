@@ -1,0 +1,11 @@
+[Unit]
+Description=Graviton clock service
+Requires=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/graviton-clock-server
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
